@@ -1,10 +1,13 @@
 import React, { useState } from 'react';
 import { 
-  RotateCw, 
-  MoreHorizontal, 
-  AlertTriangle, 
-  ExternalLink, 
-  SendHorizontal 
+  CheckCircle2, 
+  Wrench, 
+  PackageCheck, 
+  ArrowRightCircle, 
+  Truck, 
+  Edit3, 
+  Trash2,
+  AlertCircle
 } from 'lucide-react';
 import { useFleet } from '../context/FleetContext';
 
@@ -14,49 +17,61 @@ export const PatioView = () => {
     updateStatus, 
     setSelectedUnit, 
     setIsModalOpen, 
-    currentTime 
+    deleteUnit,
+    searchQuery,
+    setSearchQuery 
   } = useFleet();
 
   const [filterTipo, setFilterTipo] = useState('ALL');
 
-  // Filtrado por tipo
-  const filteredUnits = units.filter(u => {
-    if (filterTipo === 'ALL') return true;
-    return u.tipo && u.tipo.toUpperCase() === filterTipo.toUpperCase();
+  // Filtrado de unidades en Patio o que impactan el CD
+  const patioUnits = units.filter(u => {
+    const matchesSearch = 
+      u.economico.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (u.operador && u.operador.toLowerCase().includes(searchQuery.toLowerCase())) ||
+      (u.observaciones && u.observaciones.toLowerCase().includes(searchQuery.toLowerCase()));
+
+    const matchesTipo = filterTipo === 'ALL' || u.tipo === filterTipo;
+
+    return matchesSearch && matchesTipo;
   });
 
-  const timeSyncString = currentTime.toLocaleTimeString('es-MX', {
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-    hour12: false
-  });
-
-  // 4 Columnas exactas de la imagen
   const columns = [
     {
       id: 'Disponible',
       title: 'Disponible en Patio',
-      dotClass: 'status-dot-green',
-      items: filteredUnits.filter(u => u.estatusPatio === 'Disponible')
+      subtitle: 'Unidades libres listas para asignar',
+      icon: CheckCircle2,
+      color: 'var(--status-green-text)',
+      badgeClass: 'status-disponible',
+      items: patioUnits.filter(u => u.estatusPatio === 'Disponible')
     },
     {
       id: 'Colocado p/ Carga',
       title: 'Colocado p/ Carga',
-      dotClass: 'status-dot-amber',
-      items: filteredUnits.filter(u => u.estatusPatio === 'Colocado p/ Carga')
+      subtitle: 'En rampa/cajón esperando mercancía',
+      icon: ArrowRightCircle,
+      color: 'var(--status-amber-text)',
+      badgeClass: 'status-colocado-p-carga',
+      items: patioUnits.filter(u => u.estatusPatio === 'Colocado p/ Carga')
     },
     {
       id: 'Cargado',
       title: 'Cargado',
-      dotClass: 'status-dot-blue',
-      items: filteredUnits.filter(u => u.estatusPatio === 'Cargado')
+      subtitle: 'Mercancía completa, lista para planeación',
+      icon: PackageCheck,
+      color: 'var(--status-cyan-text)',
+      badgeClass: 'status-cargado',
+      items: patioUnits.filter(u => u.estatusPatio === 'Cargado')
     },
     {
       id: 'Taller',
-      title: 'Taller / Mantenimiento',
-      dotClass: 'status-dot-red',
-      items: filteredUnits.filter(u => u.estatusPatio === 'Taller')
+      title: 'Taller / Mtto',
+      subtitle: 'Fuera de servicio por revisión mecánica',
+      icon: Wrench,
+      color: 'var(--status-red-text)',
+      badgeClass: 'status-taller',
+      items: patioUnits.filter(u => u.estatusPatio === 'Taller')
     }
   ];
 
@@ -65,153 +80,180 @@ export const PatioView = () => {
     setIsModalOpen(true);
   };
 
-  const despacharUnidad = (unitId) => {
-    updateStatus(unitId, 'planeacion', 'Liberado a Ruta');
-  };
-
-  const getInitials = (name) => {
-    if (!name) return 'OP';
-    const parts = name.replace(/[^a-zA-Z\s]/g, '').trim().split(/\s+/);
-    if (parts.length >= 2) {
-      return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
-    }
-    return name.slice(0, 2).toUpperCase();
-  };
-
   return (
-    <div className="patio-module-view">
-      {/* Subcabecera del Módulo */}
-      <div className="module-header-row">
-        <div>
-          <div className="module-meta-tag">MÓDULO 01 · CENTRO DE DISTRIBUCIÓN</div>
-          <h1 className="module-title-h1">Patio operativo</h1>
-          <p className="module-subtitle-text">
-            12 unidades registradas · 10 activas · Última sincronización {timeSyncString}
-          </p>
+    <div className="patio-view">
+      {/* Controles de Búsqueda y Filtros de Unidad */}
+      <div className="controls-bar">
+        <div className="search-input-group">
+          <input 
+            type="text"
+            className="search-input"
+            placeholder="Buscar por ECO, operador, nota..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
         </div>
 
-        <div className="module-actions-group">
-          {/* Botón Sincronizar */}
-          <button className="btn-sync-outline" onClick={() => window.location.reload()}>
-            <RotateCw size={14} />
-            <span>Sincronizar</span>
+        <div className="filter-pills">
+          <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', alignSelf: 'center', marginRight: '0.3rem' }}>
+            Tipo de unidad:
+          </span>
+          <button 
+            className={`pill-btn ${filterTipo === 'ALL' ? 'active' : ''}`}
+            onClick={() => setFilterTipo('ALL')}
+          >
+            Todos ({patioUnits.length})
           </button>
-
-          {/* Segmented control Todos / Sencillos / Tractos */}
-          <div className="type-filter-segmented">
-            <button 
-              className={`segmented-btn ${filterTipo === 'ALL' ? 'active' : ''}`}
-              onClick={() => setFilterTipo('ALL')}
-            >
-              Todos
-            </button>
-            <button 
-              className={`segmented-btn ${filterTipo === 'SENCILLO' ? 'active' : ''}`}
-              onClick={() => setFilterTipo('SENCILLO')}
-            >
-              Sencillos
-            </button>
-            <button 
-              className={`segmented-btn ${filterTipo === 'TRACTO' ? 'active' : ''}`}
-              onClick={() => setFilterTipo('TRACTO')}
-            >
-              Tractos
-            </button>
-          </div>
+          <button 
+            className={`pill-btn ${filterTipo === 'Sencillo' ? 'active' : ''}`}
+            onClick={() => setFilterTipo('Sencillo')}
+          >
+            Sencillos ({patioUnits.filter(u => u.tipo === 'Sencillo').length})
+          </button>
+          <button 
+            className={`pill-btn ${filterTipo === 'Tracto' ? 'active' : ''}`}
+            onClick={() => setFilterTipo('Tracto')}
+          >
+            Tractos ({patioUnits.filter(u => u.tipo === 'Tracto').length})
+          </button>
         </div>
       </div>
 
-      {/* Tablero Kanban de 4 Columnas */}
-      <div className="patio-kanban-board">
-        {columns.map(col => (
-          <div key={col.id} className="kanban-column-box">
-            {/* Cabecera de Columna */}
-            <div className="column-header-bar">
-              <div className="column-title-group">
-                <span className={`status-dot-circle ${col.dotClass}`}></span>
-                <span className="column-header-name">{col.title}</span>
-              </div>
-              <div className="column-header-actions">
-                <span className="column-count-number">{col.items.length}</span>
-                <button className="btn-more-dots" title="Opciones">
-                  <MoreHorizontal size={16} />
-                </button>
-              </div>
-            </div>
-
-            {/* Lista de Tarjetas */}
-            <div className="cards-list-flow">
-              {col.items.map(unit => (
-                <div key={unit.id} className="kanban-unit-card">
-                  {/* Top row: ECO + Tag + Menú */}
-                  <div className="card-top-row">
-                    <div className="card-eco-tag-wrap">
-                      <span className="card-eco-text">{unit.economico}</span>
-                      <span className="card-type-pill">{unit.tipo || 'SENCILLO'}</span>
-                    </div>
-                    <button className="btn-more-dots" onClick={() => handleEdit(unit)}>
-                      <MoreHorizontal size={14} />
-                    </button>
-                  </div>
-
-                  {/* Fila del Operador */}
-                  <div className="card-operator-row">
-                    <div className="operator-avatar-circle">
-                      {unit.iniciales || getInitials(unit.operador)}
-                    </div>
-                    <div className="operator-info-box">
-                      <span className="operator-full-name">{unit.operador || 'Sin Asignar'}</span>
-                      <span className="operator-assigned-subtitle">Operador asignado</span>
-                    </div>
-                  </div>
-
-                  {/* Grid Cortina y Último Evento */}
-                  <div className="card-data-grid-two">
-                    <div className="data-cell-item">
-                      <span className="data-cell-label">Cortina</span>
-                      <span className="data-cell-val cortina-highlight">
-                        {unit.cortina || '—'}
-                      </span>
-                    </div>
-                    <div className="data-cell-item">
-                      <span className="data-cell-label">Último evento</span>
-                      <span className="data-cell-val">
-                        {unit.ultimoEvento || 'Sin novedades'}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Alerta de estado si aplica (Prioridad cliente, etc.) */}
-                  {unit.alerta && (
-                    <div className={`card-alert-line ${col.id === 'Taller' ? 'alert-red' : ''}`}>
-                      <AlertTriangle size={13} />
-                      <span>{unit.alerta}</span>
-                    </div>
-                  )}
-
-                  {/* Footer con Ver Detalle y Despachar */}
-                  <div className="card-bottom-actions">
-                    <button className="link-ver-detalle" onClick={() => handleEdit(unit)}>
-                      <span>Ver detalle</span>
-                      <ExternalLink size={12} />
-                    </button>
-
-                    {col.id === 'Cargado' && (
-                      <button 
-                        className="link-despachar-action" 
-                        onClick={() => despacharUnidad(unit.id)}
-                        title="Despachar unidad a ruta"
-                      >
-                        <span>Despachar</span>
-                        <SendHorizontal size={13} />
-                      </button>
-                    )}
-                  </div>
+      {/* Tablero Kanban de Patio según Pizarrón */}
+      <div className="kanban-grid">
+        {columns.map(col => {
+          const Icon = col.icon;
+          return (
+            <div key={col.id} className="kanban-column">
+              <div className="kanban-column-header">
+                <div>
+                  <h3>
+                    <Icon size={18} style={{ color: col.color }} />
+                    <span>{col.title}</span>
+                  </h3>
+                  <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{col.subtitle}</p>
                 </div>
-              ))}
+                <span className={`status-badge ${col.badgeClass}`}>
+                  {col.items.length}
+                </span>
+              </div>
+
+              <div className="kanban-cards-wrapper">
+                {col.items.length === 0 ? (
+                  <div style={{ textAlign: 'center', padding: '2rem 1rem', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+                    Sin unidades en este estatus
+                  </div>
+                ) : (
+                  col.items.map(unit => (
+                    <div key={unit.id} className="unit-card">
+                      <div className="unit-card-header">
+                        <span className="eco-pill">ECO {unit.economico}</span>
+                        <span style={{ 
+                          fontSize: '0.75rem', 
+                          background: 'rgba(255,255,255,0.08)', 
+                          padding: '0.15rem 0.5rem',
+                          borderRadius: '4px',
+                          color: 'var(--text-secondary)'
+                        }}>
+                          {unit.tipo}
+                        </span>
+                      </div>
+
+                      <div className="unit-card-body">
+                        <div>
+                          <strong style={{ color: '#fff' }}>Operador: </strong>
+                          <span>{unit.operador || 'Sin Asignar'}</span>
+                        </div>
+                        {unit.cortina && unit.cortina !== 'Sin asignar' && (
+                          <div>
+                            <strong style={{ color: '#fff' }}>Cortina/Rampa: </strong>
+                            <span style={{ color: 'var(--accent-cyan)' }}>{unit.cortina}</span>
+                          </div>
+                        )}
+                        {unit.destino && unit.destino !== 'Sin asignar' && (
+                          <div>
+                            <strong style={{ color: '#fff' }}>Destino previsto: </strong>
+                            <span>{unit.destino}</span>
+                          </div>
+                        )}
+                        {unit.observaciones && (
+                          <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '0.3rem', fontStyle: 'italic' }}>
+                            "{unit.observaciones}"
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="unit-card-footer">
+                        {/* Acciones para mover estatus en Patio */}
+                        <div className="unit-card-actions">
+                          {col.id !== 'Disponible' && (
+                            <button 
+                              className="btn-move"
+                              onClick={() => updateStatus(unit.id, 'patio', 'Disponible')}
+                              title="Marcar como Disponible"
+                            >
+                              Disp.
+                            </button>
+                          )}
+                          {col.id !== 'Colocado p/ Carga' && (
+                            <button 
+                              className="btn-move"
+                              onClick={() => updateStatus(unit.id, 'patio', 'Colocado p/ Carga')}
+                              title="Colocar para carga"
+                            >
+                              Carga
+                            </button>
+                          )}
+                          {col.id !== 'Cargado' && (
+                            <button 
+                              className="btn-move"
+                              onClick={() => updateStatus(unit.id, 'patio', 'Cargado')}
+                              title="Marcar como Cargado"
+                            >
+                              Cargado
+                            </button>
+                          )}
+                          {col.id !== 'Taller' && (
+                            <button 
+                              className="btn-move"
+                              style={{ borderColor: 'rgba(239, 68, 68, 0.4)', color: '#f87171' }}
+                              onClick={() => updateStatus(unit.id, 'patio', 'Taller')}
+                              title="Enviar a Taller"
+                            >
+                              Taller
+                            </button>
+                          )}
+                        </div>
+
+                        <div style={{ display: 'flex', gap: '0.3rem' }}>
+                          <button 
+                            className="btn-action-icon"
+                            onClick={() => handleEdit(unit)}
+                            title="Editar información"
+                          >
+                            <Edit3 size={14} />
+                          </button>
+                          <button 
+                            className="btn-action-icon"
+                            style={{ color: '#f87171' }}
+                            onClick={() => {
+                              if (window.confirm(`¿Eliminar la unidad ECO ${unit.economico}?`)) {
+                                deleteUnit(unit.id);
+                              }
+                            }}
+                            title="Eliminar unidad"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );

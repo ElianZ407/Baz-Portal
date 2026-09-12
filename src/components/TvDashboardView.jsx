@@ -2,8 +2,12 @@ import React, { useState } from 'react';
 import { 
   Tv, 
   MapPin, 
-  Search, 
-  XCircle 
+  Search,
+  CheckCircle2,
+  AlertTriangle,
+  Clock,
+  Layers,
+  FileSpreadsheet
 } from 'lucide-react';
 import { useFleet } from '../context/FleetContext';
 import { KpiBar } from './KpiBar';
@@ -14,16 +18,18 @@ export const TvDashboardView = () => {
     filterStatus, 
     setFilterStatus, 
     searchQuery, 
-    setSearchQuery 
+    setSearchQuery,
+    currentTime
   } = useFleet();
 
-  // Filtrado de unidades según la tarjeta KPI activa o el buscador
+  // Filtrar según el estado seleccionado o búsqueda
   const filteredUnits = units.filter(unit => {
     const matchesSearch = 
       (unit.economico && unit.economico.toLowerCase().includes(searchQuery.toLowerCase())) ||
       (unit.operador && unit.operador.toLowerCase().includes(searchQuery.toLowerCase())) ||
       (unit.destino && unit.destino.toLowerCase().includes(searchQuery.toLowerCase())) ||
-      (unit.sucursalOrigen && unit.sucursalOrigen.toLowerCase().includes(searchQuery.toLowerCase()));
+      (unit.numCarga && unit.numCarga.toLowerCase().includes(searchQuery.toLowerCase())) ||
+      (unit.cortina && unit.cortina.toLowerCase().includes(searchQuery.toLowerCase()));
 
     if (!matchesSearch) return false;
 
@@ -50,7 +56,7 @@ export const TvDashboardView = () => {
       case 'EN TRÁNSITO':
         return 'status-en-ruta';
       case 'Espera Descarga':
-      case 'EN SUCURSAL / RAMPA':
+      case 'EN SUCURSAL':
       case 'En Cortina':
         return 'status-espera-descarga';
       case 'Descargando':
@@ -59,7 +65,7 @@ export const TvDashboardView = () => {
       case 'Retorno':
         return 'status-retorno';
       case 'Retrasado':
-      case 'RETRASADO / ALERTA':
+      case 'RETRASADO':
         return 'status-retrasado';
       case 'Completado':
       case 'COMPLETADO':
@@ -69,81 +75,67 @@ export const TvDashboardView = () => {
     }
   };
 
-  const getFormattedStatus = (status) => {
-    switch (status) {
-      case 'En Ruta': return 'EN TRÁNSITO';
-      case 'Espera Descarga': return 'EN SUCURSAL / RAMPA';
-      case 'Descargando': return 'DESCARGANDO';
-      case 'Retorno': return 'RETORNO';
-      case 'Retrasado': return 'RETRASADO / ALERTA';
-      case 'Completado': return 'COMPLETADO';
-      default: return status ? status.toUpperCase() : 'DISPONIBLE';
-    }
-  };
-
   return (
     <div className="tv-container">
-      {/* Banner Principal de Pizarra TV (Imagen 3 de Excel) */}
+      {/* Banner Principal de Pizarra TV */}
       <div className="tv-header-banner">
         <div className="tv-title-area">
           <h1>MONITOREO DE UNIDADES EN TIEMPO REAL</h1>
-          <p>Pizarra de Control para Proyección en Pantalla / TV — Baz Entregas</p>
+          <p>Pizarra de Control para Proyección en Pantalla / TV — BAZ Entregas</p>
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
           <div style={{ textAlign: 'right' }}>
-            <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              Fecha Operativa
+            </span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', justifyContent: 'flex-end', color: 'var(--accent-cyan)', fontWeight: 700, fontFamily: 'var(--font-mono)' }}>
+              <span>10/09/2026</span>
+            </div>
+          </div>
+          <div style={{ textAlign: 'right' }}>
+            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
               Transmisión
             </span>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', justifyContent: 'flex-end', color: '#10b981', fontWeight: 700, fontSize: '0.85rem' }}>
-              <span className="clock-live-dot"></span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', justifyContent: 'flex-end', color: '#34d399', fontWeight: 600 }}>
+              <span className="clock-dot"></span>
               <span>EN VIVO</span>
             </div>
           </div>
         </div>
       </div>
 
-      {/* 4 KPIs Superiores (Imagen 3) */}
+      {/* 4 KPIs Superiores de Telemetría */}
       <KpiBar />
 
-      {/* Tabla Pizarra para TV (Imagen 3 de Excel) */}
+      {/* Tabla Pizarra para TV Panorámica */}
       <div className="table-card">
-        <div className="table-header-title">
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
+        <div className="table-header-title" style={{ flexWrap: 'wrap', gap: '1rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
             <h2>
-              <Tv size={18} color="#06b6d4" />
-              <span>Unidades en Seguimiento ({filteredUnits.length} de {units.length})</span>
+              <Tv size={20} color="var(--accent-cyan)" />
+              Flota y Embarques del Día ({filteredUnits.length} Unidades)
             </h2>
             {filterStatus !== 'ALL' && (
               <button 
-                className="btn-sync-outline"
-                style={{ borderColor: '#ef4444', color: '#f87171', padding: '0.25rem 0.65rem', fontSize: '0.75rem' }}
+                className="pill-btn"
+                style={{ background: 'rgba(239, 68, 68, 0.2)', borderColor: 'rgba(239, 68, 68, 0.4)', color: '#f87171' }}
                 onClick={() => setFilterStatus('ALL')}
               >
-                <XCircle size={13} />
-                <span>Quitar filtro de KPI</span>
+                Limpiar Filtro de KPI (X)
               </button>
             )}
           </div>
 
           <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
-            <div style={{ position: 'relative', minWidth: '260px' }}>
-              <Search size={14} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+            <div className="search-input-group" style={{ maxWidth: '320px' }}>
+              <Search size={15} className="search-icon" />
               <input 
                 type="text"
-                placeholder="Filtrar en pantalla TV..."
+                className="search-input"
+                placeholder="Buscar en pantalla TV..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                style={{
-                  width: '100%',
-                  padding: '0.45rem 0.75rem 0.45rem 2.2rem',
-                  background: 'var(--bg-app)',
-                  border: '1px solid var(--border-color)',
-                  borderRadius: 'var(--radius-sm)',
-                  color: '#ffffff',
-                  fontSize: '0.82rem',
-                  outline: 'none'
-                }}
               />
             </div>
           </div>
@@ -152,24 +144,25 @@ export const TvDashboardView = () => {
         <div className="table-wrapper">
           <table className="data-table tv-data-table">
             <thead>
-              <tr>
-                <th style={{ width: '130px' }}>Económico</th>
-                <th>Operador</th>
-                <th style={{ textAlign: 'center', width: '90px' }}>N° Suc.</th>
-                <th>Sucursal Origen</th>
-                <th>Fecha</th>
-                <th>Hora Salida</th>
-                <th>Destino</th>
-                <th style={{ textAlign: 'center' }}>Tiempo Viaje (hrs)</th>
-                <th>Llegada Est. (ETA)</th>
-                <th style={{ textAlign: 'center' }}>Estatus</th>
+              <tr style={{ background: '#0b253a' }}>
+                <th style={{ textAlign: 'center', width: '60px' }}>VIAJE</th>
+                <th>ECO UNIDAD</th>
+                <th style={{ textAlign: 'center' }}>BLOQUE</th>
+                <th style={{ textAlign: 'center' }}>CORTINA</th>
+                <th>OPERADOR</th>
+                <th>LÍNEA</th>
+                <th># CARGA</th>
+                <th>DESTINO / SUCURSALES</th>
+                <th>SALIDA</th>
+                <th>ETA</th>
+                <th style={{ textAlign: 'center' }}>ESTATUS</th>
               </tr>
             </thead>
             <tbody>
               {filteredUnits.length === 0 ? (
                 <tr>
-                  <td colSpan="10" style={{ textAlign: 'center', padding: '3.5rem', color: 'var(--text-muted)' }}>
-                    No hay unidades con los filtros seleccionados en este momento.
+                  <td colSpan="11" style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-muted)' }}>
+                    No hay unidades con los filtros seleccionados.
                   </td>
                 </tr>
               ) : (
@@ -179,61 +172,86 @@ export const TvDashboardView = () => {
                     <tr 
                       key={unit.id}
                       style={{
-                        backgroundColor: isLate ? 'rgba(239, 68, 68, 0.08)' : 'transparent',
-                        borderLeft: isLate ? '4px solid #ef4444' : 'none'
+                        background: isLate ? 'rgba(239, 68, 68, 0.14)' : 'transparent',
+                        borderLeft: isLate ? '5px solid #ef4444' : 'none'
                       }}
                     >
-                      {/* Económico */}
+                      {/* VIAJE */}
+                      <td style={{ textAlign: 'center', fontFamily: 'var(--font-mono)', fontWeight: 700, fontSize: '1.05rem' }}>
+                        {unit.noViaje ? (
+                          <span style={{ background: 'rgba(255,255,255,0.08)', padding: '0.2rem 0.6rem', borderRadius: '4px' }}>
+                            {unit.noViaje}
+                          </span>
+                        ) : '—'}
+                      </td>
+
+                      {/* ECO UNIDAD */}
                       <td>
                         <span className="eco-pill">{unit.economico}</span>
                       </td>
 
-                      {/* Operador */}
+                      {/* BLOQUE */}
+                      <td style={{ textAlign: 'center', fontFamily: 'var(--font-mono)', fontWeight: 600 }}>
+                        {unit.bloque ? `B-${unit.bloque}` : '—'}
+                      </td>
+
+                      {/* CORTINA */}
+                      <td style={{ textAlign: 'center' }}>
+                        <span style={{ 
+                          fontFamily: 'var(--font-mono)', 
+                          fontWeight: 700, 
+                          color: 'var(--accent-cyan)',
+                          background: 'rgba(6, 182, 212, 0.15)',
+                          padding: '0.2rem 0.5rem',
+                          borderRadius: '4px'
+                        }}>
+                          {unit.cortina || '—'}
+                        </span>
+                      </td>
+
+                      {/* OPERADOR */}
                       <td>
                         <div className="operator-cell">
-                          <span className="operator-name">{unit.operador || 'POR ASIGNAR'}</span>
-                          <span className="operator-shift">{unit.tipo}</span>
+                          <span className="operator-name" style={{ fontSize: '1rem' }}>
+                            {unit.operador || 'POR ASIGNAR'}
+                          </span>
+                          <span className="operator-shift">
+                            {unit.placas ? `Placas: ${unit.placas}` : ''} {unit.capUnidad ? `• Cap: ${unit.capUnidad}` : ''}
+                          </span>
                         </div>
                       </td>
 
-                      {/* N° Sucursal */}
-                      <td style={{ textAlign: 'center', fontFamily: 'var(--font-mono)', fontWeight: 600 }}>
-                        {unit.numSucursal || '10'}
+                      {/* LINEA */}
+                      <td style={{ fontSize: '0.88rem', color: 'var(--text-secondary)' }}>
+                        {unit.linea || 'LTI - VHS'}
                       </td>
 
-                      {/* Sucursal Origen */}
+                      {/* # CARGA */}
                       <td>
-                        <span style={{ color: 'var(--text-secondary)' }}>{unit.sucursalOrigen || 'CEDIS BAZ'}</span>
+                        <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.85rem', color: '#e2e8f0' }}>
+                          {unit.numCarga || '—'}
+                        </span>
                       </td>
 
-                      {/* Fecha */}
-                      <td style={{ fontFamily: 'var(--font-mono)', fontSize: '0.85rem' }}>
-                        {unit.fecha || '2026-09-11'}
-                      </td>
-
-                      {/* Hora Salida */}
-                      <td className="eta-cell">
-                        {unit.horaSalida}
-                      </td>
-
-                      {/* Destino */}
+                      {/* DESTINO / SUCURSAL */}
                       <td>
-                        <div className="route-cell">
-                          <MapPin size={14} color="#06b6d4" />
+                        <div className="route-cell" style={{ fontSize: '0.95rem', fontWeight: 600 }}>
+                          <MapPin size={15} color="var(--accent-cyan)" />
                           <span>{unit.destino || 'Sin definir'}</span>
                         </div>
                       </td>
 
-                      {/* Tiempo Viaje (hrs) */}
-                      <td style={{ textAlign: 'center', fontFamily: 'var(--font-mono)', fontWeight: 700 }}>
-                        {unit.tiempoEstimadoHrs ? `${unit.tiempoEstimadoHrs}` : '—'}
+                      {/* SALIDA */}
+                      <td className="eta-cell" style={{ fontSize: '1rem' }}>
+                        {unit.horaSalida}
                       </td>
 
-                      {/* Llegada Est. (ETA) */}
+                      {/* ETA */}
                       <td>
                         <span 
                           className="eta-cell" 
                           style={{ 
+                            fontSize: '1.05rem', 
                             color: isLate ? '#f87171' : '#38bdf8' 
                           }}
                         >
@@ -241,10 +259,17 @@ export const TvDashboardView = () => {
                         </span>
                       </td>
 
-                      {/* Estatus */}
+                      {/* ESTATUS */}
                       <td style={{ textAlign: 'center' }}>
                         <span className={`status-badge ${getStatusBadgeClass(unit.estatusSupervisor)}`}>
-                          {getFormattedStatus(unit.estatusSupervisor)}
+                          {unit.estatusSupervisor === 'En Ruta' ? 'EN RUTA (TRÁNSITO)' :
+                           unit.estatusSupervisor === 'Espera Descarga' ? 'EN SUCURSAL (ESPERA)' :
+                           unit.estatusSupervisor === 'Descargando' ? 'DESCARGANDO' :
+                           unit.estatusSupervisor === 'Retorno' ? 'EN RETORNO' :
+                           unit.estatusSupervisor === 'Retrasado' ? 'RETRASADO / ALERTA' :
+                           unit.estatusSupervisor === 'Completado' ? 'COMPLETADO' :
+                           unit.estatusPlaneacion === 'En Cortina' ? 'EN CORTINA' :
+                           unit.estatusPatio.toUpperCase()}
                         </span>
                       </td>
                     </tr>

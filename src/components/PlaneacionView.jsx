@@ -57,14 +57,14 @@ export const PlaneacionView = () => {
 
   return (
     <div className="planeacion-view">
-      {/* Cabecera Corporativa Sobria */}
+      {/* Cabecera Oficial de Planeación Mejorada */}
       <div style={{
-        backgroundColor: '#0d131f',
+        backgroundColor: '#0d1527',
         border: '1px solid var(--border-color)',
-        borderLeft: '4px solid var(--brand-primary)',
-        borderRadius: 'var(--radius-sm)',
-        padding: '0.9rem 1.35rem',
-        marginBottom: '1rem',
+        borderLeft: '4px solid var(--accent-cyan)',
+        borderRadius: 'var(--radius-lg)',
+        padding: '1.15rem 1.6rem',
+        marginBottom: '1.25rem',
         display: 'flex',
         flexWrap: 'wrap',
         alignItems: 'center',
@@ -72,46 +72,46 @@ export const PlaneacionView = () => {
         gap: '1rem'
       }}>
         <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.55rem', marginBottom: '0.15rem' }}>
-            <FileSpreadsheet size={19} color="#60a5fa" />
-            <h1 style={{ fontSize: '1.2rem', fontWeight: 700, color: '#fff' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.25rem' }}>
+            <FileSpreadsheet size={20} color="var(--accent-cyan)" />
+            <h1 style={{ fontSize: '1.35rem', fontWeight: 800, color: '#fff', letterSpacing: '-0.01em' }}>
               Planeación de Embarques — BAZ Entregas
             </h1>
             <span style={{ 
-              background: '#1e293b', 
-              color: '#94a3b8', 
-              padding: '0.15rem 0.45rem', 
+              background: 'rgba(6, 182, 212, 0.15)', 
+              color: 'var(--accent-cyan)', 
+              padding: '0.15rem 0.55rem', 
               borderRadius: 'var(--radius-xs)',
               fontFamily: 'var(--font-mono)',
-              fontSize: '0.72rem',
-              fontWeight: 600,
-              border: '1px solid #334155'
+              fontSize: '0.78rem',
+              fontWeight: 700,
+              border: '1px solid rgba(6, 182, 212, 0.3)'
             }}>
               10/09/2026
             </span>
           </div>
-          <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+          <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
             Programación de viajes, asignación de bloques, operadores, cargas y cortinas de embarque
           </p>
         </div>
 
         {/* Métricas rápidas de Planeación */}
-        <div style={{ display: 'flex', gap: '0.65rem', flexWrap: 'wrap' }}>
-          <div style={{ background: '#111827', padding: '0.4rem 0.85rem', borderRadius: 'var(--radius-xs)', border: '1px solid var(--border-color)', textAlign: 'center' }}>
-            <span style={{ fontSize: '0.68rem', color: 'var(--text-dim)', textTransform: 'uppercase', fontWeight: 600 }}>Viajes Registrados</span>
-            <div style={{ fontFamily: 'var(--font-mono)', fontSize: '1.25rem', fontWeight: 700, color: '#fff' }}>
+        <div style={{ display: 'flex', gap: '0.85rem', flexWrap: 'wrap' }}>
+          <div style={{ background: '#101b30', padding: '0.45rem 0.95rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)', textAlign: 'center' }}>
+            <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>Viajes Registrados</span>
+            <div style={{ fontFamily: 'var(--font-mono)', fontSize: '1.35rem', fontWeight: 800, color: '#fff' }}>
               {units.filter(u => u.noViaje).length}
             </div>
           </div>
-          <div style={{ background: '#111827', padding: '0.4rem 0.85rem', borderRadius: 'var(--radius-xs)', border: '1px solid var(--border-color)', textAlign: 'center' }}>
-            <span style={{ fontSize: '0.68rem', color: 'var(--text-dim)', textTransform: 'uppercase', fontWeight: 600 }}>En Cortina Activa</span>
-            <div style={{ fontFamily: 'var(--font-mono)', fontSize: '1.25rem', fontWeight: 700, color: '#fbbf24' }}>
+          <div style={{ background: '#101b30', padding: '0.45rem 0.95rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)', textAlign: 'center' }}>
+            <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>En Cortina Activa</span>
+            <div style={{ fontFamily: 'var(--font-mono)', fontSize: '1.35rem', fontWeight: 800, color: '#fbbf24' }}>
               {unidadesEnCortina.length}
             </div>
           </div>
-          <div style={{ background: '#111827', padding: '0.4rem 0.85rem', borderRadius: 'var(--radius-xs)', border: '1px solid var(--border-color)', textAlign: 'center' }}>
-            <span style={{ fontSize: '0.68rem', color: 'var(--text-dim)', textTransform: 'uppercase', fontWeight: 600 }}>Despachados a Ruta</span>
-            <div style={{ fontFamily: 'var(--font-mono)', fontSize: '1.25rem', fontWeight: 700, color: '#34d399' }}>
+          <div style={{ background: '#101b30', padding: '0.45rem 0.95rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)', textAlign: 'center' }}>
+            <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>Despachados a Ruta</span>
+            <div style={{ fontFamily: 'var(--font-mono)', fontSize: '1.35rem', fontWeight: 800, color: '#34d399' }}>
               {units.filter(u => u.estatusSupervisor === 'En Ruta' || u.estatusPlaneacion === 'Despachado').length}
             </div>
           </div>
