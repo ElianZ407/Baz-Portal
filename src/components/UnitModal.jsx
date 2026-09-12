@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Save, Truck, Layers, FileSpreadsheet, AlertTriangle, CheckCircle2, MapPin, Wrench } from 'lucide-react';
 import { useFleet } from '../context/FleetContext';
-import { LINEAS_TRANSPORTE, TURNOS } from '../data/initialFleetData';
+import { LINEAS_TRANSPORTE, TURNOS, BLOQUES } from '../data/initialFleetData';
 import { SUCURSALES_MAESTRAS, buscarSucursal, validarRestriccionesViaje } from '../data/sucursalesData';
 import { FLOTA_TOTAL, buscarUnidadPorEco, OPERADORES_ACTIVOS } from '../data/flotaMaestraData';
 import { SucursalSelector } from './SucursalSelector';
@@ -250,7 +250,7 @@ export const UnitModal = () => {
                   value={formData.bloque}
                   onChange={handleChange}
                 >
-                  {[1, 2, 3, 4, 5, 6, 7, 8].map(b => (
+                  {BLOQUES.map(b => (
                     <option key={b} value={b}>Bloque {b}</option>
                   ))}
                 </select>
