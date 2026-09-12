@@ -298,12 +298,12 @@ body {
   box-shadow: var(--shadow-sm);
   position: relative;
   overflow: hidden;
-  transition: transform 0.2s, border-color 0.2s;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
 }
 
 .kpi-card:hover {
-  transform: translateY(-2px);
   border-color: #2b3e61;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.4);
 }
 
 .kpi-card.active-filter {
@@ -704,7 +704,7 @@ body {
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: all 0.15s;
+  transition: background-color 0.12s ease, border-color 0.12s ease, color 0.12s ease;
 }
 
 .btn-action-icon:hover {
@@ -1062,13 +1062,17 @@ body {
   border: 1px solid var(--border-color);
   border-radius: var(--radius-md);
   padding: 1rem;
-  transition: all 0.2s;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.25);
+  transition: background-color 0.15s cubic-bezier(0.4, 0, 0.2, 1), 
+              border-color 0.15s cubic-bezier(0.4, 0, 0.2, 1), 
+              box-shadow 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+  will-change: background-color, border-color, box-shadow;
 }
 
 .unit-card:hover {
-  border-color: #2b3e61;
-  background: #111d35;
-  transform: translateY(-2px);
+  border-color: rgba(6, 182, 212, 0.45);
+  background: #121e38;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(6, 182, 212, 0.2);
 }
 
 .unit-card-header {
@@ -1103,18 +1107,19 @@ body {
 .btn-move {
   padding: 0.25rem 0.55rem;
   font-size: 0.75rem;
+  font-weight: 600;
   border-radius: var(--radius-sm);
   background: #142038;
   border: 1px solid var(--border-color);
   color: #fff;
   cursor: pointer;
-  transition: background 0.2s;
+  transition: background-color 0.12s ease, border-color 0.12s ease, color 0.12s ease;
 }
 
 .btn-move:hover {
   background: var(--accent-cyan);
+  border-color: var(--accent-cyan);
   color: #070c18;
-  font-weight: 700;
 }
 
 /* Responsive */
