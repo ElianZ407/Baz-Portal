@@ -18,8 +18,7 @@ export const TvDashboardView = () => {
     filterStatus, 
     setFilterStatus, 
     searchQuery, 
-    setSearchQuery,
-    currentTime
+    setSearchQuery
   } = useFleet();
 
   const [filterFL, setFilterFL] = useState('ALL'); // 'ALL' | 'LOCAL' | 'FORANEO'
