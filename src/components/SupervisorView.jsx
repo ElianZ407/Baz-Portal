@@ -182,7 +182,6 @@ export const SupervisorView = () => {
               <tr style={{ background: '#0b253a' }}>
                 <th>ECONÓMICO</th>
                 <th>OPERADOR</th>
-                <th>ORIGEN</th>
                 <th>DESTINO, CLÓSTER & TIPO</th>
                 <th>SALIDA</th>
                 <th>TIEMPO EST.</th>
@@ -196,7 +195,7 @@ export const SupervisorView = () => {
             <tbody>
               {supervisorUnits.length === 0 ? (
                 <tr>
-                  <td colSpan="11" style={{ textAlign: 'center', padding: '2.5rem', color: 'var(--text-muted)' }}>
+                  <td colSpan="10" style={{ textAlign: 'center', padding: '2.5rem', color: 'var(--text-muted)' }}>
                     No se encontraron unidades en monitoreo con los filtros seleccionados.
                   </td>
                 </tr>
@@ -213,9 +212,6 @@ export const SupervisorView = () => {
                         <span className="operator-name">{unit.operador || 'POR ASIGNAR'}</span>
                         <span className="operator-shift">Turno: {unit.turno || 'M1'}</span>
                       </div>
-                    </td>
-                    <td>
-                      <span style={{ color: 'var(--text-secondary)' }}>{unit.sucursalOrigen}</span>
                     </td>
                     <td>
                       <div className="route-cell">
