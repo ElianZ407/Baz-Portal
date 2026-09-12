@@ -1351,3 +1351,380 @@ body {
   box-shadow: 0 6px 18px rgba(245, 158, 11, 0.5);
   transform: translateY(-1px);
 }
+
+/* ==========================================================================
+   Botón Flotante y Modal de Manual de Ayuda & Flujo Operativo
+   ========================================================================== */
+.floating-help-btn {
+  position: fixed;
+  bottom: 1.75rem;
+  right: 1.75rem;
+  z-index: 990;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.65rem 1.15rem;
+  background: #0b1528;
+  border: 1px solid rgba(6, 182, 212, 0.45);
+  border-radius: var(--radius-full);
+  color: #fff;
+  font-family: var(--font-sans);
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6), 0 0 14px rgba(6, 182, 212, 0.25);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.floating-help-btn:hover {
+  transform: translateY(-2px) scale(1.03);
+  border-color: var(--accent-cyan);
+  background: #0f1e38;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.75), 0 0 22px rgba(6, 182, 212, 0.45);
+}
+
+.floating-help-btn:active {
+  transform: translateY(0) scale(0.98);
+}
+
+.help-btn-pulse {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #10b981;
+  box-shadow: 0 0 8px #10b981;
+  animation: pulseHelp 2s infinite;
+}
+
+@keyframes pulseHelp {
+  0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+  70% { transform: scale(1.1); box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); }
+  100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+}
+
+.help-icon {
+  color: var(--accent-cyan);
+}
+
+/* Modal de Ayuda */
+.help-modal-overlay {
+  z-index: 2000;
+}
+
+.help-modal-content {
+  background: #0a1122;
+  border: 1px solid #1a2944;
+  border-radius: var(--radius-lg);
+  width: 95%;
+  max-width: 940px;
+  max-height: 88vh;
+  box-shadow: 0 28px 64px rgba(0, 0, 0, 0.85), 0 0 0 1px rgba(255, 255, 255, 0.05);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: confirmBoxPop 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.help-modal-header {
+  padding: 1.25rem 1.75rem;
+  border-bottom: 1px solid var(--border-color);
+  background: #070d1a;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.help-badge-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-md);
+  background: rgba(6, 182, 212, 0.12);
+  border: 1px solid rgba(6, 182, 212, 0.25);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.help-modal-header h2 {
+  font-size: 1.2rem;
+  font-weight: 800;
+  color: #fff;
+  line-height: 1.2;
+}
+
+.help-modal-header p {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  margin-top: 0.15rem;
+}
+
+/* Navegación interna del manual */
+.help-nav-tabs {
+  display: flex;
+  background: #070c17;
+  border-bottom: 1px solid var(--border-color);
+  padding: 0.5rem 1.75rem 0;
+  gap: 0.5rem;
+  overflow-x: auto;
+}
+
+.help-nav-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.65rem 1.15rem;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  font-family: var(--font-sans);
+  white-space: nowrap;
+}
+
+.help-nav-btn:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.help-nav-btn.active {
+  color: var(--accent-cyan);
+  border-bottom-color: var(--accent-cyan);
+  background: rgba(6, 182, 212, 0.08);
+}
+
+.help-modal-body {
+  padding: 1.5rem 1.75rem;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.help-intro-box {
+  background: rgba(6, 182, 212, 0.06);
+  border: 1px solid rgba(6, 182, 212, 0.2);
+  border-radius: var(--radius-md);
+  padding: 0.85rem 1.15rem;
+  color: #cbd5e1;
+  font-size: 0.88rem;
+  line-height: 1.5;
+  margin-bottom: 1.5rem;
+}
+
+/* Pasos del Flujo Operativo */
+.flow-steps-grid {
+  display: flex;
+  align-items: stretch;
+  gap: 0.5rem;
+  overflow-x: auto;
+  padding-bottom: 0.75rem;
+  margin-bottom: 1.5rem;
+}
+
+.flow-step-card {
+  background: #0f1a30;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 1.1rem 1rem;
+  flex: 1;
+  min-width: 175px;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+.flow-step-number {
+  position: absolute;
+  top: 0.6rem;
+  right: 0.75rem;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  font-weight: 800;
+  color: rgba(255, 255, 255, 0.18);
+}
+
+.flow-step-header {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin-bottom: 0.5rem;
+}
+
+.flow-step-header h4 {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: #fff;
+}
+
+.flow-step-desc {
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+  line-height: 1.45;
+  flex: 1;
+  margin-bottom: 0.75rem;
+}
+
+.flow-step-status {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.flow-step-status-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.flow-arrow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--accent-cyan);
+  opacity: 0.6;
+}
+
+.help-tip-card {
+  background: #0d172c;
+  border: 1px solid #1a2b4a;
+  border-radius: var(--radius-md);
+  padding: 1rem 1.25rem;
+}
+
+/* Guía de Áreas */
+.area-guide-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
+  gap: 1.25rem;
+}
+
+.area-guide-card {
+  background: #0e172a;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+}
+
+.area-guide-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.6rem;
+}
+
+.area-guide-header h3 {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #fff;
+}
+
+.area-guide-card p {
+  font-size: 0.84rem;
+  color: var(--text-secondary);
+  line-height: 1.45;
+  margin-bottom: 0.65rem;
+}
+
+.area-guide-card ul {
+  padding-left: 1.2rem;
+  margin-bottom: 0.75rem;
+  font-size: 0.82rem;
+  color: #cbd5e1;
+  line-height: 1.5;
+}
+
+.area-guide-card li {
+  margin-bottom: 0.35rem;
+}
+
+.guide-action-tip {
+  margin-top: auto;
+  padding: 0.5rem 0.75rem;
+  background: rgba(6, 182, 212, 0.08);
+  border-left: 3px solid var(--accent-cyan);
+  border-radius: var(--radius-xs);
+  font-size: 0.78rem;
+  color: #a5f3fc;
+}
+
+.guide-action-tip code {
+  background: rgba(0, 0, 0, 0.4);
+  padding: 0.1rem 0.35rem;
+  border-radius: 3px;
+  font-family: var(--font-mono);
+  color: #fff;
+}
+
+/* FAQ */
+.faq-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1.15rem;
+}
+
+.faq-item {
+  background: #0d162a;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 1.15rem 1.35rem;
+}
+
+.faq-item h4 {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #fff;
+  margin-bottom: 0.45rem;
+}
+
+.faq-item p {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+.status-legend-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 0.65rem;
+}
+
+.legend-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 0.82rem;
+  color: #cbd5e1;
+  background: rgba(0, 0, 0, 0.25);
+  padding: 0.45rem 0.75rem;
+  border-radius: var(--radius-sm);
+}
+
+.help-modal-footer {
+  padding: 1rem 1.75rem;
+  border-top: 1px solid var(--border-color);
+  background: #070d1a;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+@media (max-width: 768px) {
+  .area-guide-grid {
+    grid-template-columns: 1fr;
+  }
+  .floating-help-btn {
+    bottom: 1rem;
+    right: 1rem;
+    padding: 0.55rem 0.9rem;
+    font-size: 0.78rem;
+  }
+}
+
