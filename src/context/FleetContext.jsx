@@ -3,11 +3,13 @@ import { INITIAL_UNITS } from '../data/initialFleetData';
 
 const FleetContext = createContext(null);
 
-const STORAGE_KEY = 'baz_entregas_fleet_data_v1';
+const STORAGE_KEY = 'baz_entregas_fleet_live_clean_v1';
 
 export const FleetProvider = ({ children }) => {
   const [units, setUnits] = useState(() => {
     try {
+      // Purgar almacenamiento de datos de prueba previos
+      localStorage.removeItem('baz_entregas_fleet_data_v1');
       const saved = localStorage.getItem(STORAGE_KEY);
       if (saved) {
         return JSON.parse(saved);
@@ -176,10 +178,21 @@ export const FleetProvider = ({ children }) => {
     }));
   };
 
-  // Restablecer datos iniciales de fábrica
-  const resetData = () => {
-    setUnits(INITIAL_UNITS);
+  // Purgar / Limpiar todos los datos del tablero
+  const clearAllUnits = () => {
+    setUnits([]);
     localStorage.removeItem(STORAGE_KEY);
+    localStorage.removeItem('baz_entregas_fleet_data_v1');
+    if (typeof BroadcastChannel !== 'undefined') {
+      const bc = new BroadcastChannel('baz_fleet_realtime_sync');
+      bc.postMessage({ type: 'SYNC_UNITS', units: [] });
+      bc.close();
+    }
+  };
+
+  // Restablecer datos
+  const resetData = () => {
+    clearAllUnits();
   };
 
   return (
@@ -200,7 +213,8 @@ export const FleetProvider = ({ children }) => {
       saveUnit,
       deleteUnit,
       updateStatus,
-      resetData
+      resetData,
+      clearAllUnits
     }}>
       {children}
     </FleetContext.Provider>
