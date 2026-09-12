@@ -296,3 +296,6 @@ export const TURNOS = [
   { id: "VAC", nombre: "Vacaciones" },
   { id: "INC", nombre: "Incapacidad" }
 ];
+
+export const BLOQUES = Array.from({ length: 19 }, (_, i) => i + 1);
+

@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { useFleet } from '../context/FleetContext';
 import { validarRestriccionesViaje, buscarSucursal } from '../data/sucursalesData';
+import { BLOQUES } from '../data/initialFleetData';
 
 export const PlaneacionView = () => {
   const { 
@@ -214,7 +215,7 @@ export const PlaneacionView = () => {
             >
               Todos
             </button>
-            {[1, 2, 3, 4, 5, 6].map(b => (
+            {BLOQUES.map(b => (
               <button 
                 key={b}
                 className={`pill-btn ${filterBloque === String(b) ? 'active' : ''}`}
