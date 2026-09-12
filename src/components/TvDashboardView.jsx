@@ -90,9 +90,18 @@ export const TvDashboardView = () => {
     <div className="tv-container">
       {/* Banner Principal de Pizarra TV */}
       <div className="tv-header-banner">
-        <div className="tv-title-area">
-          <h1>MONITOREO DE UNIDADES EN TIEMPO REAL</h1>
-          <p>Pizarra de Control de Flota y Embarques — CD Villahermosa</p>
+        <div className="tv-title-area" style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
+          <div className="brand-logo-container tv-logo-box">
+            <img 
+              src="/baz-entregas-logo.png" 
+              alt="BAZ Entregas" 
+              style={{ height: '42px', width: 'auto', objectFit: 'contain' }} 
+            />
+          </div>
+          <div>
+            <h1>MONITOREO DE UNIDADES EN TIEMPO REAL</h1>
+            <p>Pizarra de Control de Flota y Embarques — CD Villahermosa</p>
+          </div>
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
