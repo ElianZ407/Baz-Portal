@@ -27,7 +27,24 @@ export const FleetProvider = ({ children }) => {
   const [filterStatus, setFilterStatus] = useState('ALL');
   const [selectedUnit, setSelectedUnit] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [confirmModal, setConfirmModal] = useState(null);
   const [currentTime, setCurrentTime] = useState(new Date());
+
+  const showConfirm = (config) => {
+    setConfirmModal({
+      isOpen: true,
+      title: config.title || '¿Confirmar acción?',
+      message: config.message || '',
+      unit: config.unit || null,
+      confirmText: config.confirmText || 'Confirmar',
+      confirmType: config.confirmType || 'danger',
+      onConfirm: config.onConfirm || (() => {})
+    });
+  };
+
+  const closeConfirm = () => {
+    setConfirmModal(null);
+  };
 
   // Reloj de fondo con intervalo no agresivo (cada 30s) para no saturar re-renders globales
   useEffect(() => {
@@ -229,7 +246,10 @@ export const FleetProvider = ({ children }) => {
       deleteUnit,
       updateStatus,
       resetData,
-      clearAllUnits
+      clearAllUnits,
+      confirmModal,
+      showConfirm,
+      closeConfirm
     }}>
       {children}
     </FleetContext.Provider>

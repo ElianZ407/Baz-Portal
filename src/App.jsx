@@ -6,6 +6,7 @@ import { PlaneacionView } from './components/PlaneacionView';
 import { SupervisorView } from './components/SupervisorView';
 import { TvDashboardView } from './components/TvDashboardView';
 import { UnitModal } from './components/UnitModal';
+import { ConfirmModal } from './components/ConfirmModal';
 
 const AppContent = () => {
   const { activeArea } = useFleet();
@@ -35,6 +36,7 @@ const AppContent = () => {
       </footer>
 
       <UnitModal />
+      <ConfirmModal />
     </div>
   );
 };
