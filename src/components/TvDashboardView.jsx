@@ -18,8 +18,7 @@ export const TvDashboardView = () => {
     filterStatus, 
     setFilterStatus, 
     searchQuery, 
-    setSearchQuery,
-    isCloudConnected
+    setSearchQuery
   } = useFleet();
 
   const [filterFL, setFilterFL] = useState('ALL'); // 'ALL' | 'LOCAL' | 'FORANEO'
@@ -118,25 +117,9 @@ export const TvDashboardView = () => {
             <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
               Transmisión
             </span>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', justifyContent: 'flex-end' }}>
-              {isCloudConnected && (
-                <span style={{ 
-                  fontSize: '0.72rem', 
-                  color: 'var(--accent-green)', 
-                  background: 'rgba(16, 185, 129, 0.15)', 
-                  padding: '2px 8px', 
-                  borderRadius: '12px',
-                  border: '1px solid rgba(16, 185, 129, 0.3)',
-                  fontWeight: 600,
-                  letterSpacing: '0.5px'
-                }}>
-                  ☁️ CLOUD REALTIME
-                </span>
-              )}
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: '#34d399', fontWeight: 600 }}>
-                <span className="clock-dot"></span>
-                <span>EN VIVO</span>
-              </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', justifyContent: 'flex-end', color: '#34d399', fontWeight: 600 }}>
+              <span className="clock-dot"></span>
+              <span>EN VIVO</span>
             </div>
           </div>
         </div>
