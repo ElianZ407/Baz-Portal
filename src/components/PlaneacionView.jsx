@@ -12,7 +12,8 @@ import {
   CheckCircle2, 
   FileSpreadsheet,
   AlertTriangle,
-  Compass
+  Compass,
+  ArrowRight
 } from 'lucide-react';
 import { useFleet } from '../context/FleetContext';
 import { validarRestriccionesViaje, buscarSucursal } from '../data/sucursalesData';
@@ -27,9 +28,9 @@ export const PlaneacionView = () => {
     setSearchQuery 
   } = useFleet();
 
-  const [activeTab, setActiveTab] = useState('programacion'); // 'programacion' | 'cortinas'
   const [filterBloque, setFilterBloque] = useState('ALL');
   const [filterFL, setFilterFL] = useState('ALL'); // 'ALL' | 'LOCAL' | 'FORANEO'
+  const [filterEstatus, setFilterEstatus] = useState('ALL'); // 'ALL' | 'PENDIENTE' | 'COLOCADO' | 'EN CASETA'
 
   // Filtrado de unidades en planeación
   const planeacionUnits = units.filter(u => {
@@ -44,13 +45,14 @@ export const PlaneacionView = () => {
 
     const matchesBloque = filterBloque === 'ALL' || String(u.bloque) === filterBloque;
     const matchesFL = filterFL === 'ALL' || (u.fl || 'LOCAL') === filterFL;
+    const matchesEstatus = filterEstatus === 'ALL' || (u.estatusPlaneacion || 'PENDIENTE') === filterEstatus;
 
-    return matchesSearch && matchesBloque && matchesFL;
+    return matchesSearch && matchesBloque && matchesFL && matchesEstatus;
   });
 
-  const unidadesEnCortina = units.filter(u => 
-    u.estatusPlaneacion === 'En Cortina' || u.estatusPatio === 'Colocado p/ Carga'
-  );
+  const enCasetaCount = units.filter(u => u.estatusPlaneacion === 'EN CASETA').length;
+  const colocadoCount = units.filter(u => u.estatusPlaneacion === 'COLOCADO').length;
+  const pendienteCount = units.filter(u => (u.estatusPlaneacion || 'PENDIENTE') === 'PENDIENTE').length;
 
   const viajesLocales = units.filter(u => (u.fl || 'LOCAL') === 'LOCAL');
   const viajesForaneos = units.filter(u => u.fl === 'FORANEO');
@@ -60,13 +62,13 @@ export const PlaneacionView = () => {
     setIsModalOpen(true);
   };
 
-  const despacharRuta = (unitId) => {
-    updateStatus(unitId, 'planeacion', 'Liberado a Ruta');
+  const handleStatusChange = (unitId, newStatus) => {
+    updateStatus(unitId, 'planeacion', newStatus);
   };
 
   return (
     <div className="planeacion-view">
-      {/* Cabecera Oficial de Planeación Mejorada con Matriz CD Villahermosa */}
+      {/* Cabecera Oficial de Planeación Mejorada con Estatus Oficiales */}
       <div style={{
         backgroundColor: '#0d1527',
         border: '1px solid var(--border-color)',
@@ -100,11 +102,11 @@ export const PlaneacionView = () => {
             </span>
           </div>
           <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
-            Programación con Matriz Operativa Oficial: Clústeres, Rutas Locales vs Foráneas y Control de Capacidades
+            Estatus oficial de embarque: COLOCADO, EN CASETA y PENDIENTE con control de cargas y cortinas
           </p>
         </div>
 
-        {/* Métricas rápidas de Planeación */}
+        {/* Métricas rápidas de Planeación con colores oficiales del Excel */}
         <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
           <div style={{ background: '#101b30', padding: '0.45rem 0.85rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)', textAlign: 'center' }}>
             <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>Viajes Totales</span>
@@ -112,34 +114,70 @@ export const PlaneacionView = () => {
               {units.filter(u => u.noViaje).length}
             </div>
           </div>
-          <div style={{ background: '#101b30', padding: '0.45rem 0.85rem', borderRadius: 'var(--radius-md)', border: '1px solid rgba(16, 185, 129, 0.3)', textAlign: 'center' }}>
-            <span style={{ fontSize: '0.68rem', color: '#34d399', textTransform: 'uppercase', fontWeight: 600 }}>Locales (Tabasco)</span>
-            <div style={{ fontFamily: 'var(--font-mono)', fontSize: '1.25rem', fontWeight: 800, color: '#34d399' }}>
-              {viajesLocales.length}
+          <div style={{ background: '#101b30', padding: '0.45rem 0.85rem', borderRadius: 'var(--radius-md)', border: '1px solid rgba(234, 179, 8, 0.4)', textAlign: 'center' }}>
+            <span style={{ fontSize: '0.68rem', color: '#facc15', textTransform: 'uppercase', fontWeight: 700 }}>EN CASETA</span>
+            <div style={{ fontFamily: 'var(--font-mono)', fontSize: '1.25rem', fontWeight: 800, color: '#fef08a' }}>
+              {enCasetaCount}
             </div>
           </div>
-          <div style={{ background: '#101b30', padding: '0.45rem 0.85rem', borderRadius: 'var(--radius-md)', border: '1px solid rgba(168, 85, 247, 0.3)', textAlign: 'center' }}>
-            <span style={{ fontSize: '0.68rem', color: '#c084fc', textTransform: 'uppercase', fontWeight: 600 }}>Foráneos (Rutas)</span>
-            <div style={{ fontFamily: 'var(--font-mono)', fontSize: '1.25rem', fontWeight: 800, color: '#c084fc' }}>
-              {viajesForaneos.length}
+          <div style={{ background: '#101b30', padding: '0.45rem 0.85rem', borderRadius: 'var(--radius-md)', border: '1px solid rgba(6, 182, 212, 0.3)', textAlign: 'center' }}>
+            <span style={{ fontSize: '0.68rem', color: '#22d3ee', textTransform: 'uppercase', fontWeight: 700 }}>COLOCADO</span>
+            <div style={{ fontFamily: 'var(--font-mono)', fontSize: '1.25rem', fontWeight: 800, color: '#22d3ee' }}>
+              {colocadoCount}
             </div>
           </div>
-          <div style={{ background: '#101b30', padding: '0.45rem 0.85rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)', textAlign: 'center' }}>
-            <span style={{ fontSize: '0.68rem', color: '#fbbf24', textTransform: 'uppercase', fontWeight: 600 }}>En Cortina</span>
-            <div style={{ fontFamily: 'var(--font-mono)', fontSize: '1.25rem', fontWeight: 800, color: '#fbbf24' }}>
-              {unidadesEnCortina.length}
+          <div style={{ background: '#101b30', padding: '0.45rem 0.85rem', borderRadius: 'var(--radius-md)', border: '1px solid rgba(148, 163, 184, 0.3)', textAlign: 'center' }}>
+            <span style={{ fontSize: '0.68rem', color: '#94a3b8', textTransform: 'uppercase', fontWeight: 700 }}>PENDIENTE</span>
+            <div style={{ fontFamily: 'var(--font-mono)', fontSize: '1.25rem', fontWeight: 800, color: '#cbd5e1' }}>
+              {pendienteCount}
             </div>
           </div>
         </div>
       </div>
 
-      {/* Barra de Filtros: Bloques y Clasificación F/L */}
+      {/* Barra de Filtros: Estatus Oficial, Tipo F/L y Bloques */}
       <div className="controls-bar" style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', justifyContent: 'space-between' }}>
-        <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: '0.85rem', flexWrap: 'wrap', alignItems: 'center' }}>
+          {/* Filtro Estatus Oficial (Excel) */}
+          <div style={{ display: 'flex', gap: '0.35rem', alignItems: 'center' }}>
+            <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginRight: '0.2rem' }}>
+              Estatus:
+            </span>
+            <button 
+              className={`pill-btn ${filterEstatus === 'ALL' ? 'active' : ''}`}
+              onClick={() => setFilterEstatus('ALL')}
+            >
+              Todos
+            </button>
+            <button 
+              className={`pill-btn ${filterEstatus === 'EN CASETA' ? 'active' : ''}`}
+              onClick={() => setFilterEstatus('EN CASETA')}
+              style={filterEstatus === 'EN CASETA' ? { background: '#fef08a', borderColor: '#eab308', color: '#713f12', fontWeight: 800 } : {}}
+            >
+              EN CASETA ({enCasetaCount})
+            </button>
+            <button 
+              className={`pill-btn ${filterEstatus === 'COLOCADO' ? 'active' : ''}`}
+              onClick={() => setFilterEstatus('COLOCADO')}
+              style={filterEstatus === 'COLOCADO' ? { background: 'rgba(6, 182, 212, 0.25)', borderColor: '#06b6d4', color: '#22d3ee', fontWeight: 800 } : {}}
+            >
+              COLOCADO ({colocadoCount})
+            </button>
+            <button 
+              className={`pill-btn ${filterEstatus === 'PENDIENTE' ? 'active' : ''}`}
+              onClick={() => setFilterEstatus('PENDIENTE')}
+              style={filterEstatus === 'PENDIENTE' ? { background: 'rgba(148, 163, 184, 0.25)', borderColor: '#94a3b8', color: '#cbd5e1', fontWeight: 800 } : {}}
+            >
+              PENDIENTE ({pendienteCount})
+            </button>
+          </div>
+
+          <div style={{ height: '20px', width: '1px', background: 'var(--border-color)' }}></div>
+
           {/* Filtro F/L */}
           <div style={{ display: 'flex', gap: '0.35rem', alignItems: 'center' }}>
             <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginRight: '0.2rem' }}>
-              Tipo F/L:
+              F/L:
             </span>
             <button 
               className={`pill-btn ${filterFL === 'ALL' ? 'active' : ''}`}
@@ -152,14 +190,14 @@ export const PlaneacionView = () => {
               onClick={() => setFilterFL('LOCAL')}
               style={filterFL === 'LOCAL' ? { background: 'rgba(16, 185, 129, 0.25)', borderColor: '#10b981', color: '#34d399' } : {}}
             >
-              Locales ({viajesLocales.length})
+              Locales
             </button>
             <button 
               className={`pill-btn ${filterFL === 'FORANEO' ? 'active' : ''}`}
               onClick={() => setFilterFL('FORANEO')}
               style={filterFL === 'FORANEO' ? { background: 'rgba(168, 85, 247, 0.25)', borderColor: '#a855f7', color: '#c084fc' } : {}}
             >
-              Foráneos ({viajesForaneos.length})
+              Foráneos
             </button>
           </div>
 
@@ -188,12 +226,12 @@ export const PlaneacionView = () => {
           </div>
         </div>
 
-        <div className="search-input-group" style={{ maxWidth: '340px' }}>
+        <div className="search-input-group" style={{ maxWidth: '300px' }}>
           <Search size={15} className="search-icon" />
           <input 
             type="text"
             className="search-input"
-            placeholder="Buscar viaje, ECO, clóster, operador, cortina..."
+            placeholder="Buscar viaje, ECO, clóster, cortina..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
@@ -208,7 +246,7 @@ export const PlaneacionView = () => {
             Matriz de Embarques y Despacho ({planeacionUnits.filter(u => u.noViaje).length} Viajes Filtrados)
           </h2>
           <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-            Clasificación Local vs Foráneo, Clósteres CD Villahermosa, Cargas y Cortinas
+            Estatus Oficial: COLOCADO, EN CASETA, PENDIENTE (Sincronizado en tiempo real)
           </span>
         </div>
 
@@ -228,7 +266,7 @@ export const PlaneacionView = () => {
                 <th>SUCURSAL / DESTINO</th>
                 <th>CLÓSTER & TIPO</th>
                 <th style={{ textAlign: 'center' }}>CORTINA</th>
-                <th style={{ textAlign: 'center' }}>ESTATUS</th>
+                <th style={{ textAlign: 'center', minWidth: '120px' }}>ESTATUS</th>
                 <th style={{ textAlign: 'center' }}>ACCIONES</th>
               </tr>
             </thead>
@@ -241,8 +279,9 @@ export const PlaneacionView = () => {
                 </tr>
               ) : (
                 planeacionUnits.map(unit => {
-                  const enCortina = unit.estatusPlaneacion === 'En Cortina' || unit.estatusPatio === 'Colocado p/ Carga';
-                  const yaDespachado = unit.estatusSupervisor === 'En Ruta' || unit.estatusPlaneacion === 'Despachado';
+                  const estatusPlan = unit.estatusPlaneacion || 'PENDIENTE';
+                  const isEnCaseta = estatusPlan === 'EN CASETA';
+                  const isColocado = estatusPlan === 'COLOCADO';
                   
                   // Validación de restricciones de matriz Villahermosa
                   const warnings = validarRestriccionesViaje(
@@ -254,7 +293,8 @@ export const PlaneacionView = () => {
                     <tr 
                       key={unit.id}
                       style={{
-                        background: enCortina ? 'rgba(245, 158, 11, 0.04)' : 'transparent'
+                        background: isEnCaseta ? 'rgba(234, 179, 8, 0.06)' : isColocado ? 'rgba(6, 182, 212, 0.04)' : 'transparent',
+                        borderLeft: isEnCaseta ? '4px solid #eab308' : isColocado ? '4px solid #06b6d4' : 'none'
                       }}
                     >
                       {/* NO. VIAJE */}
@@ -304,7 +344,7 @@ export const PlaneacionView = () => {
 
                       {/* LINEA */}
                       <td style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
-                        {unit.linea || 'LINEA 1 - VHS'}
+                        {unit.linea || 'LTI - VHS'}
                       </td>
 
                       {/* OPERADOR */}
@@ -381,31 +421,60 @@ export const PlaneacionView = () => {
                         </strong>
                       </td>
 
-                      {/* ESTATUS */}
+                      {/* ESTATUS OFICIAL (EXCEL) */}
                       <td style={{ textAlign: 'center' }}>
                         <span className={`status-badge ${
-                          yaDespachado ? 'status-en-ruta' :
-                          enCortina ? 'status-en-cortina' :
-                          'status-disponible'
+                          isEnCaseta ? 'status-encaseta' :
+                          isColocado ? 'status-colocado' :
+                          'status-pendiente'
                         }`}>
-                          {yaDespachado ? 'EN RUTA' :
-                           enCortina ? 'EN CORTINA' :
-                           unit.estatusPatio.toUpperCase()}
+                          {estatusPlan}
                         </span>
                       </td>
 
-                      {/* ACCIONES */}
+                      {/* ACCIONES Y TRANSICIÓN RÁPIDA */}
                       <td style={{ textAlign: 'center' }}>
-                        <div style={{ display: 'flex', gap: '0.35rem', justifyContent: 'center' }}>
-                          {enCortina && (
+                        <div style={{ display: 'flex', gap: '0.35rem', justifyContent: 'center', alignItems: 'center' }}>
+                          {estatusPlan === 'PENDIENTE' && (
                             <button 
                               className="btn btn-primary"
-                              style={{ padding: '0.3rem 0.65rem', fontSize: '0.75rem' }}
-                              onClick={() => despacharRuta(unit.id)}
-                              title="Dar salida a ruta (Pasa a monitoreo Supervisor)"
+                              style={{ padding: '0.28rem 0.55rem', fontSize: '0.72rem' }}
+                              onClick={() => handleStatusChange(unit.id, 'COLOCADO')}
+                              title="Colocar unidad en cortina para carga"
+                            >
+                              <DoorOpen size={12} />
+                              <span>Colocar</span>
+                            </button>
+                          )}
+                          {estatusPlan === 'COLOCADO' && (
+                            <button 
+                              className="btn"
+                              style={{ 
+                                padding: '0.28rem 0.6rem', 
+                                fontSize: '0.72rem', 
+                                background: '#fef08a', 
+                                color: '#713f12', 
+                                border: '1px solid #eab308',
+                                fontWeight: 800,
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '0.3rem'
+                              }}
+                              onClick={() => handleStatusChange(unit.id, 'EN CASETA')}
+                              title="Carga terminada: Pasar a Caseta y liberar a ruta"
                             >
                               <Send size={12} />
-                              <span>Despachar</span>
+                              <span>A Caseta</span>
+                            </button>
+                          )}
+                          {estatusPlan === 'EN CASETA' && (
+                            <button 
+                              className="btn-move"
+                              style={{ padding: '0.25rem 0.45rem', fontSize: '0.7rem' }}
+                              onClick={() => handleStatusChange(unit.id, 'COLOCADO')}
+                              title="Regresar a Colocado si hay ajuste"
+                            >
+                              Retornar
                             </button>
                           )}
                           <button 

@@ -29,7 +29,7 @@ export const INITIAL_UNITS = [
     eta: "08:00 AM",
     area: "supervisor",
     estatusPatio: "Cargado",
-    estatusPlaneacion: "Despachado",
+    estatusPlaneacion: "EN CASETA",
     estatusSupervisor: "En Ruta",
     observaciones: "Salida puntual en caseta"
   },
@@ -59,7 +59,7 @@ export const INITIAL_UNITS = [
     eta: "08:30 AM",
     area: "supervisor",
     estatusPatio: "Cargado",
-    estatusPlaneacion: "Despachado",
+    estatusPlaneacion: "EN CASETA",
     estatusSupervisor: "En Ruta",
     observaciones: "En tránsito regular por autopista"
   },
@@ -89,7 +89,7 @@ export const INITIAL_UNITS = [
     eta: "08:30 AM",
     area: "supervisor",
     estatusPatio: "Cargado",
-    estatusPlaneacion: "Despachado",
+    estatusPlaneacion: "EN CASETA",
     estatusSupervisor: "Espera Descarga",
     observaciones: "Arribó a sucursal, en espera de rampa"
   },
@@ -120,7 +120,7 @@ export const INITIAL_UNITS = [
     eta: "10:15 AM",
     area: "supervisor",
     estatusPatio: "Cargado",
-    estatusPlaneacion: "Despachado",
+    estatusPlaneacion: "EN CASETA",
     estatusSupervisor: "Descargando",
     observaciones: "Descarga en proceso en primera sucursal"
   },
@@ -151,7 +151,7 @@ export const INITIAL_UNITS = [
     eta: "11:15 AM",
     area: "supervisor",
     estatusPatio: "Cargado",
-    estatusPlaneacion: "Despachado",
+    estatusPlaneacion: "EN CASETA",
     estatusSupervisor: "En Ruta",
     observaciones: "Despacho autorizado por caseta"
   },
@@ -181,7 +181,7 @@ export const INITIAL_UNITS = [
     eta: "10:30 AM",
     area: "supervisor",
     estatusPatio: "Cargado",
-    estatusPlaneacion: "Despachado",
+    estatusPlaneacion: "EN CASETA",
     estatusSupervisor: "En Ruta",
     observaciones: "Circulando en autopista hacia Las Choapas"
   },
@@ -212,7 +212,7 @@ export const INITIAL_UNITS = [
     eta: "11:00 AM",
     area: "planeacion",
     estatusPatio: "Colocado p/ Carga",
-    estatusPlaneacion: "En Cortina",
+    estatusPlaneacion: "COLOCADO",
     estatusSupervisor: "Pendiente",
     observaciones: "En proceso de estiba y verificación de sellos"
   },
@@ -242,7 +242,7 @@ export const INITIAL_UNITS = [
     eta: "10:45 AM",
     area: "planeacion",
     estatusPatio: "Colocado p/ Carga",
-    estatusPlaneacion: "En Cortina",
+    estatusPlaneacion: "COLOCADO",
     estatusSupervisor: "Pendiente",
     observaciones: "Finalizando carga física en cortina 24"
   },
@@ -272,7 +272,7 @@ export const INITIAL_UNITS = [
     eta: "10:30 AM",
     area: "planeacion",
     estatusPatio: "Colocado p/ Carga",
-    estatusPlaneacion: "En Cortina",
+    estatusPlaneacion: "COLOCADO",
     estatusSupervisor: "Pendiente",
     observaciones: "Pendiente validación de remisión"
   },
@@ -302,7 +302,7 @@ export const INITIAL_UNITS = [
     eta: "11:15 AM",
     area: "planeacion",
     estatusPatio: "Colocado p/ Carga",
-    estatusPlaneacion: "En Cortina",
+    estatusPlaneacion: "COLOCADO",
     estatusSupervisor: "Pendiente",
     observaciones: "Madrina colocada en cortina 28"
   },
@@ -332,7 +332,7 @@ export const INITIAL_UNITS = [
     eta: "12:00 PM",
     area: "planeacion",
     estatusPatio: "Disponible",
-    estatusPlaneacion: "Pendiente",
+    estatusPlaneacion: "PENDIENTE",
     estatusSupervisor: "Pendiente",
     observaciones: "Programado para carga en bloque 6"
   },
@@ -362,7 +362,7 @@ export const INITIAL_UNITS = [
     eta: "12:00 PM",
     area: "planeacion",
     estatusPatio: "Disponible",
-    estatusPlaneacion: "Pendiente",
+    estatusPlaneacion: "PENDIENTE",
     estatusSupervisor: "Pendiente",
     observaciones: "En patio disponible para llamado"
   },
@@ -394,7 +394,7 @@ export const INITIAL_UNITS = [
     eta: "12:00 PM",
     area: "supervisor",
     estatusPatio: "Cargado",
-    estatusPlaneacion: "Despachado",
+    estatusPlaneacion: "EN CASETA",
     estatusSupervisor: "En Ruta",
     observaciones: "Full con Cajas 2018 y 2029 (Dolly D20). Tránsito normal por autopista Carmen-Campeche"
   },
@@ -424,7 +424,7 @@ export const INITIAL_UNITS = [
     eta: "10:00 AM",
     area: "supervisor",
     estatusPatio: "Cargado",
-    estatusPlaneacion: "Despachado",
+    estatusPlaneacion: "EN CASETA",
     estatusSupervisor: "Retrasado",
     observaciones: "Cajas 2037 y 2038 (Dolly D06). Alerta: Retraso por niebla y obras en tramo Teapa-Pichucalco"
   },
@@ -454,7 +454,7 @@ export const INITIAL_UNITS = [
     eta: "12:00 PM",
     area: "supervisor",
     estatusPatio: "Cargado",
-    estatusPlaneacion: "Despachado",
+    estatusPlaneacion: "EN CASETA",
     estatusSupervisor: "En Ruta",
     observaciones: "Cajas 2012 y 2016 (Dolly D11). Reporte satelital en caseta Malpasito"
   },
@@ -484,7 +484,7 @@ export const INITIAL_UNITS = [
     eta: "01:45 PM",
     area: "supervisor",
     estatusPatio: "Cargado",
-    estatusPlaneacion: "Despachado",
+    estatusPlaneacion: "EN CASETA",
     estatusSupervisor: "En Ruta",
     observaciones: "Cajas 2023 y 2002 (Dolly D12). En tránsito regular hacia la Costa de Chiapas"
   },
@@ -514,7 +514,7 @@ export const INITIAL_UNITS = [
     eta: "--:--",
     area: "patio",
     estatusPatio: "Disponible",
-    estatusPlaneacion: "Pendiente",
+    estatusPlaneacion: "PENDIENTE",
     estatusSupervisor: "Pendiente",
     observaciones: "Unidad verificada, tanque lleno y lista para asignar"
   },
@@ -542,7 +542,7 @@ export const INITIAL_UNITS = [
     eta: "--:--",
     area: "patio",
     estatusPatio: "Disponible",
-    estatusPlaneacion: "Pendiente",
+    estatusPlaneacion: "PENDIENTE",
     estatusSupervisor: "Pendiente",
     observaciones: "Disponible para ruta local de la tarde"
   },
@@ -570,7 +570,7 @@ export const INITIAL_UNITS = [
     eta: "--:--",
     area: "patio",
     estatusPatio: "Disponible",
-    estatusPlaneacion: "Pendiente",
+    estatusPlaneacion: "PENDIENTE",
     estatusSupervisor: "Pendiente",
     observaciones: "Rango Medio listo para asignación de carga pesada"
   },
@@ -598,7 +598,7 @@ export const INITIAL_UNITS = [
     eta: "--:--",
     area: "patio",
     estatusPatio: "Disponible",
-    estatusPlaneacion: "Pendiente",
+    estatusPlaneacion: "PENDIENTE",
     estatusSupervisor: "Pendiente",
     observaciones: "Disponible en patio central"
   },

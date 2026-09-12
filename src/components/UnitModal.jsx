@@ -125,6 +125,18 @@ export const UnitModal = () => {
       }
     }
 
+    // Si el usuario cambia el estatus de planeación
+    if (name === 'estatusPlaneacion') {
+      if (value === 'EN CASETA') {
+        updated.estatusPatio = 'Cargado';
+        if (updated.estatusSupervisor === 'Pendiente' || !updated.estatusSupervisor) {
+          updated.estatusSupervisor = 'En Ruta';
+        }
+      } else if (value === 'COLOCADO') {
+        updated.estatusPatio = 'Colocado p/ Carga';
+      }
+    }
+
     setFormData(updated);
   };
 
@@ -458,6 +470,28 @@ export const UnitModal = () => {
                   value={formData.eta}
                   onChange={handleChange}
                 />
+              </div>
+
+              {/* Estatus Planeación (Oficial Excel) */}
+              <div className="form-group">
+                <label>Estatus Planeación (Oficial)</label>
+                <select 
+                  name="estatusPlaneacion" 
+                  className="form-control"
+                  value={formData.estatusPlaneacion || 'PENDIENTE'}
+                  onChange={handleChange}
+                  style={
+                    formData.estatusPlaneacion === 'EN CASETA' 
+                      ? { background: '#fef08a', color: '#713f12', fontWeight: 800, borderColor: '#eab308' } 
+                      : formData.estatusPlaneacion === 'COLOCADO'
+                      ? { borderColor: '#06b6d4', color: '#22d3ee' }
+                      : {}
+                  }
+                >
+                  <option value="PENDIENTE">PENDIENTE</option>
+                  <option value="COLOCADO">COLOCADO</option>
+                  <option value="EN CASETA">EN CASETA</option>
+                </select>
               </div>
 
               {/* Estatus Patio */}

@@ -482,6 +482,28 @@ body {
   color: var(--status-purple-text);
 }
 
+/* Estatus Oficiales de Planeación según Excel (COLOCADO, EN CASETA, PENDIENTE) */
+.status-encaseta {
+  background: #fef08a !important;
+  border-color: #eab308 !important;
+  color: #713f12 !important;
+  font-weight: 800 !important;
+}
+
+.status-colocado {
+  background: rgba(6, 182, 212, 0.18) !important;
+  border-color: rgba(6, 182, 212, 0.45) !important;
+  color: #22d3ee !important;
+  font-weight: 800 !important;
+}
+
+.status-pendiente {
+  background: rgba(148, 163, 184, 0.12) !important;
+  border-color: rgba(148, 163, 184, 0.25) !important;
+  color: #94a3b8 !important;
+  font-weight: 700 !important;
+}
+
 .status-retrasado,
 .status-taller {
   background: var(--status-red-bg);
