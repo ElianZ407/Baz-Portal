@@ -189,7 +189,10 @@ export const PatioView = () => {
                           {col.id !== 'Disponible' && (
                             <button 
                               className="btn-move"
-                              onClick={() => updateStatus(unit.id, 'patio', 'Disponible')}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                updateStatus(unit.id, 'patio', 'Disponible');
+                              }}
                               title="Marcar como Disponible"
                             >
                               Disp.
@@ -198,7 +201,10 @@ export const PatioView = () => {
                           {col.id !== 'Colocado p/ Carga' && (
                             <button 
                               className="btn-move"
-                              onClick={() => updateStatus(unit.id, 'patio', 'Colocado p/ Carga')}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                updateStatus(unit.id, 'patio', 'Colocado p/ Carga');
+                              }}
                               title="Colocar para carga"
                             >
                               Carga
@@ -207,7 +213,10 @@ export const PatioView = () => {
                           {col.id !== 'Cargado' && (
                             <button 
                               className="btn-move"
-                              onClick={() => updateStatus(unit.id, 'patio', 'Cargado')}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                updateStatus(unit.id, 'patio', 'Cargado');
+                              }}
                               title="Marcar como Cargado"
                             >
                               Cargado
@@ -217,7 +226,10 @@ export const PatioView = () => {
                             <button 
                               className="btn-move"
                               style={{ borderColor: 'rgba(239, 68, 68, 0.4)', color: '#f87171' }}
-                              onClick={() => updateStatus(unit.id, 'patio', 'Taller')}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                updateStatus(unit.id, 'patio', 'Taller');
+                              }}
                               title="Enviar a Taller"
                             >
                               Taller
@@ -228,7 +240,10 @@ export const PatioView = () => {
                         <div style={{ display: 'flex', gap: '0.3rem' }}>
                           <button 
                             className="btn-action-icon"
-                            onClick={() => handleEdit(unit)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleEdit(unit);
+                            }}
                             title="Editar información"
                           >
                             <Edit3 size={14} />
@@ -236,7 +251,8 @@ export const PatioView = () => {
                           <button 
                             className="btn-action-icon"
                             style={{ color: '#f87171' }}
-                            onClick={() => {
+                            onClick={(e) => {
+                              e.stopPropagation();
                               if (window.confirm(`¿Eliminar la unidad ECO ${unit.economico}?`)) {
                                 deleteUnit(unit.id);
                               }

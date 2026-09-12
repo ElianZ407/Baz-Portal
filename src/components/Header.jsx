@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Truck, 
   Layers, 
@@ -18,10 +18,18 @@ export const Header = () => {
     setActiveArea, 
     setIsModalOpen, 
     setSelectedUnit, 
-    currentTime,
     resetData,
     units
   } = useFleet();
+
+  const [headerTime, setHeaderTime] = useState(new Date());
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setHeaderTime(new Date());
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
 
   const handleOpenNewUnit = () => {
     setSelectedUnit(null);
@@ -40,13 +48,13 @@ export const Header = () => {
     }
   };
 
-  const timeString = currentTime.toLocaleTimeString('es-MX', {
+  const timeString = headerTime.toLocaleTimeString('es-MX', {
     hour: '2-digit',
     minute: '2-digit',
     second: '2-digit'
   });
 
-  const dateString = currentTime.toLocaleDateString('es-MX', {
+  const dateString = headerTime.toLocaleDateString('es-MX', {
     weekday: 'short',
     day: 'numeric',
     month: 'short'

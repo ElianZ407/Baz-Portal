@@ -4,6 +4,7 @@ import { INITIAL_UNITS } from '../data/initialFleetData';
 const FleetContext = createContext(null);
 
 const STORAGE_KEY = 'baz_entregas_fleet_seed_v2';
+const CLIENT_ID = Math.random().toString(36).substring(2) + Date.now().toString(36);
 
 export const FleetProvider = ({ children }) => {
   const [units, setUnits] = useState(() => {
@@ -28,11 +29,11 @@ export const FleetProvider = ({ children }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
 
-  // Reloj en tiempo real para cálculo de retrasos y visualización
+  // Reloj de fondo con intervalo no agresivo (cada 30s) para no saturar re-renders globales
   useEffect(() => {
     const timer = setInterval(() => {
       setCurrentTime(new Date());
-    }, 1000);
+    }, 30000);
     return () => clearInterval(timer);
   }, []);
 
@@ -42,7 +43,13 @@ export const FleetProvider = ({ children }) => {
     try {
       channel = new BroadcastChannel('baz_fleet_realtime_sync');
       channel.onmessage = (event) => {
-        if (event.data && event.data.type === 'SYNC_UNITS' && Array.isArray(event.data.units)) {
+        // Ignorar mensajes generados por la misma pestaña para evitar bucles y renderizados duplicados
+        if (
+          event.data && 
+          event.data.type === 'SYNC_UNITS' && 
+          event.data.senderId !== CLIENT_ID && 
+          Array.isArray(event.data.units)
+        ) {
           setUnits(event.data.units);
         }
       };
@@ -69,13 +76,13 @@ export const FleetProvider = ({ children }) => {
     };
   }, []);
 
-  // Guardar en localStorage y emitir evento en vivo a otras pantallas/ventanas
+  // Guardar en localStorage y emitir evento en vivo a OTRAS pantallas/ventanas
   useEffect(() => {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(units));
       if (typeof BroadcastChannel !== 'undefined') {
         const bc = new BroadcastChannel('baz_fleet_realtime_sync');
-        bc.postMessage({ type: 'SYNC_UNITS', units });
+        bc.postMessage({ type: 'SYNC_UNITS', units, senderId: CLIENT_ID });
         bc.close();
       }
     } catch (e) {
@@ -184,9 +191,10 @@ export const FleetProvider = ({ children }) => {
     setUnits([]);
     localStorage.removeItem(STORAGE_KEY);
     localStorage.removeItem('baz_entregas_fleet_data_v1');
+    localStorage.removeItem('baz_entregas_fleet_live_clean_v1');
     if (typeof BroadcastChannel !== 'undefined') {
       const bc = new BroadcastChannel('baz_fleet_realtime_sync');
-      bc.postMessage({ type: 'SYNC_UNITS', units: [] });
+      bc.postMessage({ type: 'SYNC_UNITS', units: [], senderId: CLIENT_ID });
       bc.close();
     }
   };
@@ -197,7 +205,7 @@ export const FleetProvider = ({ children }) => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(INITIAL_UNITS));
     if (typeof BroadcastChannel !== 'undefined') {
       const bc = new BroadcastChannel('baz_fleet_realtime_sync');
-      bc.postMessage({ type: 'SYNC_UNITS', units: INITIAL_UNITS });
+      bc.postMessage({ type: 'SYNC_UNITS', units: INITIAL_UNITS, senderId: CLIENT_ID });
       bc.close();
     }
   };
