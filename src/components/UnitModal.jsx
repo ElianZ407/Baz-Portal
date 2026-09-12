@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { X, Save, Truck, Layers, FileSpreadsheet, AlertTriangle, CheckCircle2, MapPin } from 'lucide-react';
+import { X, Save, Truck, Layers, FileSpreadsheet, AlertTriangle, CheckCircle2, MapPin, Wrench } from 'lucide-react';
 import { useFleet } from '../context/FleetContext';
 import { LINEAS_TRANSPORTE, TURNOS } from '../data/initialFleetData';
 import { SUCURSALES_MAESTRAS, buscarSucursal, validarRestriccionesViaje } from '../data/sucursalesData';
+import { FLOTA_TOTAL, buscarUnidadPorEco, OPERADORES_ACTIVOS } from '../data/flotaMaestraData';
 
 export const UnitModal = () => {
   const { isModalOpen, setIsModalOpen, selectedUnit, saveUnit } = useFleet();
@@ -13,7 +14,7 @@ export const UnitModal = () => {
     bloque: 1,
     placas: '',
     capUnidad: 50,
-    linea: 'LINEA 1 - VHS',
+    linea: 'LTI - VHS',
     tipo: 'Sencillo',
     operador: '',
     turno: 'M1',
@@ -43,7 +44,7 @@ export const UnitModal = () => {
         bloque: selectedUnit.bloque || 1,
         placas: selectedUnit.placas || '',
         capUnidad: selectedUnit.capUnidad || 50,
-        linea: selectedUnit.linea || 'LINEA 1 - VHS',
+        linea: selectedUnit.linea || 'LTI - VHS',
         numCarga: selectedUnit.numCarga || '',
         closter: selectedUnit.closter || '',
         fl: selectedUnit.fl || 'LOCAL',
@@ -56,7 +57,7 @@ export const UnitModal = () => {
         bloque: 1,
         placas: '',
         capUnidad: 50,
-        linea: 'LINEA 1 - VHS',
+        linea: 'LTI - VHS',
         tipo: 'Sencillo',
         operador: '',
         turno: 'M1',
@@ -80,10 +81,27 @@ export const UnitModal = () => {
     }
   }, [selectedUnit, isModalOpen]);
 
-  // Manejo de cambios con auto-completado de sucursal desde matriz CD Villahermosa
+  // Manejo de cambios con auto-completado de flota oficial y de sucursales
   const handleChange = (e) => {
     const { name, value } = e.target;
     let updated = { ...formData, [name]: value };
+
+    // Si el usuario escribe o selecciona el Económico:
+    if (name === 'economico') {
+      const ecoMatch = buscarUnidadPorEco(value);
+      if (ecoMatch) {
+        updated.placas = ecoMatch.placas || updated.placas;
+        if (ecoMatch.capUnidad) updated.capUnidad = ecoMatch.capUnidad;
+        if (ecoMatch.tipo) updated.tipo = ecoMatch.tipo;
+        if (ecoMatch.linea) updated.linea = ecoMatch.linea;
+        if (ecoMatch.operador && ecoMatch.operador !== 'VACANTE' && ecoMatch.operador !== 'BAJA') {
+          updated.operador = ecoMatch.operador;
+        }
+        if (ecoMatch.estatus === 'TALLER') {
+          updated.estatusPatio = 'Taller';
+        }
+      }
+    }
 
     // Si el usuario cambia el número de sucursal
     if (name === 'numSucursal') {
@@ -110,21 +128,11 @@ export const UnitModal = () => {
     setFormData(updated);
   };
 
-  const handleSelectSucursal = (sucursal) => {
-    setFormData(prev => ({
-      ...prev,
-      numSucursal: sucursal.id,
-      destino: sucursal.nombre,
-      closter: sucursal.closter,
-      fl: sucursal.fl,
-      capMax: sucursal.capMax
-    }));
-  };
-
-  // Validaciones operativas según matriz de CD Villahermosa
+  // Validaciones operativas según matriz de CD Villahermosa y padrón de flota
   const targetIdOrName = formData.numSucursal || formData.destino;
   const warnings = targetIdOrName ? validarRestriccionesViaje([targetIdOrName], Number(formData.capUnidad)) : [];
   const sucursalInfo = targetIdOrName ? buscarSucursal(targetIdOrName) : null;
+  const flotaInfo = buscarUnidadPorEco(formData.economico);
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -141,7 +149,7 @@ export const UnitModal = () => {
 
   return (
     <div className="modal-overlay" onClick={() => setIsModalOpen(false)}>
-      <div className="modal-content" style={{ maxWidth: '740px' }} onClick={(e) => e.stopPropagation()}>
+      <div className="modal-content" style={{ maxWidth: '760px' }} onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
           <h3>
             <FileSpreadsheet size={20} style={{ display: 'inline', verticalAlign: 'middle', marginRight: '8px', color: 'var(--accent-cyan)' }} />
@@ -152,7 +160,21 @@ export const UnitModal = () => {
           </button>
         </div>
 
-        {/* Datalists para autocompletado rápido */}
+        {/* Datalists para autocompletado rápido desde el padrón oficial */}
+        <datalist id="flota-ecos-list">
+          {FLOTA_TOTAL.map(u => (
+            <option key={u.eco} value={u.eco}>
+              Placas: {u.placas} • {u.operador} ({u.tipo} - Cap: {u.capUnidad}) [{u.estatus}]
+            </option>
+          ))}
+        </datalist>
+
+        <datalist id="operadores-list">
+          {OPERADORES_ACTIVOS.map(op => (
+            <option key={op} value={op} />
+          ))}
+        </datalist>
+
         <datalist id="sucursales-ids-list">
           {SUCURSALES_MAESTRAS.map(s => (
             <option key={s.id} value={s.id}>
@@ -171,6 +193,28 @@ export const UnitModal = () => {
 
         <form onSubmit={handleSubmit}>
           <div className="modal-body">
+            {/* Alerta si la unidad tiene estatus especial en la flota */}
+            {flotaInfo && flotaInfo.estatus !== 'ACTIVO' && (
+              <div style={{
+                background: flotaInfo.estatus === 'TALLER' ? 'rgba(239, 68, 68, 0.15)' : 'rgba(245, 158, 11, 0.15)',
+                border: `1px solid ${flotaInfo.estatus === 'TALLER' ? 'rgba(239, 68, 68, 0.4)' : 'rgba(245, 158, 11, 0.4)'}`,
+                borderLeft: `4px solid ${flotaInfo.estatus === 'TALLER' ? '#ef4444' : '#f59e0b'}`,
+                color: flotaInfo.estatus === 'TALLER' ? '#fca5a5' : '#fde68a',
+                padding: '0.65rem 0.9rem',
+                borderRadius: 'var(--radius-sm)',
+                marginBottom: '1.25rem',
+                fontSize: '0.8rem',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.6rem'
+              }}>
+                {flotaInfo.estatus === 'TALLER' ? <Wrench size={17} /> : <AlertTriangle size={17} />}
+                <div>
+                  <strong>Aviso del Padrón de Flota:</strong> La unidad <strong>ECO {flotaInfo.eco} ({flotaInfo.placas})</strong> está registrada con estatus: <strong>{flotaInfo.estatus}</strong>.
+                </div>
+              </div>
+            )}
+
             {/* Alertas de Restricción Operativa en Vivo */}
             {warnings.length > 0 && (
               <div className="alert-restriction-box" style={{ marginBottom: '1.25rem' }}>
@@ -219,14 +263,15 @@ export const UnitModal = () => {
                 />
               </div>
 
-              {/* Económico */}
+              {/* Económico con Autocompletado de Flota */}
               <div className="form-group">
-                <label>ECO Unidad *</label>
+                <label>ECO Unidad (Padrón Oficial) *</label>
                 <input 
                   type="text"
                   name="economico"
+                  list="flota-ecos-list"
                   className="form-control"
-                  placeholder="Ej: 3353, 4135, C3..."
+                  placeholder="Ej: 3393, 4135, 5026..."
                   required
                   value={formData.economico}
                   onChange={handleChange}
@@ -248,14 +293,14 @@ export const UnitModal = () => {
                 </select>
               </div>
 
-              {/* Placas */}
+              {/* Placas (Auto-completadas) */}
               <div className="form-group">
                 <label>Placas</label>
                 <input 
                   type="text"
                   name="placas"
                   className="form-control"
-                  placeholder="Ej: MX-3353-A"
+                  placeholder="Ej: GT3465C, 11FA5G..."
                   value={formData.placas}
                   onChange={handleChange}
                 />
@@ -272,9 +317,9 @@ export const UnitModal = () => {
                 >
                   <option value={18}>18 (Camioneta / Rabón Chico)</option>
                   <option value={40}>40 (Madrina Mediana)</option>
-                  <option value={50}>50 (Madrina Estándar / Remolque)</option>
+                  <option value={50}>50 (Madrina Estándar / Rango Medio)</option>
                   <option value={70}>70 (Intercedis / Trailer)</option>
-                  <option value={90}>90 (Madrina Grande)</option>
+                  <option value={90}>90 (Caja Seca Sencilla)</option>
                   <option value={110}>110 (Full Tráiler)</option>
                 </select>
               </div>
@@ -294,14 +339,15 @@ export const UnitModal = () => {
                 </select>
               </div>
 
-              {/* Operador */}
+              {/* Operador con Autocompletado de la Plantilla Oficial */}
               <div className="form-group full-width">
-                <label>Nombre del Operador</label>
+                <label>Nombre del Operador (Padrón Oficial)</label>
                 <input 
                   type="text"
                   name="operador"
+                  list="operadores-list"
                   className="form-control"
-                  placeholder="Ej: OPERADOR 101"
+                  placeholder="Ej: ANTONIO PEREZ PALMA, ANDERSON LUISAO..."
                   value={formData.operador}
                   onChange={handleChange}
                 />
@@ -314,7 +360,7 @@ export const UnitModal = () => {
                   type="text"
                   name="numCarga"
                   className="form-control"
-                  placeholder="Ej: CS-0039-101"
+                  placeholder="Ej: CS00390172"
                   value={formData.numCarga}
                   onChange={handleChange}
                 />
