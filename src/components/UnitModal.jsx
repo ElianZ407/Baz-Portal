@@ -4,6 +4,8 @@ import { useFleet } from '../context/FleetContext';
 import { LINEAS_TRANSPORTE, TURNOS } from '../data/initialFleetData';
 import { SUCURSALES_MAESTRAS, buscarSucursal, validarRestriccionesViaje } from '../data/sucursalesData';
 import { FLOTA_TOTAL, buscarUnidadPorEco, OPERADORES_ACTIVOS } from '../data/flotaMaestraData';
+import { SucursalSelector } from './SucursalSelector';
+import { UnidadSelector } from './UnidadSelector';
 
 export const UnitModal = () => {
   const { isModalOpen, setIsModalOpen, selectedUnit, saveUnit } = useFleet();
@@ -31,7 +33,7 @@ export const UnitModal = () => {
     tiempoEstimadoHrs: 3.0,
     eta: '11:00 AM',
     estatusPatio: 'Disponible',
-    estatusPlaneacion: 'Pendiente',
+    estatusPlaneacion: 'PENDIENTE',
     estatusSupervisor: 'Pendiente',
     observaciones: ''
   });
@@ -48,7 +50,8 @@ export const UnitModal = () => {
         numCarga: selectedUnit.numCarga || '',
         closter: selectedUnit.closter || '',
         fl: selectedUnit.fl || 'LOCAL',
-        capMax: selectedUnit.capMax || ''
+        capMax: selectedUnit.capMax || '',
+        estatusPlaneacion: selectedUnit.estatusPlaneacion || 'PENDIENTE'
       });
     } else {
       setFormData({
@@ -74,56 +77,43 @@ export const UnitModal = () => {
         tiempoEstimadoHrs: 3.0,
         eta: '11:00 AM',
         estatusPatio: 'Disponible',
-        estatusPlaneacion: 'Pendiente',
+        estatusPlaneacion: 'PENDIENTE',
         estatusSupervisor: 'Pendiente',
         observaciones: ''
       });
     }
   }, [selectedUnit, isModalOpen]);
 
-  // Manejo de cambios con auto-completado de flota oficial y de sucursales
+  // Selección inteligente desde el catálogo de unidades
+  const handleSelectUnidad = (unidad) => {
+    setFormData(prev => ({
+      ...prev,
+      economico: unidad.eco,
+      placas: unidad.placas,
+      capUnidad: unidad.capUnidad || prev.capUnidad,
+      tipo: unidad.tipo || prev.tipo,
+      linea: unidad.linea || prev.linea,
+      operador: (unidad.operador && unidad.operador !== 'VACANTE' && unidad.operador !== 'BAJA') ? unidad.operador : prev.operador,
+      estatusPatio: unidad.estatus === 'TALLER' ? 'Taller' : prev.estatusPatio
+    }));
+  };
+
+  // Selección inteligente desde el catálogo de sucursales
+  const handleSelectSucursal = (sucursal) => {
+    setFormData(prev => ({
+      ...prev,
+      numSucursal: sucursal.id,
+      destino: sucursal.nombre,
+      closter: sucursal.closter,
+      fl: sucursal.fl,
+      capMax: sucursal.capMax
+    }));
+  };
+
+  // Manejo de cambios estándar para inputs de texto
   const handleChange = (e) => {
     const { name, value } = e.target;
     let updated = { ...formData, [name]: value };
-
-    // Si el usuario escribe o selecciona el Económico:
-    if (name === 'economico') {
-      const ecoMatch = buscarUnidadPorEco(value);
-      if (ecoMatch) {
-        updated.placas = ecoMatch.placas || updated.placas;
-        if (ecoMatch.capUnidad) updated.capUnidad = ecoMatch.capUnidad;
-        if (ecoMatch.tipo) updated.tipo = ecoMatch.tipo;
-        if (ecoMatch.linea) updated.linea = ecoMatch.linea;
-        if (ecoMatch.operador && ecoMatch.operador !== 'VACANTE' && ecoMatch.operador !== 'BAJA') {
-          updated.operador = ecoMatch.operador;
-        }
-        if (ecoMatch.estatus === 'TALLER') {
-          updated.estatusPatio = 'Taller';
-        }
-      }
-    }
-
-    // Si el usuario cambia el número de sucursal
-    if (name === 'numSucursal') {
-      const match = buscarSucursal(value);
-      if (match) {
-        updated.destino = match.nombre;
-        updated.closter = match.closter;
-        updated.fl = match.fl;
-        updated.capMax = match.capMax;
-      }
-    }
-
-    // Si el usuario cambia el nombre de destino
-    if (name === 'destino') {
-      const match = buscarSucursal(value);
-      if (match) {
-        updated.numSucursal = match.id;
-        updated.closter = match.closter;
-        updated.fl = match.fl;
-        updated.capMax = match.capMax;
-      }
-    }
 
     // Si el usuario cambia el estatus de planeación
     if (name === 'estatusPlaneacion') {
@@ -149,7 +139,7 @@ export const UnitModal = () => {
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!formData.economico) {
-      alert('Por favor ingrese el número económico de la unidad');
+      alert('Por favor seleccione o ingrese el número económico de la unidad');
       return;
     }
 
@@ -161,7 +151,7 @@ export const UnitModal = () => {
 
   return (
     <div className="modal-overlay" onClick={() => setIsModalOpen(false)}>
-      <div className="modal-content" style={{ maxWidth: '760px' }} onClick={(e) => e.stopPropagation()}>
+      <div className="modal-content" style={{ maxWidth: '780px' }} onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
           <h3>
             <FileSpreadsheet size={20} style={{ display: 'inline', verticalAlign: 'middle', marginRight: '8px', color: 'var(--accent-cyan)' }} />
@@ -172,34 +162,10 @@ export const UnitModal = () => {
           </button>
         </div>
 
-        {/* Datalists para autocompletado rápido desde el padrón oficial */}
-        <datalist id="flota-ecos-list">
-          {FLOTA_TOTAL.map(u => (
-            <option key={u.eco} value={u.eco}>
-              Placas: {u.placas} • {u.operador} ({u.tipo} - Cap: {u.capUnidad}) [{u.estatus}]
-            </option>
-          ))}
-        </datalist>
-
+        {/* Datalist solo para operadores */}
         <datalist id="operadores-list">
           {OPERADORES_ACTIVOS.map(op => (
             <option key={op} value={op} />
-          ))}
-        </datalist>
-
-        <datalist id="sucursales-ids-list">
-          {SUCURSALES_MAESTRAS.map(s => (
-            <option key={s.id} value={s.id}>
-              {s.nombre} — {s.closter} ({s.fl})
-            </option>
-          ))}
-        </datalist>
-
-        <datalist id="sucursales-names-list">
-          {SUCURSALES_MAESTRAS.map(s => (
-            <option key={s.id} value={s.nombre}>
-              ID: {s.id} — {s.closter} ({s.fl})
-            </option>
           ))}
         </datalist>
 
@@ -222,7 +188,7 @@ export const UnitModal = () => {
               }}>
                 {flotaInfo.estatus === 'TALLER' ? <Wrench size={17} /> : <AlertTriangle size={17} />}
                 <div>
-                  <strong>Aviso del Padrón de Flota:</strong> La unidad <strong>ECO {flotaInfo.eco} ({flotaInfo.placas})</strong> está registrada con estatus: <strong>{flotaInfo.estatus}</strong>.
+                  <strong>Aviso del Padrón de Flota:</strong> La unidad <strong>ECO {flotaInfo.eco} ({flotaInfo.placas})</strong> está registrada como: <strong>{flotaInfo.estatus}</strong>.
                 </div>
               </div>
             )}
@@ -275,21 +241,6 @@ export const UnitModal = () => {
                 />
               </div>
 
-              {/* Económico con Autocompletado de Flota */}
-              <div className="form-group">
-                <label>ECO Unidad (Padrón Oficial) *</label>
-                <input 
-                  type="text"
-                  name="economico"
-                  list="flota-ecos-list"
-                  className="form-control"
-                  placeholder="Ej: 3393, 4135, 5026..."
-                  required
-                  value={formData.economico}
-                  onChange={handleChange}
-                />
-              </div>
-
               {/* Bloque */}
               <div className="form-group">
                 <label>Bloque de Salida</label>
@@ -303,6 +254,15 @@ export const UnitModal = () => {
                     <option key={b} value={b}>Bloque {b}</option>
                   ))}
                 </select>
+              </div>
+
+              {/* ECO Unidad con Selector Inteligente y Completo */}
+              <div className="form-group full-width">
+                <label>ECO Unidad (Padrón Oficial - {FLOTA_TOTAL.length} Unidades) *</label>
+                <UnidadSelector 
+                  value={formData.economico}
+                  onSelect={handleSelectUnidad}
+                />
               </div>
 
               {/* Placas (Auto-completadas) */}
@@ -351,15 +311,15 @@ export const UnitModal = () => {
                 </select>
               </div>
 
-              {/* Operador con Autocompletado de la Plantilla Oficial */}
-              <div className="form-group full-width">
-                <label>Nombre del Operador (Padrón Oficial)</label>
+              {/* Operador */}
+              <div className="form-group">
+                <label>Nombre del Operador</label>
                 <input 
                   type="text"
                   name="operador"
                   list="operadores-list"
                   className="form-control"
-                  placeholder="Ej: ANTONIO PEREZ PALMA, ANDERSON LUISAO..."
+                  placeholder="Ej: ANTONIO PEREZ PALMA..."
                   value={formData.operador}
                   onChange={handleChange}
                 />
@@ -391,31 +351,12 @@ export const UnitModal = () => {
                 />
               </div>
 
-              {/* # Sucursal con Autocomplete */}
-              <div className="form-group">
-                <label># Sucursal (ID Matriz)</label>
-                <input 
-                  type="text"
-                  name="numSucursal"
-                  list="sucursales-ids-list"
-                  className="form-control"
-                  placeholder="Ej: 4860, 6018, 9464..."
-                  value={formData.numSucursal}
-                  onChange={handleChange}
-                />
-              </div>
-
-              {/* Destino / Sucursal con Autocomplete */}
-              <div className="form-group">
-                <label>Sucursal Destino</label>
-                <input 
-                  type="text"
-                  name="destino"
-                  list="sucursales-names-list"
-                  className="form-control"
-                  placeholder="Ej: MEGA COMALCALCO..."
-                  value={formData.destino}
-                  onChange={handleChange}
+              {/* Selector Inteligente de Sucursal Destino (Siempre muestra todas) */}
+              <div className="form-group full-width">
+                <label>Sucursal Destino (Catálogo CD Villahermosa - {SUCURSALES_MAESTRAS.length} Tiendas)</label>
+                <SucursalSelector 
+                  value={formData.numSucursal || formData.destino}
+                  onSelect={handleSelectSucursal}
                 />
               </div>
 
@@ -426,7 +367,7 @@ export const UnitModal = () => {
                   type="text"
                   name="closter"
                   className="form-control"
-                  placeholder="Ej: CLUSTER COMALCALCO, V-1, CH-5..."
+                  placeholder="Ej: CLUSTER COMALCALCO, V-1..."
                   value={formData.closter || ''}
                   onChange={handleChange}
                 />
