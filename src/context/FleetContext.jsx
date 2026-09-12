@@ -34,7 +34,6 @@ export const FleetProvider = ({ children }) => {
   const [filterStatus, setFilterStatus] = useState('ALL');
   const [selectedUnit, setSelectedUnit] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isSupabaseModalOpen, setIsSupabaseModalOpen] = useState(false);
   const [confirmModal, setConfirmModal] = useState(null);
   const [currentTime, setCurrentTime] = useState(new Date());
 
@@ -380,8 +379,6 @@ export const FleetProvider = ({ children }) => {
       setSelectedUnit,
       isModalOpen,
       setIsModalOpen,
-      isSupabaseModalOpen,
-      setIsSupabaseModalOpen,
       isCloudConnected,
       isCloudLoading,
       reloadCloudData,
