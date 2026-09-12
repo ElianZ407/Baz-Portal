@@ -19,6 +19,7 @@ export const Header = () => {
     setIsModalOpen, 
     setSelectedUnit, 
     resetData,
+    showConfirm,
     units
   } = useFleet();
 
@@ -144,9 +145,13 @@ export const Header = () => {
         <button 
           className="btn btn-secondary btn-icon-only" 
           onClick={() => {
-            if (window.confirm("¿Deseas restablecer las unidades originales del tablero?")) {
-              resetData();
-            }
+            showConfirm({
+              title: '¿Restablecer unidades iniciales?',
+              message: 'Se restablecerá el tablero operativo con la configuración representativa oficial (1 unidad por cada estatus).',
+              confirmText: 'Restablecer tablero',
+              confirmType: 'warning',
+              onConfirm: () => resetData()
+            });
           }}
           title="Restablecer datos originales"
         >

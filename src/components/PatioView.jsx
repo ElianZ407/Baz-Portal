@@ -18,6 +18,7 @@ export const PatioView = () => {
     setSelectedUnit, 
     setIsModalOpen, 
     deleteUnit,
+    showConfirm,
     searchQuery,
     setSearchQuery 
   } = useFleet();
@@ -253,9 +254,14 @@ export const PatioView = () => {
                             style={{ color: '#f87171' }}
                             onClick={(e) => {
                               e.stopPropagation();
-                              if (window.confirm(`¿Eliminar la unidad ECO ${unit.economico}?`)) {
-                                deleteUnit(unit.id);
-                              }
+                              showConfirm({
+                                title: `¿Eliminar la unidad ECO ${unit.economico}?`,
+                                message: 'Esta unidad será retirada de patio y de los tableros operativos de monitoreo.',
+                                unit: unit,
+                                confirmText: 'Sí, eliminar',
+                                confirmType: 'danger',
+                                onConfirm: () => deleteUnit(unit.id)
+                              });
                             }}
                             title="Eliminar unidad"
                           >
