@@ -1,14 +1,9 @@
 import React from 'react';
 import { 
-  Truck, 
-  Layers, 
-  CalendarClock, 
-  Radio, 
-  Tv, 
-  PlusCircle, 
+  Calendar, 
+  ChevronDown, 
   Maximize, 
-  RotateCcw,
-  Clock
+  Plus
 } from 'lucide-react';
 import { useFleet } from '../context/FleetContext';
 
@@ -18,9 +13,7 @@ export const Header = () => {
     setActiveArea, 
     setIsModalOpen, 
     setSelectedUnit, 
-    currentTime,
-    resetData,
-    units
+    currentTime
   } = useFleet();
 
   const handleOpenNewUnit = () => {
@@ -43,106 +36,96 @@ export const Header = () => {
   const timeString = currentTime.toLocaleTimeString('es-MX', {
     hour: '2-digit',
     minute: '2-digit',
-    second: '2-digit'
-  });
-
-  const dateString = currentTime.toLocaleDateString('es-MX', {
-    weekday: 'short',
-    day: 'numeric',
-    month: 'short'
+    second: '2-digit',
+    hour12: false
   });
 
   return (
     <header className="top-header">
-      {/* Brand */}
-      <div className="brand-section">
-        <div className="brand-logo">
-          <Truck size={24} />
+      <div className="header-left-cluster">
+        {/* Logo BAZ Entregas */}
+        <div className="brand-section">
+          <div className="brand-badge-box">
+            B
+          </div>
+          <div className="brand-labels">
+            <span className="brand-name">BAZ</span>
+            <span className="brand-sub">Entregas</span>
+          </div>
         </div>
-        <div className="brand-text">
-          <h1>
-            BAZ Entregas
-            <span className="brand-badge">Control Operativo</span>
-          </h1>
-          <p className="brand-subtitle">Gestión de Flota, Patio y Monitoreo en Tiempo Real</p>
-        </div>
+
+        <div className="header-divider"></div>
+
+        {/* Dropdown Operación / Fecha */}
+        <button className="operation-dropdown" title="Cambiar fecha de operación">
+          <Calendar size={18} className="operation-calendar-icon" />
+          <div className="operation-info-text">
+            <span className="operation-label">Operación</span>
+            <span className="operation-date">Miércoles, 11 Sep 2026</span>
+          </div>
+          <ChevronDown size={14} className="operation-arrow" />
+        </button>
       </div>
 
-      {/* Navegación por Áreas según el Pizarrón de Operaciones */}
+      {/* Tabs centrales de Navegación con subtítulos */}
       <nav className="nav-areas">
         <button 
-          className={`nav-tab ${activeArea === 'patio' ? 'active' : ''}`}
+          className={`nav-tab-item ${activeArea === 'patio' ? 'active' : ''}`}
           onClick={() => setActiveArea('patio')}
-          title="1. Patio (En CD: Cargado, Taller, Disponible, Colocado p/ carga)"
         >
-          <Layers size={16} />
-          <span>1. Patio (En CD)</span>
+          <span className="nav-tab-title">Patio</span>
+          <span className="nav-tab-subtitle">En CD</span>
         </button>
 
         <button 
-          className={`nav-tab ${activeArea === 'planeacion' ? 'active' : ''}`}
+          className={`nav-tab-item ${activeArea === 'planeacion' ? 'active' : ''}`}
           onClick={() => setActiveArea('planeacion')}
-          title="2. Planeación: Unidades en Cortina, Asignación de Folios y Turnos"
         >
-          <CalendarClock size={16} />
-          <span>2. Planeación</span>
+          <span className="nav-tab-title">Planeación</span>
+          <span className="nav-tab-subtitle">Embarques</span>
         </button>
 
         <button 
-          className={`nav-tab ${activeArea === 'supervisor' ? 'active' : ''}`}
+          className={`nav-tab-item ${activeArea === 'supervisor' ? 'active' : ''}`}
           onClick={() => setActiveArea('supervisor')}
-          title="3. Supervisor: En Ruta, Retorno, Espera Descarga, Descargando"
         >
-          <Radio size={16} />
-          <span>3. Supervisor (Ruta)</span>
+          <span className="nav-tab-title">Supervisor</span>
+          <span className="nav-tab-subtitle">En ruta</span>
         </button>
 
         <button 
-          className={`nav-tab tv-tab ${activeArea === 'tv' ? 'active' : ''}`}
+          className={`nav-tab-item ${activeArea === 'tv' ? 'active' : ''}`}
           onClick={() => setActiveArea('tv')}
-          title="Pizarra de Control para Proyección en Pantalla / TV"
         >
-          <Tv size={16} />
-          <span>Tablero TV en Vivo</span>
-          <span className="badge-counter">{units.length}</span>
+          <span className="nav-tab-title">Tablero TV</span>
+          <span className="nav-tab-subtitle">En vivo</span>
         </button>
       </nav>
 
-      {/* Acciones y Reloj */}
-      <div className="header-actions">
-        <div className="live-clock" title="Hora de sistema sincronizada">
-          <span className="clock-dot"></span>
-          <Clock size={14} />
-          <span>{dateString.toUpperCase()} | {timeString}</span>
+      {/* Acciones del lado derecho */}
+      <div className="header-right-cluster">
+        {/* Reloj con indicador verde */}
+        <div className="live-clock-badge">
+          <span className="clock-live-dot"></span>
+          <span>{timeString} CDMX</span>
         </div>
 
+        {/* Pantalla completa */}
         <button 
-          className="btn btn-primary"
-          onClick={handleOpenNewUnit}
-          title="Registrar nueva unidad en el sistema"
-        >
-          <PlusCircle size={16} />
-          <span>Nueva Unidad</span>
-        </button>
-
-        <button 
-          className="btn btn-secondary btn-icon-only" 
+          className="btn-fullscreen" 
           onClick={toggleFullScreen}
-          title="Pantalla Completa (Modo Sala de Monitoreo)"
+          title="Modo pantalla completa"
         >
           <Maximize size={16} />
         </button>
 
+        {/* Botón + Nueva unidad */}
         <button 
-          className="btn btn-secondary btn-icon-only" 
-          onClick={() => {
-            if (window.confirm("¿Deseas restablecer las unidades originales del tablero?")) {
-              resetData();
-            }
-          }}
-          title="Restablecer datos originales"
+          className="btn-new-unit-cyan"
+          onClick={handleOpenNewUnit}
         >
-          <RotateCcw size={15} />
+          <Plus size={16} strokeWidth={3} />
+          <span>Nueva unidad</span>
         </button>
       </div>
     </header>
