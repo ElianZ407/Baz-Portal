@@ -333,14 +333,14 @@ export const UnitModal = () => {
           <div className="modal-footer">
             <button 
               type="button" 
-              className="btn btn-secondary"
+              className="btn-secondary-custom"
               onClick={() => setIsModalOpen(false)}
             >
               Cancelar
             </button>
-            <button type="submit" className="btn btn-primary">
-              <Save size={16} />
-              <span>Guardar Viaje</span>
+            <button type="submit" className="btn-new-unit-cyan">
+              <Save size={15} />
+              <span>Guardar Unidad</span>
             </button>
           </div>
         </form>
