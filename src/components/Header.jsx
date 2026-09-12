@@ -8,7 +8,8 @@ import {
   PlusCircle, 
   Maximize, 
   RotateCcw,
-  Clock
+  Clock,
+  HelpCircle
 } from 'lucide-react';
 import { useFleet } from '../context/FleetContext';
 
@@ -132,6 +133,19 @@ export const Header = () => {
         >
           <PlusCircle size={16} />
           <span>Nueva Unidad</span>
+        </button>
+
+        <button 
+          className="btn btn-secondary" 
+          style={{ padding: '0.45rem 0.85rem', fontSize: '0.82rem', gap: '0.4rem', border: '1px solid rgba(6, 182, 212, 0.35)' }}
+          onClick={() => {
+            const btn = document.querySelector('.floating-help-btn');
+            if (btn) btn.click();
+          }}
+          title="Manual de Usuario y Flujo Operativo"
+        >
+          <HelpCircle size={15} color="var(--accent-cyan)" />
+          <span>Ayuda</span>
         </button>
 
         <button 

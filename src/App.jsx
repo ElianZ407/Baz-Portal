@@ -7,6 +7,7 @@ import { SupervisorView } from './components/SupervisorView';
 import { TvDashboardView } from './components/TvDashboardView';
 import { UnitModal } from './components/UnitModal';
 import { ConfirmModal } from './components/ConfirmModal';
+import { ManualAyudaModal } from './components/ManualAyudaModal';
 
 const AppContent = () => {
   const { activeArea } = useFleet();
@@ -37,6 +38,7 @@ const AppContent = () => {
 
       <UnitModal />
       <ConfirmModal />
+      <ManualAyudaModal />
     </div>
   );
 };
