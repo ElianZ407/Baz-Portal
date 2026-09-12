@@ -9,7 +9,8 @@ import {
   Maximize, 
   RotateCcw,
   Clock,
-  HelpCircle
+  HelpCircle,
+  Database
 } from 'lucide-react';
 import { useFleet } from '../context/FleetContext';
 
@@ -21,7 +22,9 @@ export const Header = () => {
     setSelectedUnit, 
     resetData,
     showConfirm,
-    units
+    units,
+    isCloudConnected,
+    setIsSupabaseModalOpen
   } = useFleet();
 
   const [headerTime, setHeaderTime] = useState(new Date());
@@ -137,6 +140,24 @@ export const Header = () => {
         >
           <PlusCircle size={16} />
           <span>Nueva Unidad</span>
+        </button>
+
+        <button 
+          className="btn btn-secondary" 
+          style={{ 
+            padding: '0.45rem 0.85rem', 
+            fontSize: '0.82rem', 
+            gap: '0.45rem', 
+            border: `1px solid ${isCloudConnected ? 'rgba(16, 185, 129, 0.45)' : 'rgba(245, 158, 11, 0.45)'}`,
+            background: isCloudConnected ? 'rgba(16, 185, 129, 0.12)' : 'rgba(245, 158, 11, 0.08)'
+          }}
+          onClick={() => setIsSupabaseModalOpen(true)}
+          title={isCloudConnected ? "Base de datos en la nube conectada (Sincronización Realtime activa)" : "Conectar Base de Datos Supabase en la nube"}
+        >
+          <Database size={15} color={isCloudConnected ? "var(--accent-green)" : "#f59e0b"} />
+          <span style={{ color: isCloudConnected ? "#34d399" : "#fbbf24", fontWeight: 600 }}>
+            {isCloudConnected ? "Nube En Vivo" : "Conectar Nube"}
+          </span>
         </button>
 
         <button 

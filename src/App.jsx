@@ -8,9 +8,10 @@ import { TvDashboardView } from './components/TvDashboardView';
 import { UnitModal } from './components/UnitModal';
 import { ConfirmModal } from './components/ConfirmModal';
 import { ManualAyudaModal } from './components/ManualAyudaModal';
+import { SupabaseConfigModal } from './components/SupabaseConfigModal';
 
 const AppContent = () => {
-  const { activeArea } = useFleet();
+  const { activeArea, isSupabaseModalOpen, setIsSupabaseModalOpen } = useFleet();
 
   return (
     <div className={`app-container ${activeArea === 'tv' ? 'tv-mode' : ''}`}>
@@ -39,6 +40,10 @@ const AppContent = () => {
       <UnitModal />
       <ConfirmModal />
       <ManualAyudaModal />
+      <SupabaseConfigModal 
+        isOpen={isSupabaseModalOpen} 
+        onClose={() => setIsSupabaseModalOpen(false)} 
+      />
     </div>
   );
 };
