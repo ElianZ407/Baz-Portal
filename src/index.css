@@ -816,6 +816,148 @@ body {
 }
 
 /* ==========================================================================
+   Custom Searchable Combobox & Dropdowns (Mejora visual de selección)
+   ========================================================================== */
+.custom-select-container {
+  position: relative;
+  width: 100%;
+}
+
+.custom-select-trigger {
+  width: 100%;
+  padding: 0.55rem 0.85rem;
+  background: #080d19;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  color: #fff;
+  font-size: 0.85rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  user-select: none;
+  min-height: 40px;
+}
+
+.custom-select-trigger:hover,
+.custom-select-trigger.active {
+  border-color: var(--accent-cyan);
+  background: #0c1426;
+}
+
+.custom-select-dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  background: #0d1527;
+  border: 1px solid #1e2d4a;
+  border-radius: var(--radius-md);
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.75), 0 0 0 1px rgba(6, 182, 212, 0.25);
+  z-index: 1200;
+  padding: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  animation: fadeInSelect 0.15s ease-out;
+}
+
+@keyframes fadeInSelect {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.custom-select-search-box {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: #070c18;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  padding: 0.45rem 0.7rem;
+}
+
+.custom-select-search-box input {
+  background: transparent;
+  border: none;
+  color: #fff;
+  font-size: 0.82rem;
+  width: 100%;
+  outline: none;
+  font-family: var(--font-sans);
+}
+
+.custom-select-filter-chips {
+  display: flex;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+}
+
+.custom-chip-btn {
+  padding: 0.2rem 0.55rem;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--border-color);
+  background: #070c18;
+  color: var(--text-muted);
+  font-size: 0.72rem;
+  cursor: pointer;
+  transition: all 0.12s;
+}
+
+.custom-chip-btn:hover {
+  color: #fff;
+  border-color: #2b3e61;
+}
+
+.custom-chip-btn.active {
+  background: var(--accent-cyan);
+  color: #070c18;
+  border-color: var(--accent-cyan);
+  font-weight: 700;
+}
+
+.custom-select-options-list {
+  max-height: 250px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  padding-right: 4px;
+}
+
+.custom-select-options-list::-webkit-scrollbar {
+  width: 6px;
+}
+.custom-select-options-list::-webkit-scrollbar-thumb {
+  background: #1e2d4a;
+  border-radius: 4px;
+}
+
+.custom-select-option-item {
+  padding: 0.6rem 0.8rem;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all 0.12s ease;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  background: #0a1122;
+  border: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.custom-select-option-item:hover {
+  background: #132038;
+  border-color: rgba(6, 182, 212, 0.35);
+  transform: translateX(2px);
+}
+
+.custom-select-option-item.selected {
+  background: rgba(6, 182, 212, 0.15);
+  border-color: rgba(6, 182, 212, 0.5);
+}
+
+/* ==========================================================================
    Modo TV para Proyección
    ========================================================================== */
 .tv-mode {
