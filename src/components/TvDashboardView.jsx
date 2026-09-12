@@ -22,16 +22,24 @@ export const TvDashboardView = () => {
     currentTime
   } = useFleet();
 
-  // Filtrar según el estado seleccionado o búsqueda
+  const [filterFL, setFilterFL] = useState('ALL'); // 'ALL' | 'LOCAL' | 'FORANEO'
+
+  // Filtrar según el estado seleccionado, búsqueda y F/L
   const filteredUnits = units.filter(unit => {
     const matchesSearch = 
       (unit.economico && unit.economico.toLowerCase().includes(searchQuery.toLowerCase())) ||
       (unit.operador && unit.operador.toLowerCase().includes(searchQuery.toLowerCase())) ||
       (unit.destino && unit.destino.toLowerCase().includes(searchQuery.toLowerCase())) ||
       (unit.numCarga && unit.numCarga.toLowerCase().includes(searchQuery.toLowerCase())) ||
-      (unit.cortina && unit.cortina.toLowerCase().includes(searchQuery.toLowerCase()));
+      (unit.cortina && unit.cortina.toLowerCase().includes(searchQuery.toLowerCase())) ||
+      (unit.closter && unit.closter.toLowerCase().includes(searchQuery.toLowerCase()));
 
     if (!matchesSearch) return false;
+
+    // Filtro F/L
+    if (filterFL !== 'ALL' && (unit.fl || 'LOCAL') !== filterFL) {
+      return false;
+    }
 
     if (filterStatus === 'EN_TRANSITO') {
       return unit.estatusSupervisor === 'En Ruta';
@@ -81,7 +89,7 @@ export const TvDashboardView = () => {
       <div className="tv-header-banner">
         <div className="tv-title-area">
           <h1>MONITOREO DE UNIDADES EN TIEMPO REAL</h1>
-          <p>Pizarra de Control para Proyección en Pantalla / TV — BAZ Entregas</p>
+          <p>Pizarra de Control de Flota y Embarques — CD Villahermosa</p>
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
@@ -111,7 +119,7 @@ export const TvDashboardView = () => {
       {/* Tabla Pizarra para TV Panorámica */}
       <div className="table-card">
         <div className="table-header-title" style={{ flexWrap: 'wrap', gap: '1rem' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
             <h2>
               <Tv size={20} color="var(--accent-cyan)" />
               Flota y Embarques del Día ({filteredUnits.length} Unidades)
@@ -125,6 +133,30 @@ export const TvDashboardView = () => {
                 Limpiar Filtro de KPI (X)
               </button>
             )}
+
+            {/* Selector Rápido F/L para TV */}
+            <div style={{ display: 'flex', gap: '0.35rem', marginLeft: '0.5rem' }}>
+              <button 
+                className={`pill-btn ${filterFL === 'ALL' ? 'active' : ''}`}
+                onClick={() => setFilterFL('ALL')}
+              >
+                Todas
+              </button>
+              <button 
+                className={`pill-btn ${filterFL === 'LOCAL' ? 'active' : ''}`}
+                onClick={() => setFilterFL('LOCAL')}
+                style={filterFL === 'LOCAL' ? { background: 'rgba(16, 185, 129, 0.25)', borderColor: '#10b981', color: '#34d399' } : {}}
+              >
+                Locales (Tabasco)
+              </button>
+              <button 
+                className={`pill-btn ${filterFL === 'FORANEO' ? 'active' : ''}`}
+                onClick={() => setFilterFL('FORANEO')}
+                style={filterFL === 'FORANEO' ? { background: 'rgba(168, 85, 247, 0.25)', borderColor: '#a855f7', color: '#c084fc' } : {}}
+              >
+                Foráneos (Rutas)
+              </button>
+            </div>
           </div>
 
           <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
@@ -152,7 +184,7 @@ export const TvDashboardView = () => {
                 <th>OPERADOR</th>
                 <th>LÍNEA</th>
                 <th># CARGA</th>
-                <th>DESTINO / SUCURSALES</th>
+                <th>DESTINO, CLÓSTER & TIPO</th>
                 <th>SALIDA</th>
                 <th>ETA</th>
                 <th style={{ textAlign: 'center' }}>ESTATUS</th>
@@ -212,7 +244,7 @@ export const TvDashboardView = () => {
                       {/* OPERADOR */}
                       <td>
                         <div className="operator-cell">
-                          <span className="operator-name" style={{ fontSize: '1rem' }}>
+                          <span className="operator-name" style={{ fontSize: '0.98rem' }}>
                             {unit.operador || 'POR ASIGNAR'}
                           </span>
                           <span className="operator-shift">
@@ -223,7 +255,7 @@ export const TvDashboardView = () => {
 
                       {/* LINEA */}
                       <td style={{ fontSize: '0.88rem', color: 'var(--text-secondary)' }}>
-                        {unit.linea || 'LTI - VHS'}
+                        {unit.linea || 'LINEA 1 - VHS'}
                       </td>
 
                       {/* # CARGA */}
@@ -233,11 +265,19 @@ export const TvDashboardView = () => {
                         </span>
                       </td>
 
-                      {/* DESTINO / SUCURSAL */}
+                      {/* DESTINO / SUCURSAL / CLÓSTER / F-L */}
                       <td>
-                        <div className="route-cell" style={{ fontSize: '0.95rem', fontWeight: 600 }}>
+                        <div className="route-cell" style={{ fontSize: '0.98rem', fontWeight: 600 }}>
                           <MapPin size={15} color="var(--accent-cyan)" />
                           <span>{unit.destino || 'Sin definir'}</span>
+                        </div>
+                        <div style={{ display: 'flex', gap: '0.4rem', marginTop: '0.25rem', alignItems: 'center' }}>
+                          <span className={unit.fl === 'FORANEO' ? 'badge-fl-foraneo' : 'badge-fl-local'}>
+                            {unit.fl === 'FORANEO' ? 'FORÁNEO' : 'LOCAL'}
+                          </span>
+                          <span className="badge-closter">
+                            {unit.closter || 'HUB-VHSA'}
+                          </span>
                         </div>
                       </td>
 

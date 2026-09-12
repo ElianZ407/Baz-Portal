@@ -1,6 +1,4 @@
-// Datos sanitizados y anonimizados para demostración segura de la plataforma BAZ ENTREGAS
-// Cumple con políticas de privacidad: no expone identificaciones personales, placas oficiales ni folios confidenciales
-
+// Datos oficiales con reglas de la Matriz de CD Villahermosa (Clúster, Capacidad Máxima y Tipo F/L)
 export const INITIAL_UNITS = [
   {
     id: "viaje-1",
@@ -14,12 +12,14 @@ export const INITIAL_UNITS = [
     turno: "M1",
     fecha: "2026-09-10",
     numCarga: "CS-0039-101",
-    numSucursal: "4660",
-    sucursalOrigen: "CEDIS CENTRAL",
+    numSucursal: "4860",
+    sucursalOrigen: "CEDIS VILLAHERMOSA",
     sucursalesDestino: [
-      { num: "4660", nombre: "EKT COMALCALCO" }
+      { num: "4860", nombre: "MEGA COMALCALCO" }
     ],
-    destino: "EKT COMALCALCO",
+    destino: "MEGA COMALCALCO",
+    closter: "CLUSTER COMALCALCO",
+    fl: "LOCAL",
     cortina: "51",
     horaSalida: "06:00 AM",
     tiempoEstimadoHrs: 2.5,
@@ -42,12 +42,14 @@ export const INITIAL_UNITS = [
     turno: "M1",
     fecha: "2026-09-10",
     numCarga: "CS-0039-102",
-    numSucursal: "4660",
-    sucursalOrigen: "CEDIS CENTRAL",
+    numSucursal: "6018",
+    sucursalOrigen: "CEDIS VILLAHERMOSA",
     sucursalesDestino: [
-      { num: "4660", nombre: "EKT COMALCALCO" }
+      { num: "6018", nombre: "EKT LA VENTA TABASCO" }
     ],
-    destino: "EKT COMALCALCO",
+    destino: "EKT LA VENTA TABASCO",
+    closter: "TAB-1",
+    fl: "LOCAL",
     cortina: "18",
     horaSalida: "06:30 AM",
     tiempoEstimadoHrs: 2.5,
@@ -71,11 +73,13 @@ export const INITIAL_UNITS = [
     fecha: "2026-09-10",
     numCarga: "CS-0039-103",
     numSucursal: "5173",
-    sucursalOrigen: "CEDIS CENTRAL",
+    sucursalOrigen: "CEDIS VILLAHERMOSA",
     sucursalesDestino: [
       { num: "5173", nombre: "EKT CUNDUACAN" }
     ],
     destino: "EKT CUNDUACAN",
+    closter: "CLUSTER CUNDUACAN",
+    fl: "LOCAL",
     cortina: "52",
     horaSalida: "07:00 AM",
     tiempoEstimadoHrs: 2.0,
@@ -99,12 +103,14 @@ export const INITIAL_UNITS = [
     fecha: "2026-09-10",
     numCarga: "CS-0039-104",
     numSucursal: "2971 / 190",
-    sucursalOrigen: "CEDIS CENTRAL",
+    sucursalOrigen: "CEDIS VILLAHERMOSA",
     sucursalesDestino: [
       { num: "2971", nombre: "SYR MINATITLAN" },
       { num: "190", nombre: "EKT MINATITLAN HIDALGO" }
     ],
     destino: "MINATITLAN (Ruta Consolidada)",
+    closter: "V-5",
+    fl: "LOCAL",
     cortina: "19",
     horaSalida: "07:15 AM",
     tiempoEstimadoHrs: 3.5,
@@ -113,7 +119,7 @@ export const INITIAL_UNITS = [
     estatusPatio: "Cargado",
     estatusPlaneacion: "Despachado",
     estatusSupervisor: "Descargando",
-    observaciones: "Descargando primera entrega en SYR Minatitlán"
+    observaciones: "Descargando primera entrega en SYR Minatitlán (Ruta V-5)"
   },
   {
     id: "viaje-5",
@@ -128,13 +134,14 @@ export const INITIAL_UNITS = [
     fecha: "2026-09-10",
     numCarga: "CS-0039-105",
     numSucursal: "9685 / 3422",
-    sucursalOrigen: "CEDIS CENTRAL",
+    sucursalOrigen: "CEDIS VILLAHERMOSA",
     sucursalesDestino: [
       { num: "9685", nombre: "MEGA ELEKTRA PLAZA FLORIDA" },
-      { num: "3422", nombre: "APA DEK TEXISTEPEC" },
-      { num: "VTEX", nombre: "VTEX-ORDEN-DEMO" }
+      { num: "3422", nombre: "APA DEK TEXISTEPEC" }
     ],
     destino: "PLAZA FLORIDA / TEXISTEPEC",
+    closter: "V-2",
+    fl: "FORANEO",
     cortina: "21",
     horaSalida: "08:00 AM",
     tiempoEstimadoHrs: 4.0,
@@ -143,7 +150,7 @@ export const INITIAL_UNITS = [
     estatusPatio: "Cargado",
     estatusPlaneacion: "Despachado",
     estatusSupervisor: "En Ruta",
-    observaciones: "Ruta con entregas consolidadas"
+    observaciones: "Ruta foránea V-2 consolidada"
   },
   {
     id: "viaje-6",
@@ -158,11 +165,13 @@ export const INITIAL_UNITS = [
     fecha: "2026-09-10",
     numCarga: "CS-0039-106",
     numSucursal: "1294",
-    sucursalOrigen: "CEDIS CENTRAL",
+    sucursalOrigen: "CEDIS VILLAHERMOSA",
     sucursalesDestino: [
       { num: "1294", nombre: "EKT LAS CHOAPAS" }
     ],
     destino: "EKT LAS CHOAPAS",
+    closter: "V-1",
+    fl: "FORANEO",
     cortina: "31",
     horaSalida: "08:15 AM",
     tiempoEstimadoHrs: 3.0,
@@ -171,7 +180,7 @@ export const INITIAL_UNITS = [
     estatusPatio: "Cargado",
     estatusPlaneacion: "Despachado",
     estatusSupervisor: "En Ruta",
-    observaciones: "En autopista sin novedades"
+    observaciones: "En autopista Las Choapas sin novedades"
   },
   {
     id: "viaje-7",
@@ -186,12 +195,14 @@ export const INITIAL_UNITS = [
     fecha: "2026-09-10",
     numCarga: "CS-0039-107",
     numSucursal: "6015 / 8581",
-    sucursalOrigen: "CEDIS CENTRAL",
+    sucursalOrigen: "CEDIS VILLAHERMOSA",
     sucursalesDestino: [
       { num: "6015", nombre: "EKT AGUA DULCE" },
       { num: "8581", nombre: "EKT DAZ AGUADULCE" }
     ],
     destino: "AGUA DULCE / LAS CHOAPAS",
+    closter: "V-1",
+    fl: "LOCAL",
     cortina: "27",
     horaSalida: "06:45 AM",
     tiempoEstimadoHrs: 3.5,
@@ -200,7 +211,7 @@ export const INITIAL_UNITS = [
     estatusPatio: "Cargado",
     estatusPlaneacion: "Despachado",
     estatusSupervisor: "Retrasado",
-    observaciones: "Alerta por tráfico pesado en tramo carretero"
+    observaciones: "Alerta por tráfico pesado en caseta"
   },
   {
     id: "viaje-8",
@@ -214,21 +225,23 @@ export const INITIAL_UNITS = [
     turno: "M3",
     fecha: "2026-09-10",
     numCarga: "CS-0039-108",
-    numSucursal: "6018",
-    sucursalOrigen: "CEDIS CENTRAL",
+    numSucursal: "8396",
+    sucursalOrigen: "CEDIS VILLAHERMOSA",
     sucursalesDestino: [
-      { num: "6018", nombre: "EKT LA VENTA TABASCO" }
+      { num: "8396", nombre: "EKT JUCHITAN 2" }
     ],
-    destino: "EKT LA VENTA TABASCO",
+    destino: "EKT JUCHITAN 2",
+    closter: "OAX-2",
+    fl: "FORANEO",
     cortina: "24",
     horaSalida: "09:00 AM",
-    tiempoEstimadoHrs: 2.5,
-    eta: "11:30 AM",
+    tiempoEstimadoHrs: 5.5,
+    eta: "02:30 PM",
     area: "planeacion",
     estatusPatio: "Colocado p/ Carga",
     estatusPlaneacion: "En Cortina",
     estatusSupervisor: "Pendiente",
-    observaciones: "En proceso de estiba en Cortina 24"
+    observaciones: "Ruta foránea Oaxaca OAX-2. Validando sellos"
   },
   {
     id: "viaje-9",
@@ -242,21 +255,23 @@ export const INITIAL_UNITS = [
     turno: "M3",
     fecha: "2026-09-10",
     numCarga: "CS-0039-109",
-    numSucursal: "5173",
-    sucursalOrigen: "CEDIS CENTRAL",
+    numSucursal: "1656",
+    sucursalOrigen: "CEDIS VILLAHERMOSA",
     sucursalesDestino: [
-      { num: "5173", nombre: "EKT CUNDUACAN" }
+      { num: "1656", nombre: "EKT SAN CRISTOBAL DE LAS CASAS" }
     ],
-    destino: "EKT CUNDUACAN",
+    destino: "SAN CRISTOBAL DE LAS CASAS",
+    closter: "CH-4",
+    fl: "FORANEO",
     cortina: "30",
     horaSalida: "09:30 AM",
-    tiempoEstimadoHrs: 2.0,
-    eta: "11:30 AM",
+    tiempoEstimadoHrs: 6.0,
+    eta: "03:30 PM",
     area: "planeacion",
     estatusPatio: "Colocado p/ Carga",
     estatusPlaneacion: "En Cortina",
     estatusSupervisor: "Pendiente",
-    observaciones: "Validando mercancía y sellos"
+    observaciones: "Ruta de montaña Chiapas CH-4. Unidad en rampa"
   },
   {
     id: "viaje-10",
@@ -271,11 +286,13 @@ export const INITIAL_UNITS = [
     fecha: "2026-09-10",
     numCarga: "CS-0039-110",
     numSucursal: "3259",
-    sucursalOrigen: "CEDIS CENTRAL",
+    sucursalOrigen: "CEDIS VILLAHERMOSA",
     sucursalesDestino: [
-      { num: "3259", nombre: "EKT MOTOS SUCURSAL" }
+      { num: "3259", nombre: "Ekt Motos Tecolutilla" }
     ],
-    destino: "Ekt Motos Sucursal",
+    destino: "Ekt Motos Tecolutilla",
+    closter: "CLUSTER COMALCALCO",
+    fl: "LOCAL",
     cortina: "28",
     horaSalida: "10:00 AM",
     tiempoEstimadoHrs: 3.0,
@@ -284,7 +301,7 @@ export const INITIAL_UNITS = [
     estatusPatio: "Colocado p/ Carga",
     estatusPlaneacion: "En Cortina",
     estatusSupervisor: "Pendiente",
-    observaciones: "Madrina cargando motocicletas"
+    observaciones: "Madrina cargando motocicletas Italika"
   },
   {
     id: "viaje-11",
@@ -298,22 +315,23 @@ export const INITIAL_UNITS = [
     turno: "M3",
     fecha: "2026-09-10",
     numCarga: "CS-0039-111",
-    numSucursal: "3259 / 5867",
-    sucursalOrigen: "CEDIS CENTRAL",
+    numSucursal: "2944",
+    sucursalOrigen: "CEDIS VILLAHERMOSA",
     sucursalesDestino: [
-      { num: "3259", nombre: "EKT MOTOS SUCURSAL" },
-      { num: "5867", nombre: "APA SUCURSAL" }
+      { num: "2944", nombre: "Ekt Motos Teapa" }
     ],
-    destino: "SUCURSAL CENTRAL",
+    destino: "TEAPA TABASCO",
+    closter: "CLUSTER TEAPA",
+    fl: "LOCAL",
     cortina: "25",
     horaSalida: "10:30 AM",
-    tiempoEstimadoHrs: 3.0,
-    eta: "01:30 PM",
+    tiempoEstimadoHrs: 2.0,
+    eta: "12:30 PM",
     area: "planeacion",
     estatusPatio: "Colocado p/ Carga",
     estatusPlaneacion: "En Cortina",
     estatusSupervisor: "Pendiente",
-    observaciones: "En cortina 25 para carga"
+    observaciones: "En cortina 25 para estiba local"
   },
   {
     id: "patio-1",
@@ -328,9 +346,11 @@ export const INITIAL_UNITS = [
     fecha: "2026-09-10",
     numCarga: "POR ASIGNAR",
     numSucursal: "--",
-    sucursalOrigen: "CEDIS CENTRAL",
+    sucursalOrigen: "CEDIS VILLAHERMOSA",
     sucursalesDestino: [],
     destino: "Sin asignar",
+    closter: "PATIO",
+    fl: "LOCAL",
     cortina: "Patio P-05",
     horaSalida: "--:--",
     tiempoEstimadoHrs: 0,
@@ -354,9 +374,11 @@ export const INITIAL_UNITS = [
     fecha: "2026-09-10",
     numCarga: "N/A",
     numSucursal: "--",
-    sucursalOrigen: "CEDIS CENTRAL",
+    sucursalOrigen: "CEDIS VILLAHERMOSA",
     sucursalesDestino: [],
     destino: "Taller Mecánico",
+    closter: "TALLER",
+    fl: "LOCAL",
     cortina: "Taller 2",
     horaSalida: "--:--",
     tiempoEstimadoHrs: 0,
@@ -376,27 +398,11 @@ export const LINEAS_TRANSPORTE = [
   "PROPIA BAZ"
 ];
 
-export const SUCURSALES_FRECUENTES = [
-  { num: "4660", nombre: "EKT COMALCALCO" },
-  { num: "5173", nombre: "EKT CUNDUACAN" },
-  { num: "2971", nombre: "SYR MINATITLAN" },
-  { num: "190", nombre: "EKT MINATITLAN HIDALGO" },
-  { num: "9685", nombre: "MEGA ELEKTRA PLAZA FLORIDA" },
-  { num: "3422", nombre: "APA DEK TEXISTEPEC" },
-  { num: "1294", nombre: "EKT LAS CHOAPAS" },
-  { num: "6015", nombre: "EKT AGUA DULCE" },
-  { num: "8581", nombre: "EKT DAZ AGUADULCE" },
-  { num: "6018", nombre: "EKT LA VENTA TABASCO" },
-  { num: "3259", nombre: "EKT MOTOS SUCURSAL" },
-  { num: "5867", nombre: "APA SUCURSAL" }
-];
-
 export const TURNOS = [
   { id: "M1", nombre: "Turno M1 (Mañana 1)" },
   { id: "M2", nombre: "Turno M2 (Mañana 2)" },
   { id: "M3", nombre: "Turno M3 (Tarde)" },
   { id: "M4", nombre: "Turno M4 (Nocturno)" },
   { id: "VAC", nombre: "Vacaciones" },
-  { id: "INC", nombre: "Incapacidad" },
-  { id: "AUDITORIA", nombre: "Auditoría de Carga" }
+  { id: "INC", nombre: "Incapacidad" }
 ];

@@ -7,12 +7,15 @@ import {
   Truck, 
   MapPin, 
   Hash, 
-  Layers,
-  Search,
-  CheckCircle2,
-  FileSpreadsheet
+  Layers, 
+  Search, 
+  CheckCircle2, 
+  FileSpreadsheet,
+  AlertTriangle,
+  Compass
 } from 'lucide-react';
 import { useFleet } from '../context/FleetContext';
+import { validarRestriccionesViaje, buscarSucursal } from '../data/sucursalesData';
 
 export const PlaneacionView = () => {
   const { 
@@ -26,6 +29,7 @@ export const PlaneacionView = () => {
 
   const [activeTab, setActiveTab] = useState('programacion'); // 'programacion' | 'cortinas'
   const [filterBloque, setFilterBloque] = useState('ALL');
+  const [filterFL, setFilterFL] = useState('ALL'); // 'ALL' | 'LOCAL' | 'FORANEO'
 
   // Filtrado de unidades en planeación
   const planeacionUnits = units.filter(u => {
@@ -35,16 +39,21 @@ export const PlaneacionView = () => {
       (u.destino && u.destino.toLowerCase().includes(searchQuery.toLowerCase())) ||
       (u.numCarga && u.numCarga.toLowerCase().includes(searchQuery.toLowerCase())) ||
       (u.placas && u.placas.toLowerCase().includes(searchQuery.toLowerCase())) ||
-      (u.cortina && u.cortina.toLowerCase().includes(searchQuery.toLowerCase()));
+      (u.cortina && u.cortina.toLowerCase().includes(searchQuery.toLowerCase())) ||
+      (u.closter && u.closter.toLowerCase().includes(searchQuery.toLowerCase()));
 
     const matchesBloque = filterBloque === 'ALL' || String(u.bloque) === filterBloque;
+    const matchesFL = filterFL === 'ALL' || (u.fl || 'LOCAL') === filterFL;
 
-    return matchesSearch && matchesBloque;
+    return matchesSearch && matchesBloque && matchesFL;
   });
 
   const unidadesEnCortina = units.filter(u => 
     u.estatusPlaneacion === 'En Cortina' || u.estatusPatio === 'Colocado p/ Carga'
   );
+
+  const viajesLocales = units.filter(u => (u.fl || 'LOCAL') === 'LOCAL');
+  const viajesForaneos = units.filter(u => u.fl === 'FORANEO');
 
   const handleEdit = (unit) => {
     setSelectedUnit(unit);
@@ -57,7 +66,7 @@ export const PlaneacionView = () => {
 
   return (
     <div className="planeacion-view">
-      {/* Cabecera Oficial de Planeación Mejorada */}
+      {/* Cabecera Oficial de Planeación Mejorada con Matriz CD Villahermosa */}
       <div style={{
         backgroundColor: '#0d1527',
         border: '1px solid var(--border-color)',
@@ -87,81 +96,119 @@ export const PlaneacionView = () => {
               fontWeight: 700,
               border: '1px solid rgba(6, 182, 212, 0.3)'
             }}>
-              10/09/2026
+              CD VILLAHERMOSA • 10/09/2026
             </span>
           </div>
           <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
-            Programación de viajes, asignación de bloques, operadores, cargas y cortinas de embarque
+            Programación con Matriz Operativa Oficial: Clústeres, Rutas Locales vs Foráneas y Control de Capacidades
           </p>
         </div>
 
         {/* Métricas rápidas de Planeación */}
-        <div style={{ display: 'flex', gap: '0.85rem', flexWrap: 'wrap' }}>
-          <div style={{ background: '#101b30', padding: '0.45rem 0.95rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)', textAlign: 'center' }}>
-            <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>Viajes Registrados</span>
-            <div style={{ fontFamily: 'var(--font-mono)', fontSize: '1.35rem', fontWeight: 800, color: '#fff' }}>
+        <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+          <div style={{ background: '#101b30', padding: '0.45rem 0.85rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)', textAlign: 'center' }}>
+            <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>Viajes Totales</span>
+            <div style={{ fontFamily: 'var(--font-mono)', fontSize: '1.25rem', fontWeight: 800, color: '#fff' }}>
               {units.filter(u => u.noViaje).length}
             </div>
           </div>
-          <div style={{ background: '#101b30', padding: '0.45rem 0.95rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)', textAlign: 'center' }}>
-            <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>En Cortina Activa</span>
-            <div style={{ fontFamily: 'var(--font-mono)', fontSize: '1.35rem', fontWeight: 800, color: '#fbbf24' }}>
-              {unidadesEnCortina.length}
+          <div style={{ background: '#101b30', padding: '0.45rem 0.85rem', borderRadius: 'var(--radius-md)', border: '1px solid rgba(16, 185, 129, 0.3)', textAlign: 'center' }}>
+            <span style={{ fontSize: '0.68rem', color: '#34d399', textTransform: 'uppercase', fontWeight: 600 }}>Locales (Tabasco)</span>
+            <div style={{ fontFamily: 'var(--font-mono)', fontSize: '1.25rem', fontWeight: 800, color: '#34d399' }}>
+              {viajesLocales.length}
             </div>
           </div>
-          <div style={{ background: '#101b30', padding: '0.45rem 0.95rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)', textAlign: 'center' }}>
-            <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>Despachados a Ruta</span>
-            <div style={{ fontFamily: 'var(--font-mono)', fontSize: '1.35rem', fontWeight: 800, color: '#34d399' }}>
-              {units.filter(u => u.estatusSupervisor === 'En Ruta' || u.estatusPlaneacion === 'Despachado').length}
+          <div style={{ background: '#101b30', padding: '0.45rem 0.85rem', borderRadius: 'var(--radius-md)', border: '1px solid rgba(168, 85, 247, 0.3)', textAlign: 'center' }}>
+            <span style={{ fontSize: '0.68rem', color: '#c084fc', textTransform: 'uppercase', fontWeight: 600 }}>Foráneos (Rutas)</span>
+            <div style={{ fontFamily: 'var(--font-mono)', fontSize: '1.25rem', fontWeight: 800, color: '#c084fc' }}>
+              {viajesForaneos.length}
+            </div>
+          </div>
+          <div style={{ background: '#101b30', padding: '0.45rem 0.85rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)', textAlign: 'center' }}>
+            <span style={{ fontSize: '0.68rem', color: '#fbbf24', textTransform: 'uppercase', fontWeight: 600 }}>En Cortina</span>
+            <div style={{ fontFamily: 'var(--font-mono)', fontSize: '1.25rem', fontWeight: 800, color: '#fbbf24' }}>
+              {unidadesEnCortina.length}
             </div>
           </div>
         </div>
       </div>
 
-      {/* Barra de Filtros y Bloques */}
-      <div className="controls-bar">
-        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
-          <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginRight: '0.3rem' }}>
-            Filtrar por Bloque:
-          </span>
-          <button 
-            className={`pill-btn ${filterBloque === 'ALL' ? 'active' : ''}`}
-            onClick={() => setFilterBloque('ALL')}
-          >
-            Todos los Bloques
-          </button>
-          {[1, 2, 3, 4, 5, 6].map(b => (
+      {/* Barra de Filtros: Bloques y Clasificación F/L */}
+      <div className="controls-bar" style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', justifyContent: 'space-between' }}>
+        <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', alignItems: 'center' }}>
+          {/* Filtro F/L */}
+          <div style={{ display: 'flex', gap: '0.35rem', alignItems: 'center' }}>
+            <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginRight: '0.2rem' }}>
+              Tipo F/L:
+            </span>
             <button 
-              key={b}
-              className={`pill-btn ${filterBloque === String(b) ? 'active' : ''}`}
-              onClick={() => setFilterBloque(String(b))}
+              className={`pill-btn ${filterFL === 'ALL' ? 'active' : ''}`}
+              onClick={() => setFilterFL('ALL')}
             >
-              Bloque {b}
+              Todos
             </button>
-          ))}
+            <button 
+              className={`pill-btn ${filterFL === 'LOCAL' ? 'active' : ''}`}
+              onClick={() => setFilterFL('LOCAL')}
+              style={filterFL === 'LOCAL' ? { background: 'rgba(16, 185, 129, 0.25)', borderColor: '#10b981', color: '#34d399' } : {}}
+            >
+              Locales ({viajesLocales.length})
+            </button>
+            <button 
+              className={`pill-btn ${filterFL === 'FORANEO' ? 'active' : ''}`}
+              onClick={() => setFilterFL('FORANEO')}
+              style={filterFL === 'FORANEO' ? { background: 'rgba(168, 85, 247, 0.25)', borderColor: '#a855f7', color: '#c084fc' } : {}}
+            >
+              Foráneos ({viajesForaneos.length})
+            </button>
+          </div>
+
+          <div style={{ height: '20px', width: '1px', background: 'var(--border-color)' }}></div>
+
+          {/* Filtro Bloques */}
+          <div style={{ display: 'flex', gap: '0.35rem', flexWrap: 'wrap', alignItems: 'center' }}>
+            <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginRight: '0.2rem' }}>
+              Bloque:
+            </span>
+            <button 
+              className={`pill-btn ${filterBloque === 'ALL' ? 'active' : ''}`}
+              onClick={() => setFilterBloque('ALL')}
+            >
+              Todos
+            </button>
+            {[1, 2, 3, 4, 5, 6].map(b => (
+              <button 
+                key={b}
+                className={`pill-btn ${filterBloque === String(b) ? 'active' : ''}`}
+                onClick={() => setFilterBloque(String(b))}
+              >
+                B-{b}
+              </button>
+            ))}
+          </div>
         </div>
 
-        <div className="search-input-group" style={{ maxWidth: '380px' }}>
+        <div className="search-input-group" style={{ maxWidth: '340px' }}>
           <Search size={15} className="search-icon" />
           <input 
             type="text"
             className="search-input"
-            placeholder="Buscar viaje, ECO, operador, carga, cortina..."
+            placeholder="Buscar viaje, ECO, clóster, operador, cortina..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
         </div>
       </div>
 
-      {/* TABLA PRINCIPAL: Réplica exacta del Excel de Planeación */}
+      {/* TABLA PRINCIPAL: Matriz Operativa de Embarques */}
       <div className="table-card">
         <div className="table-header-title">
           <h2>
             <CalendarClock size={20} color="var(--accent-cyan)" />
-            Matriz de Embarques y Despacho ({planeacionUnits.filter(u => u.noViaje).length} Viajes)
+            Matriz de Embarques y Despacho ({planeacionUnits.filter(u => u.noViaje).length} Viajes Filtrados)
           </h2>
           <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-            Campos oficiales: No. Viaje, ECO, Bloque, Placas, Cap., Línea, Operador, # Carga, Sucursales y Cortinas
+            Clasificación Local vs Foráneo, Clósteres CD Villahermosa, Cargas y Cortinas
           </span>
         </div>
 
@@ -169,18 +216,18 @@ export const PlaneacionView = () => {
           <table className="data-table" style={{ fontSize: '0.83rem' }}>
             <thead>
               <tr style={{ background: '#0b253a' }}>
-                <th style={{ textAlign: 'center', width: '70px' }}>NO. VIAJE</th>
+                <th style={{ textAlign: 'center', width: '65px' }}>NO. VIAJE</th>
                 <th>ECO UNIDAD</th>
                 <th style={{ textAlign: 'center' }}>BLOQUE</th>
                 <th>PLACAS</th>
                 <th style={{ textAlign: 'center' }}>CAP.</th>
                 <th>LÍNEA</th>
                 <th>OPERADOR</th>
-                <th>FECHA</th>
                 <th># CARGA</th>
                 <th style={{ textAlign: 'center' }}># SUC</th>
                 <th>SUCURSAL / DESTINO</th>
-                <th style={{ textAlign: 'center' }}>CORTINAS</th>
+                <th>CLÓSTER & TIPO</th>
+                <th style={{ textAlign: 'center' }}>CORTINA</th>
                 <th style={{ textAlign: 'center' }}>ESTATUS</th>
                 <th style={{ textAlign: 'center' }}>ACCIONES</th>
               </tr>
@@ -196,6 +243,12 @@ export const PlaneacionView = () => {
                 planeacionUnits.map(unit => {
                   const enCortina = unit.estatusPlaneacion === 'En Cortina' || unit.estatusPatio === 'Colocado p/ Carga';
                   const yaDespachado = unit.estatusSupervisor === 'En Ruta' || unit.estatusPlaneacion === 'Despachado';
+                  
+                  // Validación de restricciones de matriz Villahermosa
+                  const warnings = validarRestriccionesViaje(
+                    [unit.numSucursal || unit.destino], 
+                    Number(unit.capUnidad || 50)
+                  );
 
                   return (
                     <tr 
@@ -251,24 +304,19 @@ export const PlaneacionView = () => {
 
                       {/* LINEA */}
                       <td style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
-                        {unit.linea || 'LTI - VHS'}
+                        {unit.linea || 'LINEA 1 - VHS'}
                       </td>
 
                       {/* OPERADOR */}
                       <td>
                         <div style={{ fontWeight: 600, color: '#fff' }}>
-                          {unit.operador}
+                          {unit.operador || 'POR ASIGNAR'}
                         </div>
                         {unit.turno === 'AUDITORIA' && (
                           <span style={{ fontSize: '0.7rem', color: '#fbbf24', fontStyle: 'italic' }}>
                             (En Auditoría de Carga)
                           </span>
                         )}
-                      </td>
-
-                      {/* FECHA */}
-                      <td style={{ fontFamily: 'var(--font-mono)', fontSize: '0.78rem', color: 'var(--text-muted)' }}>
-                        {unit.fecha || '10/09/2026'}
                       </td>
 
                       {/* # CARGA */}
@@ -286,31 +334,43 @@ export const PlaneacionView = () => {
                       </td>
 
                       {/* # SUC */}
-                      <td style={{ textAlign: 'center', fontFamily: 'var(--font-mono)', fontSize: '0.8rem', color: 'var(--accent-cyan)' }}>
+                      <td style={{ textAlign: 'center', fontFamily: 'var(--font-mono)', fontSize: '0.82rem', color: 'var(--accent-cyan)', fontWeight: 700 }}>
                         {unit.numSucursal || '—'}
                       </td>
 
-                      {/* SUCURSAL / DESTINO (Con desglose multipunto si existe) */}
+                      {/* SUCURSAL / DESTINO */}
                       <td>
-                        {unit.sucursalesDestino && unit.sucursalesDestino.length > 0 ? (
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
-                            {unit.sucursalesDestino.map((suc, idx) => (
-                              <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.8rem' }}>
-                                <span style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-mono)', fontSize: '0.72rem' }}>[{suc.num}]</span>
-                                <span style={{ fontWeight: 600, color: '#f1f5f9' }}>{suc.nombre}</span>
-                              </div>
-                            ))}
-                          </div>
-                        ) : (
-                          <span style={{ fontWeight: 600 }}>{unit.destino}</span>
-                        )}
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                          <span style={{ fontWeight: 600, color: '#f1f5f9' }}>{unit.destino || 'Sin destino'}</span>
+                          {warnings.length > 0 && (
+                            <span 
+                              className="alert-restriction-pill"
+                              title={warnings.join('\n')}
+                            >
+                              <AlertTriangle size={11} />
+                              <span>Restricción de Acceso ({unit.capUnidad} &gt; Permitido)</span>
+                            </span>
+                          )}
+                        </div>
+                      </td>
+
+                      {/* CLÓSTER & TIPO F/L */}
+                      <td>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem', alignItems: 'flex-start' }}>
+                          <span className={unit.fl === 'FORANEO' ? 'badge-fl-foraneo' : 'badge-fl-local'}>
+                            {unit.fl === 'FORANEO' ? 'FORÁNEO' : 'LOCAL'}
+                          </span>
+                          <span className="badge-closter">
+                            {unit.closter || 'HUB-VHSA'}
+                          </span>
+                        </div>
                       </td>
 
                       {/* CORTINAS */}
                       <td style={{ textAlign: 'center' }}>
                         <strong style={{ 
                           fontFamily: 'var(--font-mono)', 
-                          fontSize: '1rem', 
+                          fontSize: '0.95rem', 
                           color: 'var(--accent-cyan)',
                           background: 'rgba(6, 182, 212, 0.1)',
                           padding: '0.2rem 0.5rem',
@@ -342,7 +402,7 @@ export const PlaneacionView = () => {
                               className="btn btn-primary"
                               style={{ padding: '0.3rem 0.65rem', fontSize: '0.75rem' }}
                               onClick={() => despacharRuta(unit.id)}
-                              title="Dar salida a ruta (Pasa al Supervisor)"
+                              title="Dar salida a ruta (Pasa a monitoreo Supervisor)"
                             >
                               <Send size={12} />
                               <span>Despachar</span>
