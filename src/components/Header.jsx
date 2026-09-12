@@ -66,15 +66,19 @@ export const Header = () => {
     <header className="top-header">
       {/* Brand */}
       <div className="brand-section">
-        <div className="brand-logo">
-          <Truck size={24} />
+        <div className="brand-logo-container">
+          <img 
+            src="/baz-entregas-logo.png" 
+            alt="BAZ Entregas" 
+            className="brand-logo-img" 
+          />
         </div>
         <div className="brand-text">
           <h1>
-            BAZ Entregas
-            <span className="brand-badge">Control Operativo</span>
+            Control de Flota
+            <span className="brand-badge">CD Villahermosa</span>
           </h1>
-          <p className="brand-subtitle">Gestión de Flota, Patio y Monitoreo en Tiempo Real</p>
+          <p className="brand-subtitle">Patio, Planeación y Monitoreo Satelital en Vivo</p>
         </div>
       </div>
 
