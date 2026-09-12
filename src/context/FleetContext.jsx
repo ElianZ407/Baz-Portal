@@ -3,13 +3,14 @@ import { INITIAL_UNITS } from '../data/initialFleetData';
 
 const FleetContext = createContext(null);
 
-const STORAGE_KEY = 'baz_entregas_fleet_live_clean_v1';
+const STORAGE_KEY = 'baz_entregas_fleet_seed_v2';
 
 export const FleetProvider = ({ children }) => {
   const [units, setUnits] = useState(() => {
     try {
-      // Purgar almacenamiento de datos de prueba previos
+      // Purgar almacenamiento de versiones anteriores para cargar el nuevo seed
       localStorage.removeItem('baz_entregas_fleet_data_v1');
+      localStorage.removeItem('baz_entregas_fleet_live_clean_v1');
       const saved = localStorage.getItem(STORAGE_KEY);
       if (saved) {
         return JSON.parse(saved);
@@ -190,9 +191,15 @@ export const FleetProvider = ({ children }) => {
     }
   };
 
-  // Restablecer datos
+  // Restablecer datos a la configuración inicial (1 de cada estatus)
   const resetData = () => {
-    clearAllUnits();
+    setUnits(INITIAL_UNITS);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(INITIAL_UNITS));
+    if (typeof BroadcastChannel !== 'undefined') {
+      const bc = new BroadcastChannel('baz_fleet_realtime_sync');
+      bc.postMessage({ type: 'SYNC_UNITS', units: INITIAL_UNITS });
+      bc.close();
+    }
   };
 
   return (
