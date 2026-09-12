@@ -1,5 +1,13 @@
-import React, { createContext, useContext, useState, useEffect, useMemo } from 'react';
+import React, { createContext, useContext, useState, useEffect, useMemo, useCallback } from 'react';
 import { INITIAL_UNITS } from '../data/initialFleetData';
+import { 
+  supabase, 
+  isSupabaseConfigured, 
+  fetchViajesDb, 
+  upsertViajeDb, 
+  deleteViajeDb, 
+  mapDbToUnit 
+} from '../lib/supabaseClient';
 
 const FleetContext = createContext(null);
 
@@ -9,7 +17,6 @@ const CLIENT_ID = Math.random().toString(36).substring(2) + Date.now().toString(
 export const FleetProvider = ({ children }) => {
   const [units, setUnits] = useState(() => {
     try {
-      // Purgar almacenamiento de versiones anteriores para cargar el nuevo seed
       localStorage.removeItem('baz_entregas_fleet_data_v1');
       localStorage.removeItem('baz_entregas_fleet_live_clean_v1');
       const saved = localStorage.getItem(STORAGE_KEY);
@@ -27,8 +34,13 @@ export const FleetProvider = ({ children }) => {
   const [filterStatus, setFilterStatus] = useState('ALL');
   const [selectedUnit, setSelectedUnit] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isSupabaseModalOpen, setIsSupabaseModalOpen] = useState(false);
   const [confirmModal, setConfirmModal] = useState(null);
   const [currentTime, setCurrentTime] = useState(new Date());
+
+  // Estados de conectividad Cloud / Supabase
+  const [isCloudConnected, setIsCloudConnected] = useState(isSupabaseConfigured());
+  const [isCloudLoading, setIsCloudLoading] = useState(false);
 
   const showConfirm = (config) => {
     setConfirmModal({
@@ -46,7 +58,7 @@ export const FleetProvider = ({ children }) => {
     setConfirmModal(null);
   };
 
-  // Reloj de fondo con intervalo no agresivo (cada 30s) para no saturar re-renders globales
+  // Reloj de fondo con intervalo no agresivo (cada 30s)
   useEffect(() => {
     const timer = setInterval(() => {
       setCurrentTime(new Date());
@@ -54,13 +66,87 @@ export const FleetProvider = ({ children }) => {
     return () => clearInterval(timer);
   }, []);
 
-  // Sincronización en tiempo real entre ventanas/pestañas (BroadcastChannel y Storage Event)
+  // Función para recargar datos desde Supabase
+  const reloadCloudData = useCallback(async () => {
+    if (!isSupabaseConfigured()) return;
+    try {
+      setIsCloudLoading(true);
+      const remoteData = await fetchViajesDb();
+      if (remoteData && remoteData.length > 0) {
+        setUnits(remoteData);
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(remoteData));
+        setIsCloudConnected(true);
+      } else if (remoteData && remoteData.length === 0) {
+        // Si la tabla en Supabase está vacía, poblamos con los viajes representativos iniciales
+        for (const u of INITIAL_UNITS) {
+          await upsertViajeDb(u);
+        }
+        setUnits(INITIAL_UNITS);
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(INITIAL_UNITS));
+        setIsCloudConnected(true);
+      }
+    } catch (err) {
+      console.error('Error al sincronizar con Supabase:', err);
+    } finally {
+      setIsCloudLoading(false);
+    }
+  }, []);
+
+  // Sincronización Inicial y Suscripción Realtime con Supabase
+  useEffect(() => {
+    if (!isSupabaseConfigured() || !supabase) {
+      setIsCloudConnected(false);
+      return;
+    }
+
+    // Cargar datos remotos
+    reloadCloudData();
+
+    // Suscribirse a cambios en tiempo real en la tabla viajes_diarios
+    const channel = supabase
+      .channel('realtime:public:viajes_diarios')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'viajes_diarios' },
+        (payload) => {
+          if (payload.eventType === 'INSERT') {
+            const newUnit = mapDbToUnit(payload.new);
+            setUnits(prev => {
+              if (prev.some(u => u.id === newUnit.id)) {
+                return prev.map(u => u.id === newUnit.id ? newUnit : u);
+              }
+              return [newUnit, ...prev];
+            });
+          } else if (payload.eventType === 'UPDATE') {
+            const updatedUnit = mapDbToUnit(payload.new);
+            setUnits(prev => prev.map(u => u.id === updatedUnit.id ? updatedUnit : u));
+          } else if (payload.eventType === 'DELETE') {
+            const deletedId = payload.old?.id;
+            if (deletedId) {
+              setUnits(prev => prev.filter(u => u.id !== deletedId));
+            }
+          }
+        }
+      )
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+          setIsCloudConnected(true);
+        } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+          console.warn('Estado del canal Realtime Supabase:', status);
+        }
+      });
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [reloadCloudData]);
+
+  // Sincronización local multi-pestaña como respaldo (BroadcastChannel y Storage Event)
   useEffect(() => {
     let channel;
     try {
       channel = new BroadcastChannel('baz_fleet_realtime_sync');
       channel.onmessage = (event) => {
-        // Ignorar mensajes generados por la misma pestaña para evitar bucles y renderizados duplicados
         if (
           event.data && 
           event.data.type === 'SYNC_UNITS' && 
@@ -93,7 +179,7 @@ export const FleetProvider = ({ children }) => {
     };
   }, []);
 
-  // Guardar en localStorage y emitir evento en vivo a OTRAS pantallas/ventanas
+  // Guardar en localStorage de respaldo y emitir BroadcastChannel local
   useEffect(() => {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(units));
@@ -107,7 +193,7 @@ export const FleetProvider = ({ children }) => {
     }
   }, [units]);
 
-  // KPIs en tiempo real basados exactamente en el tablero TV (Imagen 3)
+  // KPIs en tiempo real basados exactamente en el tablero TV
   const kpis = useMemo(() => {
     const total = units.length;
     const enTransito = units.filter(u => u.estatusSupervisor === 'En Ruta').length;
@@ -133,31 +219,52 @@ export const FleetProvider = ({ children }) => {
   }, [units]);
 
   // Actualizar o crear unidad
-  const saveUnit = (unitData) => {
+  const saveUnit = async (unitData) => {
     const now = new Date().toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' });
+    let fullUnit;
+
     setUnits(prev => {
       const exists = prev.some(u => u.id === unitData.id);
       if (exists) {
-        return prev.map(u => u.id === unitData.id ? { ...u, ...unitData, actualizadoEn: now } : u);
+        fullUnit = { ...prev.find(u => u.id === unitData.id), ...unitData, actualizadoEn: now };
+        return prev.map(u => u.id === unitData.id ? fullUnit : u);
       } else {
-        const newUnit = {
+        fullUnit = {
           ...unitData,
           id: unitData.id || `unit-${unitData.economico || Date.now()}`,
           actualizadoEn: now
         };
-        return [newUnit, ...prev];
+        return [fullUnit, ...prev];
       }
     });
+
+    // Guardar en Supabase si está configurado
+    if (isSupabaseConfigured() && fullUnit) {
+      try {
+        await upsertViajeDb(fullUnit);
+      } catch (err) {
+        console.error('Error al persistir unidad en Supabase:', err);
+      }
+    }
   };
 
   // Eliminar unidad
-  const deleteUnit = (id) => {
+  const deleteUnit = async (id) => {
     setUnits(prev => prev.filter(u => u.id !== id));
+    if (isSupabaseConfigured()) {
+      try {
+        await deleteViajeDb(id);
+      } catch (err) {
+        console.error('Error al eliminar unidad en Supabase:', err);
+      }
+    }
   };
 
   // Cambio rápido de estatus por área
-  const updateStatus = (unitId, area, newStatus) => {
+  const updateStatus = async (unitId, area, newStatus) => {
     const now = new Date().toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' });
+    let updatedUnit = null;
+
     setUnits(prev => prev.map(u => {
       if (u.id !== unitId) return u;
 
@@ -199,16 +306,35 @@ export const FleetProvider = ({ children }) => {
         }
       }
 
+      updatedUnit = updated;
       return updated;
     }));
+
+    // Sincronizar actualización en Supabase
+    if (isSupabaseConfigured() && updatedUnit) {
+      try {
+        await upsertViajeDb(updatedUnit);
+      } catch (err) {
+        console.error('Error al actualizar estatus en Supabase:', err);
+      }
+    }
   };
 
   // Purgar / Limpiar todos los datos del tablero
-  const clearAllUnits = () => {
+  const clearAllUnits = async () => {
     setUnits([]);
     localStorage.removeItem(STORAGE_KEY);
     localStorage.removeItem('baz_entregas_fleet_data_v1');
     localStorage.removeItem('baz_entregas_fleet_live_clean_v1');
+    
+    if (isSupabaseConfigured() && supabase) {
+      try {
+        await supabase.from('viajes_diarios').delete().neq('id', '___non_existent___');
+      } catch (err) {
+        console.error('Error al vaciar viajes_diarios en Supabase:', err);
+      }
+    }
+
     if (typeof BroadcastChannel !== 'undefined') {
       const bc = new BroadcastChannel('baz_fleet_realtime_sync');
       bc.postMessage({ type: 'SYNC_UNITS', units: [], senderId: CLIENT_ID });
@@ -217,9 +343,22 @@ export const FleetProvider = ({ children }) => {
   };
 
   // Restablecer datos a la configuración inicial (1 de cada estatus)
-  const resetData = () => {
+  const resetData = async () => {
     setUnits(INITIAL_UNITS);
     localStorage.setItem(STORAGE_KEY, JSON.stringify(INITIAL_UNITS));
+
+    if (isSupabaseConfigured() && supabase) {
+      try {
+        // Borrar actuales y poblar con INITIAL_UNITS
+        await supabase.from('viajes_diarios').delete().neq('id', '___non_existent___');
+        for (const u of INITIAL_UNITS) {
+          await upsertViajeDb(u);
+        }
+      } catch (err) {
+        console.error('Error al restablecer datos en Supabase:', err);
+      }
+    }
+
     if (typeof BroadcastChannel !== 'undefined') {
       const bc = new BroadcastChannel('baz_fleet_realtime_sync');
       bc.postMessage({ type: 'SYNC_UNITS', units: INITIAL_UNITS, senderId: CLIENT_ID });
@@ -241,6 +380,11 @@ export const FleetProvider = ({ children }) => {
       setSelectedUnit,
       isModalOpen,
       setIsModalOpen,
+      isSupabaseModalOpen,
+      setIsSupabaseModalOpen,
+      isCloudConnected,
+      isCloudLoading,
+      reloadCloudData,
       currentTime,
       saveUnit,
       deleteUnit,
