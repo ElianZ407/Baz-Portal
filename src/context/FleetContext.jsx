@@ -140,28 +140,35 @@ export const FleetProvider = ({ children }) => {
         updated.estatusPatio = newStatus;
         if (newStatus === 'Colocado p/ Carga') {
           updated.area = 'planeacion';
-          updated.estatusPlaneacion = 'En Cortina';
+          updated.estatusPlaneacion = 'COLOCADO';
         } else if (newStatus === 'Taller') {
           updated.area = 'patio';
           updated.estatusSupervisor = 'No Disponible';
-          updated.estatusPlaneacion = 'No Disponible';
+          updated.estatusPlaneacion = 'PENDIENTE';
         }
       } else if (area === 'planeacion') {
         updated.estatusPlaneacion = newStatus;
-        if (newStatus === 'En Cortina') {
+        if (newStatus === 'COLOCADO') {
           updated.area = 'planeacion';
           updated.estatusPatio = 'Colocado p/ Carga';
-        } else if (newStatus === 'Liberado a Ruta') {
+        } else if (newStatus === 'EN CASETA') {
           updated.area = 'supervisor';
-          updated.estatusSupervisor = 'En Ruta';
           updated.estatusPatio = 'Cargado';
+          if (updated.estatusSupervisor === 'Pendiente' || !updated.estatusSupervisor) {
+            updated.estatusSupervisor = 'En Ruta';
+          }
+        } else if (newStatus === 'PENDIENTE') {
+          updated.area = 'planeacion';
+          updated.estatusPatio = 'Disponible';
+          updated.estatusSupervisor = 'Pendiente';
         }
       } else if (area === 'supervisor') {
         updated.estatusSupervisor = newStatus;
         if (newStatus === 'Completado') {
           updated.estatusPatio = 'Disponible';
+          updated.estatusPlaneacion = 'PENDIENTE';
         } else if (newStatus === 'Retorno') {
-          updated.destino = `${u.sucursalOrigen || 'CDMX Norte'} (Retorno)`;
+          updated.destino = `${u.sucursalOrigen || 'CEDIS VILLAHERMOSA'} (Retorno)`;
         }
       }
 

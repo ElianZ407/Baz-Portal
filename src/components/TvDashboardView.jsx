@@ -63,6 +63,10 @@ export const TvDashboardView = () => {
       case 'En Ruta':
       case 'EN TRÁNSITO':
         return 'status-en-ruta';
+      case 'EN CASETA':
+        return 'status-encaseta';
+      case 'COLOCADO':
+        return 'status-colocado';
       case 'Espera Descarga':
       case 'EN SUCURSAL':
       case 'En Cortina':
@@ -301,14 +305,20 @@ export const TvDashboardView = () => {
 
                       {/* ESTATUS */}
                       <td style={{ textAlign: 'center' }}>
-                        <span className={`status-badge ${getStatusBadgeClass(unit.estatusSupervisor)}`}>
-                          {unit.estatusSupervisor === 'En Ruta' ? 'EN RUTA (TRÁNSITO)' :
+                        <span className={`status-badge ${
+                          unit.estatusPlaneacion === 'EN CASETA' ? 'status-encaseta' :
+                          unit.estatusPlaneacion === 'COLOCADO' ? 'status-colocado' :
+                          getStatusBadgeClass(unit.estatusSupervisor)
+                        }`}>
+                          {unit.estatusPlaneacion === 'EN CASETA' ? 'EN CASETA (SALIDA)' :
+                           unit.estatusSupervisor === 'En Ruta' ? 'EN RUTA (TRÁNSITO)' :
                            unit.estatusSupervisor === 'Espera Descarga' ? 'EN SUCURSAL (ESPERA)' :
                            unit.estatusSupervisor === 'Descargando' ? 'DESCARGANDO' :
                            unit.estatusSupervisor === 'Retorno' ? 'EN RETORNO' :
                            unit.estatusSupervisor === 'Retrasado' ? 'RETRASADO / ALERTA' :
                            unit.estatusSupervisor === 'Completado' ? 'COMPLETADO' :
-                           unit.estatusPlaneacion === 'En Cortina' ? 'EN CORTINA' :
+                           unit.estatusPlaneacion === 'COLOCADO' ? 'COLOCADO EN CORTINA' :
+                           unit.estatusPlaneacion === 'PENDIENTE' ? 'PROGRAMADO' :
                            unit.estatusPatio.toUpperCase()}
                         </span>
                       </td>
