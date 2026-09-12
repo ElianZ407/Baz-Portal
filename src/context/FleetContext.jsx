@@ -33,10 +33,48 @@ export const FleetProvider = ({ children }) => {
     return () => clearInterval(timer);
   }, []);
 
-  // Guardar en localStorage
+  // Sincronización en tiempo real entre ventanas/pestañas (BroadcastChannel y Storage Event)
+  useEffect(() => {
+    let channel;
+    try {
+      channel = new BroadcastChannel('baz_fleet_realtime_sync');
+      channel.onmessage = (event) => {
+        if (event.data && event.data.type === 'SYNC_UNITS' && Array.isArray(event.data.units)) {
+          setUnits(event.data.units);
+        }
+      };
+    } catch (e) {
+      console.warn('BroadcastChannel no soportado:', e);
+    }
+
+    const handleStorageChange = (e) => {
+      if (e.key === STORAGE_KEY && e.newValue) {
+        try {
+          const remoteUnits = JSON.parse(e.newValue);
+          setUnits(remoteUnits);
+        } catch (err) {
+          console.error('Error al sincronizar localStorage remoto:', err);
+        }
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+
+    return () => {
+      if (channel) channel.close();
+      window.removeEventListener('storage', handleStorageChange);
+    };
+  }, []);
+
+  // Guardar en localStorage y emitir evento en vivo a otras pantallas/ventanas
   useEffect(() => {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(units));
+      if (typeof BroadcastChannel !== 'undefined') {
+        const bc = new BroadcastChannel('baz_fleet_realtime_sync');
+        bc.postMessage({ type: 'SYNC_UNITS', units });
+        bc.close();
+      }
     } catch (e) {
       console.error('Error guardando en localStorage', e);
     }
