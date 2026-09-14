@@ -220,21 +220,23 @@ export const FleetProvider = ({ children }) => {
   // Actualizar o crear unidad
   const saveUnit = async (unitData) => {
     const now = new Date().toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' });
-    let fullUnit;
-
-    setUnits(prev => {
-      const exists = prev.some(u => u.id === unitData.id);
-      if (exists) {
-        fullUnit = { ...prev.find(u => u.id === unitData.id), ...unitData, actualizadoEn: now };
-        return prev.map(u => u.id === unitData.id ? fullUnit : u);
-      } else {
-        fullUnit = {
+    
+    // Resolver la unidad completa de forma síncrona
+    const existingUnit = units.find(u => u.id === unitData.id);
+    const fullUnit = existingUnit
+      ? { ...existingUnit, ...unitData, actualizadoEn: now }
+      : {
           ...unitData,
-          id: unitData.id || `unit-${unitData.economico || Date.now()}`,
+          id: unitData.id || `baz-unit-${unitData.economico || Date.now()}`,
           actualizadoEn: now
         };
-        return [fullUnit, ...prev];
-      }
+
+    // Actualizar estado local inmediatamente (optimistic UI)
+    setUnits(prev => {
+      const exists = prev.some(u => u.id === fullUnit.id);
+      return exists 
+        ? prev.map(u => u.id === fullUnit.id ? fullUnit : u) 
+        : [fullUnit, ...prev];
     });
 
     // Guardar en Supabase si está configurado
@@ -262,57 +264,55 @@ export const FleetProvider = ({ children }) => {
   // Cambio rápido de estatus por área
   const updateStatus = async (unitId, area, newStatus) => {
     const now = new Date().toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' });
-    let updatedUnit = null;
+    
+    const targetUnit = units.find(u => u.id === unitId);
+    if (!targetUnit) return;
 
-    setUnits(prev => prev.map(u => {
-      if (u.id !== unitId) return u;
+    const updated = { ...targetUnit, actualizadoEn: now };
 
-      const updated = { ...u, actualizadoEn: now };
-
-      if (area === 'patio') {
-        updated.estatusPatio = newStatus;
-        if (newStatus === 'Colocado p/ Carga') {
-          updated.area = 'planeacion';
-          updated.estatusPlaneacion = 'COLOCADO';
-        } else if (newStatus === 'Taller') {
-          updated.area = 'patio';
-          updated.estatusSupervisor = 'No Disponible';
-          updated.estatusPlaneacion = 'PENDIENTE';
-        }
-      } else if (area === 'planeacion') {
-        updated.estatusPlaneacion = newStatus;
-        if (newStatus === 'COLOCADO') {
-          updated.area = 'planeacion';
-          updated.estatusPatio = 'Colocado p/ Carga';
-        } else if (newStatus === 'EN CASETA') {
-          updated.area = 'supervisor';
-          updated.estatusPatio = 'Cargado';
-          if (updated.estatusSupervisor === 'Pendiente' || !updated.estatusSupervisor) {
-            updated.estatusSupervisor = 'En Ruta';
-          }
-        } else if (newStatus === 'PENDIENTE') {
-          updated.area = 'planeacion';
-          updated.estatusPatio = 'Disponible';
-          updated.estatusSupervisor = 'Pendiente';
-        }
-      } else if (area === 'supervisor') {
-        updated.estatusSupervisor = newStatus;
-        if (newStatus === 'Completado') {
-          updated.estatusPatio = 'Disponible';
-          updated.estatusPlaneacion = 'PENDIENTE';
-        } else if (newStatus === 'Retorno') {
-          updated.destino = `${u.sucursalOrigen || 'CEDIS VILLAHERMOSA'} (Retorno)`;
-        }
+    if (area === 'patio') {
+      updated.estatusPatio = newStatus;
+      if (newStatus === 'Colocado p/ Carga') {
+        updated.area = 'planeacion';
+        updated.estatusPlaneacion = 'COLOCADO';
+      } else if (newStatus === 'Taller') {
+        updated.area = 'patio';
+        updated.estatusSupervisor = 'No Disponible';
+        updated.estatusPlaneacion = 'PENDIENTE';
       }
+    } else if (area === 'planeacion') {
+      updated.estatusPlaneacion = newStatus;
+      if (newStatus === 'COLOCADO') {
+        updated.area = 'planeacion';
+        updated.estatusPatio = 'Colocado p/ Carga';
+      } else if (newStatus === 'EN CASETA') {
+        updated.area = 'supervisor';
+        updated.estatusPatio = 'Cargado';
+        if (updated.estatusSupervisor === 'Pendiente' || !updated.estatusSupervisor) {
+          updated.estatusSupervisor = 'En Ruta';
+        }
+      } else if (newStatus === 'PENDIENTE') {
+        updated.area = 'planeacion';
+        updated.estatusPatio = 'Disponible';
+        updated.estatusSupervisor = 'Pendiente';
+      }
+    } else if (area === 'supervisor') {
+      updated.estatusSupervisor = newStatus;
+      if (newStatus === 'Completado') {
+        updated.estatusPatio = 'Disponible';
+        updated.estatusPlaneacion = 'PENDIENTE';
+      } else if (newStatus === 'Retorno') {
+        updated.destino = `${targetUnit.sucursalOrigen || 'CEDIS VILLAHERMOSA'} (Retorno)`;
+      }
+    }
 
-      updatedUnit = updated;
-      return updated;
-    }));
+    // Actualizar estado local inmediatamente
+    setUnits(prev => prev.map(u => u.id === unitId ? updated : u));
 
     // Sincronizar actualización en Supabase
-    if (isSupabaseConfigured() && updatedUnit) {
+    if (isSupabaseConfigured()) {
       try {
-        await upsertViajeDb(updatedUnit);
+        await upsertViajeDb(updated);
       } catch (err) {
         console.error('Error al actualizar estatus en Supabase:', err);
       }
