@@ -18,6 +18,7 @@ import {
 import { useFleet } from '../context/FleetContext';
 import { validarRestriccionesViaje, buscarSucursal } from '../data/sucursalesData';
 import { BLOQUES } from '../data/initialFleetData';
+import { exportOfficialExcel } from '../utils/exportOfficialExcel';
 
 export const PlaneacionView = () => {
   const { 
@@ -133,6 +134,28 @@ export const PlaneacionView = () => {
               {pendienteCount}
             </div>
           </div>
+
+          <button 
+            className="btn btn-primary"
+            style={{
+              background: 'linear-gradient(135deg, #107c41, #0b5c30)',
+              borderColor: '#107c41',
+              color: '#fff',
+              fontWeight: 700,
+              boxShadow: '0 4px 12px rgba(16, 124, 65, 0.35)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              padding: '0.55rem 1rem',
+              borderRadius: 'var(--radius-md)',
+              fontSize: '0.84rem'
+            }}
+            onClick={() => exportOfficialExcel(filteredUnits)}
+            title="Descargar archivo Excel con formato y colores idénticos a la plantilla oficial BAZ"
+          >
+            <FileSpreadsheet size={17} />
+            <span>Exportar Excel Oficial</span>
+          </button>
         </div>
       </div>
 
