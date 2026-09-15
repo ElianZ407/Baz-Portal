@@ -154,8 +154,8 @@ export const UnitModal = () => {
 
     const payload = isPatioMode ? {
       ...formData,
-      operador: selectedUnit?.operador || '',
-      idOperador: selectedUnit?.idOperador || '',
+      operador: '',
+      idOperador: '',
       estatusPlaneacion: formData.estatusPlaneacion || 'PENDIENTE',
       estatusSupervisor: formData.estatusSupervisor || 'Pendiente'
     } : formData;

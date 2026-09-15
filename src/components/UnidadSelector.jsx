@@ -67,8 +67,7 @@ export const UnidadSelector = ({ value, onSelect, mode }) => {
     const q = search.toLowerCase().trim();
     const matchesSearch = !q || 
       u.eco.toLowerCase().includes(q) || 
-      u.placas.toLowerCase().includes(q) || 
-      (!isPlaneacion && u.operador && u.operador.toLowerCase().includes(q));
+      u.placas.toLowerCase().includes(q);
 
     const matchesTipo = tipoFilter === 'ALL' || 
       (tipoFilter === 'CAMIONETA' && u.capUnidad === 18) ||
@@ -99,23 +98,18 @@ export const UnidadSelector = ({ value, onSelect, mode }) => {
             <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem', color: '#94a3b8' }}>
               [{selectedUnidad.placas}]
             </span>
-            {!isPlaneacion && selectedUnidad.operador && (
-              <span style={{ fontWeight: 700, color: '#fff', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>
-                {selectedUnidad.operador}
-              </span>
-            )}
             <span style={{ 
               fontSize: '0.72rem', 
               color: selectedUnidad.estatus === 'ACTIVO' ? '#34d399' : selectedUnidad.estatus === 'TALLER' ? '#f87171' : '#fbbf24',
               fontFamily: 'var(--font-mono)',
               fontWeight: 700
             }}>
-              [{selectedUnidad.estatus === 'TALLER' ? 'TALLER' : 'DISPONIBLE'}]
+              [{selectedUnidad.estatus === 'TALLER' ? 'TALLER' : 'PATIO'}]
             </span>
           </div>
         ) : (
           <span style={{ color: 'var(--text-muted)' }}>
-            {value ? `ECO ${value}` : isPlaneacion ? 'Seleccionar Unidad de Patio (Sin Operador)...' : 'Seleccionar ECO Unidad del Padrón...'}
+            {value ? `ECO ${value}` : isPlaneacion ? 'Seleccionar Unidad de Patio...' : 'Seleccionar ECO Unidad del Padrón...'}
           </span>
         )}
 
@@ -177,7 +171,7 @@ export const UnidadSelector = ({ value, onSelect, mode }) => {
             <input 
               ref={searchInputRef}
               type="text"
-              placeholder={isPlaneacion ? "Buscar por número ECO o placas..." : "Buscar por número ECO, placas u operador..."}
+              placeholder="Buscar por número ECO o placas..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               onClick={(e) => e.stopPropagation()}
@@ -212,7 +206,7 @@ export const UnidadSelector = ({ value, onSelect, mode }) => {
           <div className="custom-select-options-list">
             {filteredUnidades.length === 0 ? (
               <div style={{ padding: '1.25rem', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.8rem' }}>
-                No se encontraron unidades en Patio con ese criterio.
+                No se encontraron unidades con ese criterio.
               </div>
             ) : (
               filteredUnidades.map(u => {
@@ -254,11 +248,6 @@ export const UnidadSelector = ({ value, onSelect, mode }) => {
                         <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.82rem', color: '#e2e8f0', fontWeight: 600 }}>
                           Placas: {u.placas}
                         </span>
-                        {!isPlaneacion && u.operador && (
-                          <span style={{ color: '#fff', fontSize: '0.85rem', fontWeight: 700 }}>
-                            • {u.operador}
-                          </span>
-                        )}
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
                         {isUnselectable ? (
