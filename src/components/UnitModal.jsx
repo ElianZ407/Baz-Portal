@@ -8,7 +8,8 @@ import { SucursalSelector } from './SucursalSelector';
 import { UnidadSelector } from './UnidadSelector';
 
 export const UnitModal = () => {
-  const { isModalOpen, setIsModalOpen, selectedUnit, saveUnit } = useFleet();
+  const { isModalOpen, setIsModalOpen, selectedUnit, saveUnit, activeArea } = useFleet();
+  const isPatioMode = activeArea === 'patio';
 
   const [formData, setFormData] = useState({
     noViaje: '',
@@ -93,8 +94,8 @@ export const UnitModal = () => {
       capUnidad: unidad.capUnidad || prev.capUnidad,
       tipo: unidad.tipo || prev.tipo,
       linea: unidad.linea || prev.linea,
-      operador: (unidad.operador && unidad.operador !== 'VACANTE' && unidad.operador !== 'BAJA') ? unidad.operador : prev.operador,
-      estatusPatio: unidad.estatus === 'TALLER' ? 'Taller' : prev.estatusPatio
+      operador: isPatioMode ? '' : ((unidad.operador && unidad.operador !== 'VACANTE' && unidad.operador !== 'BAJA') ? unidad.operador : prev.operador),
+      estatusPatio: unidad.estatus === 'TALLER' ? 'Taller' : (prev.estatusPatio || 'Disponible')
     }));
   };
 
@@ -143,7 +144,15 @@ export const UnitModal = () => {
       return;
     }
 
-    saveUnit(formData);
+    const payload = isPatioMode ? {
+      ...formData,
+      operador: selectedUnit?.operador || '',
+      idOperador: selectedUnit?.idOperador || '',
+      estatusPlaneacion: formData.estatusPlaneacion || 'PENDIENTE',
+      estatusSupervisor: formData.estatusSupervisor || 'Pendiente'
+    } : formData;
+
+    saveUnit(payload);
     setIsModalOpen(false);
   };
 
@@ -153,10 +162,24 @@ export const UnitModal = () => {
     <div className="modal-overlay" onClick={() => setIsModalOpen(false)}>
       <div className="modal-content" style={{ maxWidth: '780px' }} onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
-          <h3>
-            <FileSpreadsheet size={20} style={{ display: 'inline', verticalAlign: 'middle', marginRight: '8px', color: 'var(--accent-cyan)' }} />
-            {selectedUnit ? `Editar Viaje / Unidad ECO ${selectedUnit.economico}` : 'Registrar Nuevo Embarque / Unidad'}
-          </h3>
+          <div>
+            <h3>
+              {isPatioMode ? (
+                <Truck size={20} style={{ display: 'inline', verticalAlign: 'middle', marginRight: '8px', color: '#10b981' }} />
+              ) : (
+                <FileSpreadsheet size={20} style={{ display: 'inline', verticalAlign: 'middle', marginRight: '8px', color: 'var(--accent-cyan)' }} />
+              )}
+              {isPatioMode 
+                ? (selectedUnit ? `Gestionar Unidad en Patio ECO ${selectedUnit.economico}` : 'Registrar Nueva Unidad en Patio')
+                : (selectedUnit ? `Editar Viaje / Unidad ECO ${selectedUnit.economico}` : 'Registrar Nuevo Embarque / Unidad')
+              }
+            </h3>
+            <p style={{ margin: 0, fontSize: '0.78rem', color: isPatioMode ? '#34d399' : 'var(--text-muted)' }}>
+              {isPatioMode 
+                ? 'Control vehicular en CD Villahermosa — Registro exclusivo de la unidad física (sin operador)' 
+                : 'Programación de embarques, operador, ruta y carga'}
+            </p>
+          </div>
           <button className="modal-close" onClick={() => setIsModalOpen(false)}>
             <X size={20} />
           </button>
@@ -227,262 +250,382 @@ export const UnitModal = () => {
               </div>
             )}
 
-            <div className="form-grid">
-              {/* No. Viaje */}
-              <div className="form-group">
-                <label>No. de Viaje</label>
-                <input 
-                  type="number"
-                  name="noViaje"
-                  className="form-control"
-                  placeholder="Ej: 1, 2, 3..."
-                  value={formData.noViaje}
-                  onChange={handleChange}
-                />
-              </div>
+            {isPatioMode ? (
+              <div className="form-grid">
+                {/* ECO Unidad con Selector Inteligente y Completo */}
+                <div className="form-group full-width">
+                  <label>ECO Unidad (Padrón Oficial - {FLOTA_TOTAL.length} Unidades) *</label>
+                  <UnidadSelector 
+                    value={formData.economico}
+                    onSelect={handleSelectUnidad}
+                  />
+                </div>
 
-              {/* Bloque */}
-              <div className="form-group">
-                <label>Bloque de Salida</label>
-                <select 
-                  name="bloque" 
-                  className="form-control"
-                  value={formData.bloque}
-                  onChange={handleChange}
-                >
-                  {BLOQUES.map(b => (
-                    <option key={b} value={b}>Bloque {b}</option>
-                  ))}
-                </select>
-              </div>
+                {/* Placas */}
+                <div className="form-group">
+                  <label>Placas</label>
+                  <input 
+                    type="text"
+                    name="placas"
+                    className="form-control"
+                    placeholder="Ej: GT3465C, 11FA5G..."
+                    value={formData.placas}
+                    onChange={handleChange}
+                  />
+                </div>
 
-              {/* ECO Unidad con Selector Inteligente y Completo */}
-              <div className="form-group full-width">
-                <label>ECO Unidad (Padrón Oficial - {FLOTA_TOTAL.length} Unidades) *</label>
-                <UnidadSelector 
-                  value={formData.economico}
-                  onSelect={handleSelectUnidad}
-                />
-              </div>
+                {/* Capacidad Unidad */}
+                <div className="form-group">
+                  <label>Capacidad Unidad (m³)</label>
+                  <select 
+                    name="capUnidad" 
+                    className="form-control"
+                    value={formData.capUnidad}
+                    onChange={handleChange}
+                  >
+                    <option value={18}>18 m³ (Camioneta / Rabón Chico)</option>
+                    <option value={40}>40 m³ (Madrina Mediana)</option>
+                    <option value={50}>50 m³ (Madrina Estándar / Rango Medio)</option>
+                    <option value={70}>70 m³ (Intercedis / Trailer)</option>
+                    <option value={90}>90 m³ (Caja Seca Sencilla)</option>
+                    <option value={110}>110 m³ (Full Tráiler)</option>
+                  </select>
+                </div>
 
-              {/* Placas (Auto-completadas) */}
-              <div className="form-group">
-                <label>Placas</label>
-                <input 
-                  type="text"
-                  name="placas"
-                  className="form-control"
-                  placeholder="Ej: GT3465C, 11FA5G..."
-                  value={formData.placas}
-                  onChange={handleChange}
-                />
-              </div>
+                {/* Tipo de Unidad */}
+                <div className="form-group">
+                  <label>Tipo de Vehículo</label>
+                  <select 
+                    name="tipo" 
+                    className="form-control"
+                    value={formData.tipo}
+                    onChange={handleChange}
+                  >
+                    <option value="Camioneta">Camioneta (18 m³)</option>
+                    <option value="Rango Medio">Rango Medio (50 m³)</option>
+                    <option value="Madrina / Rango Medio">Madrina / Rango Medio</option>
+                    <option value="Sencillo">Sencillo (90 m³)</option>
+                    <option value="Tracto / Sencillo">Tracto / Sencillo</option>
+                    <option value="Tracto / Full">Tracto / Full (110 m³)</option>
+                  </select>
+                </div>
 
-              {/* Capacidad Unidad */}
-              <div className="form-group">
-                <label>Capacidad Unidad (Motos / Vol.)</label>
-                <select 
-                  name="capUnidad" 
-                  className="form-control"
-                  value={formData.capUnidad}
-                  onChange={handleChange}
-                >
-                  <option value={18}>18 (Camioneta / Rabón Chico)</option>
-                  <option value={40}>40 (Madrina Mediana)</option>
-                  <option value={50}>50 (Madrina Estándar / Rango Medio)</option>
-                  <option value={70}>70 (Intercedis / Trailer)</option>
-                  <option value={90}>90 (Caja Seca Sencilla)</option>
-                  <option value={110}>110 (Full Tráiler)</option>
-                </select>
-              </div>
+                {/* Línea de Transporte */}
+                <div className="form-group">
+                  <label>Línea de Transporte</label>
+                  <select 
+                    name="linea" 
+                    className="form-control"
+                    value={formData.linea}
+                    onChange={handleChange}
+                  >
+                    {LINEAS_TRANSPORTE.map(l => (
+                      <option key={l} value={l}>{l}</option>
+                    ))}
+                  </select>
+                </div>
 
-              {/* Línea de Transporte */}
-              <div className="form-group">
-                <label>Línea de Transporte</label>
-                <select 
-                  name="linea" 
-                  className="form-control"
-                  value={formData.linea}
-                  onChange={handleChange}
-                >
-                  {LINEAS_TRANSPORTE.map(l => (
-                    <option key={l} value={l}>{l}</option>
-                  ))}
-                </select>
-              </div>
+                {/* Estatus Patio */}
+                <div className="form-group">
+                  <label>Estatus en Patio (En CD) *</label>
+                  <select 
+                    name="estatusPatio" 
+                    className="form-control"
+                    value={formData.estatusPatio}
+                    onChange={handleChange}
+                    style={{ fontWeight: 700 }}
+                  >
+                    <option value="Disponible">🟢 Disponible en Patio</option>
+                    <option value="Colocado p/ Carga">🟡 Colocado p/ Carga</option>
+                    <option value="Cargado">🔵 Cargado</option>
+                    <option value="Taller">🔴 Taller / Mtto</option>
+                  </select>
+                </div>
 
-              {/* Operador */}
-              <div className="form-group">
-                <label>Nombre del Operador</label>
-                <input 
-                  type="text"
-                  name="operador"
-                  list="operadores-list"
-                  className="form-control"
-                  placeholder="Ej: ANTONIO PEREZ PALMA..."
-                  value={formData.operador}
-                  onChange={handleChange}
-                />
-              </div>
+                {/* Cajón / Rampa en Patio */}
+                <div className="form-group">
+                  <label>Cajón / Rampa / Cortina en Patio</label>
+                  <input 
+                    type="text"
+                    name="cortina"
+                    className="form-control"
+                    placeholder="Ej: Cajón 04, Rampa 18, Taller 1..."
+                    value={formData.cortina}
+                    onChange={handleChange}
+                  />
+                </div>
 
-              {/* # Carga */}
-              <div className="form-group">
-                <label># Carga (Folio)</label>
-                <input 
-                  type="text"
-                  name="numCarga"
-                  className="form-control"
-                  placeholder="Ej: CS00390172"
-                  value={formData.numCarga}
-                  onChange={handleChange}
-                />
+                {/* Observaciones de Unidad */}
+                <div className="form-group full-width">
+                  <label>Observaciones del Vehículo / Condición Física</label>
+                  <textarea 
+                    name="observaciones"
+                    rows="2"
+                    className="form-control"
+                    placeholder="Ej: Unidad revisada, tanque lleno, mantenimiento de frenos, lista para carga..."
+                    value={formData.observaciones}
+                    onChange={handleChange}
+                  ></textarea>
+                </div>
               </div>
+            ) : (
+              <div className="form-grid">
+                {/* No. Viaje */}
+                <div className="form-group">
+                  <label>No. de Viaje</label>
+                  <input 
+                    type="number"
+                    name="noViaje"
+                    className="form-control"
+                    placeholder="Ej: 1, 2, 3..."
+                    value={formData.noViaje}
+                    onChange={handleChange}
+                  />
+                </div>
 
-              {/* Cortinas */}
-              <div className="form-group">
-                <label>Cortina(s) de Embarque</label>
-                <input 
-                  type="text"
-                  name="cortina"
-                  className="form-control"
-                  placeholder="Ej: 51, 18, 52..."
-                  value={formData.cortina}
-                  onChange={handleChange}
-                />
-              </div>
+                {/* Bloque */}
+                <div className="form-group">
+                  <label>Bloque de Salida</label>
+                  <select 
+                    name="bloque" 
+                    className="form-control"
+                    value={formData.bloque}
+                    onChange={handleChange}
+                  >
+                    {BLOQUES.map(b => (
+                      <option key={b} value={b}>Bloque {b}</option>
+                    ))}
+                  </select>
+                </div>
 
-              {/* Selector Inteligente de Sucursal Destino (Siempre muestra todas) */}
-              <div className="form-group full-width">
-                <label>Sucursal Destino (Catálogo CD Villahermosa - {SUCURSALES_MAESTRAS.length} Tiendas)</label>
-                <SucursalSelector 
-                  value={formData.numSucursal || formData.destino}
-                  onSelect={handleSelectSucursal}
-                />
-              </div>
+                {/* ECO Unidad con Selector Inteligente y Completo */}
+                <div className="form-group full-width">
+                  <label>ECO Unidad (Padrón Oficial - {FLOTA_TOTAL.length} Unidades) *</label>
+                  <UnidadSelector 
+                    value={formData.economico}
+                    onSelect={handleSelectUnidad}
+                  />
+                </div>
 
-              {/* Clóster Logístico (Auto) */}
-              <div className="form-group">
-                <label>Clóster Logístico (Matriz)</label>
-                <input 
-                  type="text"
-                  name="closter"
-                  className="form-control"
-                  placeholder="Ej: CLUSTER COMALCALCO, V-1..."
-                  value={formData.closter || ''}
-                  onChange={handleChange}
-                />
-              </div>
+                {/* Placas (Auto-completadas) */}
+                <div className="form-group">
+                  <label>Placas</label>
+                  <input 
+                    type="text"
+                    name="placas"
+                    className="form-control"
+                    placeholder="Ej: GT3465C, 11FA5G..."
+                    value={formData.placas}
+                    onChange={handleChange}
+                  />
+                </div>
 
-              {/* Tipo F / L */}
-              <div className="form-group">
-                <label>Clasificación (F / L)</label>
-                <select 
-                  name="fl" 
-                  className="form-control"
-                  value={formData.fl || 'LOCAL'}
-                  onChange={handleChange}
-                >
-                  <option value="LOCAL">LOCAL (Tabasco / Zonas de corta distancia)</option>
-                  <option value="FORANEO">FORÁNEO (Chiapas, Oaxaca, Península, Veracruz)</option>
-                </select>
-              </div>
+                {/* Capacidad Unidad */}
+                <div className="form-group">
+                  <label>Capacidad Unidad (Motos / Vol.)</label>
+                  <select 
+                    name="capUnidad" 
+                    className="form-control"
+                    value={formData.capUnidad}
+                    onChange={handleChange}
+                  >
+                    <option value={18}>18 (Camioneta / Rabón Chico)</option>
+                    <option value={40}>40 (Madrina Mediana)</option>
+                    <option value={50}>50 (Madrina Estándar / Rango Medio)</option>
+                    <option value={70}>70 (Intercedis / Trailer)</option>
+                    <option value={90}>90 (Caja Seca Sencilla)</option>
+                    <option value={110}>110 (Full Tráiler)</option>
+                  </select>
+                </div>
 
-              {/* Hora de Salida */}
-              <div className="form-group">
-                <label>Hora de Salida Prog.</label>
-                <input 
-                  type="text"
-                  name="horaSalida"
-                  className="form-control"
-                  placeholder="06:00 AM"
-                  value={formData.horaSalida}
-                  onChange={handleChange}
-                />
-              </div>
+                {/* Línea de Transporte */}
+                <div className="form-group">
+                  <label>Línea de Transporte</label>
+                  <select 
+                    name="linea" 
+                    className="form-control"
+                    value={formData.linea}
+                    onChange={handleChange}
+                  >
+                    {LINEAS_TRANSPORTE.map(l => (
+                      <option key={l} value={l}>{l}</option>
+                    ))}
+                  </select>
+                </div>
 
-              {/* ETA */}
-              <div className="form-group">
-                <label>Llegada Estimada (ETA)</label>
-                <input 
-                  type="text"
-                  name="eta"
-                  className="form-control"
-                  placeholder="08:30 AM"
-                  value={formData.eta}
-                  onChange={handleChange}
-                />
-              </div>
+                {/* Operador */}
+                <div className="form-group">
+                  <label>Nombre del Operador</label>
+                  <input 
+                    type="text"
+                    name="operador"
+                    list="operadores-list"
+                    className="form-control"
+                    placeholder="Ej: ANTONIO PEREZ PALMA..."
+                    value={formData.operador}
+                    onChange={handleChange}
+                  />
+                </div>
 
-              {/* Estatus Planeación (Oficial Excel) */}
-              <div className="form-group">
-                <label>Estatus Planeación (Oficial)</label>
-                <select 
-                  name="estatusPlaneacion" 
-                  className="form-control"
-                  value={formData.estatusPlaneacion || 'PENDIENTE'}
-                  onChange={handleChange}
-                  style={
-                    formData.estatusPlaneacion === 'EN CASETA' 
-                      ? { background: '#fef08a', color: '#713f12', fontWeight: 800, borderColor: '#eab308' } 
-                      : formData.estatusPlaneacion === 'COLOCADO'
-                      ? { borderColor: '#06b6d4', color: '#22d3ee' }
-                      : {}
-                  }
-                >
-                  <option value="PENDIENTE">PENDIENTE</option>
-                  <option value="COLOCADO">COLOCADO</option>
-                  <option value="EN CASETA">EN CASETA</option>
-                </select>
-              </div>
+                {/* # Carga */}
+                <div className="form-group">
+                  <label># Carga (Folio)</label>
+                  <input 
+                    type="text"
+                    name="numCarga"
+                    className="form-control"
+                    placeholder="Ej: CS00390172"
+                    value={formData.numCarga}
+                    onChange={handleChange}
+                  />
+                </div>
 
-              {/* Estatus Patio */}
-              <div className="form-group">
-                <label>Estatus Patio (En CD)</label>
-                <select 
-                  name="estatusPatio" 
-                  className="form-control"
-                  value={formData.estatusPatio}
-                  onChange={handleChange}
-                >
-                  <option value="Disponible">Disponible</option>
-                  <option value="Colocado p/ Carga">Colocado p/ Carga</option>
-                  <option value="Cargado">Cargado</option>
-                  <option value="Taller">Taller / Mtto</option>
-                </select>
-              </div>
+                {/* Cortinas */}
+                <div className="form-group">
+                  <label>Cortina(s) de Embarque</label>
+                  <input 
+                    type="text"
+                    name="cortina"
+                    className="form-control"
+                    placeholder="Ej: 51, 18, 52..."
+                    value={formData.cortina}
+                    onChange={handleChange}
+                  />
+                </div>
 
-              {/* Estatus Supervisor */}
-              <div className="form-group">
-                <label>Estatus Supervisor (Ruta)</label>
-                <select 
-                  name="estatusSupervisor" 
-                  className="form-control"
-                  value={formData.estatusSupervisor}
-                  onChange={handleChange}
-                >
-                  <option value="Pendiente">Pendiente</option>
-                  <option value="En Ruta">En Ruta</option>
-                  <option value="Espera Descarga">Espera Descarga</option>
-                  <option value="Descargando">Descargando</option>
-                  <option value="Retorno">Retorno</option>
-                  <option value="Retrasado">Retrasado / Alerta</option>
-                  <option value="Completado">Completado</option>
-                </select>
-              </div>
+                {/* Selector Inteligente de Sucursal Destino (Siempre muestra todas) */}
+                <div className="form-group full-width">
+                  <label>Sucursal Destino (Catálogo CD Villahermosa - {SUCURSALES_MAESTRAS.length} Tiendas)</label>
+                  <SucursalSelector 
+                    value={formData.numSucursal || formData.destino}
+                    onSelect={handleSelectSucursal}
+                  />
+                </div>
 
-              {/* Observaciones */}
-              <div className="form-group full-width">
-                <label>Observaciones / Restricciones Adicionales</label>
-                <textarea 
-                  name="observaciones"
-                  rows="2"
-                  className="form-control"
-                  placeholder="Notas sobre auditoría, sellos, rampas o novedades..."
-                  value={formData.observaciones}
-                  onChange={handleChange}
-                ></textarea>
+                {/* Clóster Logístico (Auto) */}
+                <div className="form-group">
+                  <label>Clóster Logístico (Matriz)</label>
+                  <input 
+                    type="text"
+                    name="closter"
+                    className="form-control"
+                    placeholder="Ej: CLUSTER COMALCALCO, V-1..."
+                    value={formData.closter || ''}
+                    onChange={handleChange}
+                  />
+                </div>
+
+                {/* Tipo F / L */}
+                <div className="form-group">
+                  <label>Clasificación (F / L)</label>
+                  <select 
+                    name="fl" 
+                    className="form-control"
+                    value={formData.fl || 'LOCAL'}
+                    onChange={handleChange}
+                  >
+                    <option value="LOCAL">LOCAL (Tabasco / Zonas de corta distancia)</option>
+                    <option value="FORANEO">FORÁNEO (Chiapas, Oaxaca, Península, Veracruz)</option>
+                  </select>
+                </div>
+
+                {/* Hora de Salida */}
+                <div className="form-group">
+                  <label>Hora de Salida Prog.</label>
+                  <input 
+                    type="text"
+                    name="horaSalida"
+                    className="form-control"
+                    placeholder="06:00 AM"
+                    value={formData.horaSalida}
+                    onChange={handleChange}
+                  />
+                </div>
+
+                {/* ETA */}
+                <div className="form-group">
+                  <label>Llegada Estimada (ETA)</label>
+                  <input 
+                    type="text"
+                    name="eta"
+                    className="form-control"
+                    placeholder="08:30 AM"
+                    value={formData.eta}
+                    onChange={handleChange}
+                  />
+                </div>
+
+                {/* Estatus Planeación (Oficial Excel) */}
+                <div className="form-group">
+                  <label>Estatus Planeación (Oficial)</label>
+                  <select 
+                    name="estatusPlaneacion" 
+                    className="form-control"
+                    value={formData.estatusPlaneacion || 'PENDIENTE'}
+                    onChange={handleChange}
+                    style={
+                      formData.estatusPlaneacion === 'EN CASETA' 
+                        ? { background: '#fef08a', color: '#713f12', fontWeight: 800, borderColor: '#eab308' } 
+                        : formData.estatusPlaneacion === 'COLOCADO'
+                        ? { borderColor: '#06b6d4', color: '#22d3ee' }
+                        : {}
+                    }
+                  >
+                    <option value="PENDIENTE">PENDIENTE</option>
+                    <option value="COLOCADO">COLOCADO</option>
+                    <option value="EN CASETA">EN CASETA</option>
+                  </select>
+                </div>
+
+                {/* Estatus Patio */}
+                <div className="form-group">
+                  <label>Estatus Patio (En CD)</label>
+                  <select 
+                    name="estatusPatio" 
+                    className="form-control"
+                    value={formData.estatusPatio}
+                    onChange={handleChange}
+                  >
+                    <option value="Disponible">Disponible</option>
+                    <option value="Colocado p/ Carga">Colocado p/ Carga</option>
+                    <option value="Cargado">Cargado</option>
+                    <option value="Taller">Taller / Mtto</option>
+                  </select>
+                </div>
+
+                {/* Estatus Supervisor */}
+                <div className="form-group">
+                  <label>Estatus Supervisor (Ruta)</label>
+                  <select 
+                    name="estatusSupervisor" 
+                    className="form-control"
+                    value={formData.estatusSupervisor}
+                    onChange={handleChange}
+                  >
+                    <option value="Pendiente">Pendiente</option>
+                    <option value="En Ruta">En Ruta</option>
+                    <option value="Espera Descarga">Espera Descarga</option>
+                    <option value="Descargando">Descargando</option>
+                    <option value="Retorno">Retorno</option>
+                    <option value="Retrasado">Retrasado / Alerta</option>
+                    <option value="Completado">Completado</option>
+                  </select>
+                </div>
+
+                {/* Observaciones */}
+                <div className="form-group full-width">
+                  <label>Observaciones / Restricciones Adicionales</label>
+                  <textarea 
+                    name="observaciones"
+                    rows="2"
+                    className="form-control"
+                    placeholder="Notas sobre auditoría, sellos, rampas o novedades..."
+                    value={formData.observaciones}
+                    onChange={handleChange}
+                  ></textarea>
+                </div>
               </div>
-            </div>
+            )}
           </div>
 
           <div className="modal-footer">
@@ -495,7 +638,7 @@ export const UnitModal = () => {
             </button>
             <button type="submit" className="btn btn-primary">
               <Save size={16} />
-              <span>Guardar Viaje</span>
+              <span>{isPatioMode ? 'Guardar Unidad en Patio' : 'Guardar Viaje'}</span>
             </button>
           </div>
         </form>

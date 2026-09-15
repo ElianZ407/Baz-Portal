@@ -7,7 +7,8 @@ import {
   Truck, 
   Edit3, 
   Trash2,
-  AlertCircle
+  AlertCircle,
+  PlusCircle
 } from 'lucide-react';
 import { useFleet } from '../context/FleetContext';
 
@@ -118,6 +119,28 @@ export const PatioView = () => {
             Tractos ({patioUnits.filter(u => u.tipo === 'Tracto').length})
           </button>
         </div>
+
+        <button 
+          className="btn btn-primary"
+          style={{
+            background: 'linear-gradient(135deg, #10b981, #059669)',
+            borderColor: '#10b981',
+            boxShadow: '0 4px 12px rgba(16, 185, 129, 0.3)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.45rem',
+            padding: '0.5rem 0.95rem',
+            fontSize: '0.84rem'
+          }}
+          onClick={() => {
+            setSelectedUnit(null);
+            setIsModalOpen(true);
+          }}
+          title="Registrar nueva unidad física en patio (solo vehículo, sin operador)"
+        >
+          <PlusCircle size={16} />
+          <span>Registrar Unidad en Patio</span>
+        </button>
       </div>
 
       {/* Tablero Kanban de Patio según Pizarrón */}
@@ -161,20 +184,26 @@ export const PatioView = () => {
                       </div>
 
                       <div className="unit-card-body">
+                        {unit.placas && (
+                          <div>
+                            <strong style={{ color: '#fff' }}>Placas: </strong>
+                            <span style={{ color: 'var(--text-secondary)' }}>{unit.placas}</span>
+                          </div>
+                        )}
                         <div>
-                          <strong style={{ color: '#fff' }}>Operador: </strong>
-                          <span>{unit.operador || 'Sin Asignar'}</span>
+                          <strong style={{ color: '#fff' }}>Capacidad: </strong>
+                          <span style={{ color: 'var(--accent-cyan)' }}>{unit.capUnidad || 18} m³</span>
                         </div>
                         {unit.cortina && unit.cortina !== 'Sin asignar' && (
                           <div>
-                            <strong style={{ color: '#fff' }}>Cortina/Rampa: </strong>
-                            <span style={{ color: 'var(--accent-cyan)' }}>{unit.cortina}</span>
+                            <strong style={{ color: '#fff' }}>Cajón / Rampa: </strong>
+                            <span style={{ color: '#34d399', fontWeight: 600 }}>{unit.cortina}</span>
                           </div>
                         )}
-                        {unit.destino && unit.destino !== 'Sin asignar' && (
+                        {unit.operador && unit.operador !== 'Sin Asignar' && unit.operador !== 'VACANTE' && (
                           <div>
-                            <strong style={{ color: '#fff' }}>Destino previsto: </strong>
-                            <span>{unit.destino}</span>
+                            <strong style={{ color: '#fff' }}>Operador: </strong>
+                            <span>{unit.operador}</span>
                           </div>
                         )}
                         {unit.observaciones && (
