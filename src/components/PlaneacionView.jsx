@@ -428,9 +428,15 @@ export const PlaneacionView = () => {
 
                       {/* OPERADOR */}
                       <td>
-                        <div style={{ fontWeight: 600, color: '#fff' }}>
-                          {unit.operador || 'POR ASIGNAR'}
-                        </div>
+                        {unit.operador ? (
+                          <div style={{ fontWeight: 600, color: '#fff' }}>
+                            {unit.operador}
+                          </div>
+                        ) : (
+                          <span style={{ color: 'var(--text-muted)', fontStyle: 'italic', fontSize: '0.8rem' }}>
+                            {isEnTaller ? '—' : 'Por Asignar'}
+                          </span>
+                        )}
                         {unit.turno === 'AUDITORIA' && (
                           <span style={{ fontSize: '0.7rem', color: '#fbbf24', fontStyle: 'italic' }}>
                             (En Auditoría de Carga)
