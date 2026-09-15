@@ -30,7 +30,6 @@ export const PatioView = () => {
   const patioUnits = units.filter(u => {
     const matchesSearch = 
       u.economico.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (u.operador && u.operador.toLowerCase().includes(searchQuery.toLowerCase())) ||
       (u.observaciones && u.observaciones.toLowerCase().includes(searchQuery.toLowerCase()));
 
     const matchesTipo = filterTipo === 'ALL' || u.tipo === filterTipo;
@@ -90,7 +89,7 @@ export const PatioView = () => {
           <input 
             type="text"
             className="search-input"
-            placeholder="Buscar por ECO, operador, nota..."
+            placeholder="Buscar por ECO, nota..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
@@ -198,12 +197,6 @@ export const PatioView = () => {
                           <div>
                             <strong style={{ color: '#fff' }}>Cajón / Rampa: </strong>
                             <span style={{ color: '#34d399', fontWeight: 600 }}>{unit.cortina}</span>
-                          </div>
-                        )}
-                        {unit.operador && unit.operador !== 'Sin Asignar' && unit.operador !== 'VACANTE' && (
-                          <div>
-                            <strong style={{ color: '#fff' }}>Operador: </strong>
-                            <span>{unit.operador}</span>
                           </div>
                         )}
                         {unit.observaciones && (
