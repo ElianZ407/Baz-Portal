@@ -137,10 +137,18 @@ export const UnitModal = () => {
   const sucursalInfo = targetIdOrName ? buscarSucursal(targetIdOrName) : null;
   const flotaInfo = buscarUnidadPorEco(formData.economico);
 
+  const isTallerUnit = formData.estatusPatio === 'Taller' || flotaInfo?.estatus === 'TALLER';
+  const isBlockedForPlaneacion = !isPatioMode && isTallerUnit;
+
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!formData.economico) {
       alert('Por favor seleccione o ingrese el número económico de la unidad');
+      return;
+    }
+
+    if (isBlockedForPlaneacion) {
+      alert('La unidad seleccionada se encuentra en Taller Mecánico y no puede ser programada en Planeación.');
       return;
     }
 
@@ -194,8 +202,33 @@ export const UnitModal = () => {
 
         <form onSubmit={handleSubmit}>
           <div className="modal-body">
+            {/* Alerta de Unidad Bloqueada si está en Taller y estamos en Planeación */}
+            {isBlockedForPlaneacion && (
+              <div style={{
+                background: 'rgba(239, 68, 68, 0.15)',
+                border: '1px solid #ef4444',
+                borderLeft: '4px solid #ef4444',
+                color: '#fca5a5',
+                padding: '0.75rem 1rem',
+                borderRadius: 'var(--radius-sm)',
+                marginBottom: '1.25rem',
+                fontSize: '0.82rem',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.65rem'
+              }}>
+                <Wrench size={18} color="#ef4444" style={{ flexShrink: 0 }} />
+                <div>
+                  <strong style={{ display: 'block', color: '#fff', marginBottom: '0.2rem' }}>
+                    ⛔ UNIDAD EN TALLER MECÁNICO (NO PROGRAMABLE):
+                  </strong>
+                  La unidad <strong>ECO {formData.economico}</strong> está en <strong>Taller Mecánico</strong>. No puede ser programada en Planeación hasta que esté disponible en Patio.
+                </div>
+              </div>
+            )}
+
             {/* Alerta si la unidad tiene estatus especial en la flota */}
-            {flotaInfo && flotaInfo.estatus !== 'ACTIVO' && (
+            {flotaInfo && flotaInfo.estatus !== 'ACTIVO' && !isBlockedForPlaneacion && (
               <div style={{
                 background: flotaInfo.estatus === 'TALLER' ? 'rgba(239, 68, 68, 0.15)' : 'rgba(245, 158, 11, 0.15)',
                 border: `1px solid ${flotaInfo.estatus === 'TALLER' ? 'rgba(239, 68, 68, 0.4)' : 'rgba(245, 158, 11, 0.4)'}`,
@@ -258,6 +291,7 @@ export const UnitModal = () => {
                   <UnidadSelector 
                     value={formData.economico}
                     onSelect={handleSelectUnidad}
+                    mode="patio"
                   />
                 </div>
 
@@ -404,6 +438,7 @@ export const UnitModal = () => {
                   <UnidadSelector 
                     value={formData.economico}
                     onSelect={handleSelectUnidad}
+                    mode="planeacion"
                   />
                 </div>
 
@@ -636,9 +671,14 @@ export const UnitModal = () => {
             >
               Cancelar
             </button>
-            <button type="submit" className="btn btn-primary">
+            <button 
+              type="submit" 
+              className="btn btn-primary"
+              disabled={isBlockedForPlaneacion}
+              style={isBlockedForPlaneacion ? { opacity: 0.5, cursor: 'not-allowed', background: '#334155', borderColor: '#475569' } : {}}
+            >
               <Save size={16} />
-              <span>{isPatioMode ? 'Guardar Unidad en Patio' : 'Guardar Viaje'}</span>
+              <span>{isPatioMode ? 'Guardar Unidad en Patio' : isBlockedForPlaneacion ? 'Bloqueada por Taller' : 'Guardar Viaje'}</span>
             </button>
           </div>
         </form>

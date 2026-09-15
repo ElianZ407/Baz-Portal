@@ -13,7 +13,8 @@ import {
   FileSpreadsheet,
   AlertTriangle,
   Compass,
-  ArrowRight
+  ArrowRight,
+  Wrench
 } from 'lucide-react';
 import { useFleet } from '../context/FleetContext';
 import { validarRestriccionesViaje, buscarSucursal } from '../data/sucursalesData';
@@ -32,10 +33,20 @@ export const PlaneacionView = () => {
 
   const [filterBloque, setFilterBloque] = useState('ALL');
   const [filterFL, setFilterFL] = useState('ALL'); // 'ALL' | 'LOCAL' | 'FORANEO'
-  const [filterEstatus, setFilterEstatus] = useState('ALL'); // 'ALL' | 'PENDIENTE' | 'COLOCADO' | 'EN CASETA'
+  const [filterEstatus, setFilterEstatus] = useState('ALL'); // 'ALL' | 'PENDIENTE' | 'COLOCADO' | 'EN CASETA' | 'TALLER'
 
-  // Filtrado de unidades en planeación
-  const planeacionUnits = units.filter(u => {
+  // Filtrado de unidades en planeación:
+  // Solo aparecen las unidades que están en disponible (es decir en patio) y las que están en taller.
+  // Unidades en ruta / fuera de CD (Supervisor) no deben aparecer en planeación.
+  const planeacionBaseUnits = units.filter(u => {
+    const isEnRuta = ['En Ruta', 'Espera Descarga', 'Descargando', 'Retrasado', 'Retorno'].includes(u.estatusSupervisor);
+    const isTaller = u.estatusPatio === 'Taller' || u.estatus === 'TALLER';
+    const isDisponibleEnPatio = (u.estatusPatio === 'Disponible' || u.estatusPatio === 'Colocado p/ Carga' || u.estatusPatio === 'Cargado') && !isEnRuta;
+
+    return isDisponibleEnPatio || isTaller;
+  });
+
+  const planeacionUnits = planeacionBaseUnits.filter(u => {
     const matchesSearch = 
       (u.economico && u.economico.toLowerCase().includes(searchQuery.toLowerCase())) ||
       (u.operador && u.operador.toLowerCase().includes(searchQuery.toLowerCase())) ||
@@ -45,19 +56,30 @@ export const PlaneacionView = () => {
       (u.cortina && u.cortina.toLowerCase().includes(searchQuery.toLowerCase())) ||
       (u.closter && u.closter.toLowerCase().includes(searchQuery.toLowerCase()));
 
+    const isTaller = u.estatusPatio === 'Taller' || u.estatus === 'TALLER';
     const matchesBloque = filterBloque === 'ALL' || String(u.bloque) === filterBloque;
     const matchesFL = filterFL === 'ALL' || (u.fl || 'LOCAL') === filterFL;
-    const matchesEstatus = filterEstatus === 'ALL' || (u.estatusPlaneacion || 'PENDIENTE') === filterEstatus;
+    
+    let matchesEstatus = true;
+    if (filterEstatus === 'ALL') {
+      matchesEstatus = true;
+    } else if (filterEstatus === 'TALLER') {
+      matchesEstatus = isTaller;
+    } else {
+      matchesEstatus = !isTaller && (u.estatusPlaneacion || 'PENDIENTE') === filterEstatus;
+    }
 
     return matchesSearch && matchesBloque && matchesFL && matchesEstatus;
   });
 
-  const enCasetaCount = units.filter(u => u.estatusPlaneacion === 'EN CASETA').length;
-  const colocadoCount = units.filter(u => u.estatusPlaneacion === 'COLOCADO').length;
-  const pendienteCount = units.filter(u => (u.estatusPlaneacion || 'PENDIENTE') === 'PENDIENTE').length;
+  const enCasetaCount = planeacionBaseUnits.filter(u => u.estatusPatio !== 'Taller' && u.estatusPlaneacion === 'EN CASETA').length;
+  const colocadoCount = planeacionBaseUnits.filter(u => u.estatusPatio !== 'Taller' && u.estatusPlaneacion === 'COLOCADO').length;
+  const pendienteCount = planeacionBaseUnits.filter(u => u.estatusPatio !== 'Taller' && (u.estatusPlaneacion || 'PENDIENTE') === 'PENDIENTE').length;
+  const tallerCount = planeacionBaseUnits.filter(u => u.estatusPatio === 'Taller' || u.estatus === 'TALLER').length;
+  const disponiblesPatioCount = planeacionBaseUnits.filter(u => u.estatusPatio === 'Disponible').length;
 
-  const viajesLocales = units.filter(u => (u.fl || 'LOCAL') === 'LOCAL');
-  const viajesForaneos = units.filter(u => u.fl === 'FORANEO');
+  const viajesLocales = planeacionBaseUnits.filter(u => (u.fl || 'LOCAL') === 'LOCAL');
+  const viajesForaneos = planeacionBaseUnits.filter(u => u.fl === 'FORANEO');
 
   const handleEdit = (unit) => {
     setSelectedUnit(unit);
@@ -65,6 +87,12 @@ export const PlaneacionView = () => {
   };
 
   const handleStatusChange = (unitId, newStatus) => {
+    // Si la unidad está en taller, no se puede cambiar estatus ni colocar
+    const target = units.find(u => u.id === unitId);
+    if (target && (target.estatusPatio === 'Taller' || target.estatus === 'TALLER')) {
+      alert('Esta unidad se encuentra en Taller y no puede ser seleccionada ni colocada en planeación.');
+      return;
+    }
     updateStatus(unitId, 'planeacion', newStatus);
   };
 
@@ -110,16 +138,10 @@ export const PlaneacionView = () => {
 
         {/* Métricas rápidas de Planeación con colores oficiales del Excel */}
         <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
-          <div style={{ background: '#101b30', padding: '0.45rem 0.85rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)', textAlign: 'center' }}>
-            <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>Viajes Totales</span>
-            <div style={{ fontFamily: 'var(--font-mono)', fontSize: '1.25rem', fontWeight: 800, color: '#fff' }}>
-              {units.filter(u => u.noViaje).length}
-            </div>
-          </div>
-          <div style={{ background: '#101b30', padding: '0.45rem 0.85rem', borderRadius: 'var(--radius-md)', border: '1px solid rgba(234, 179, 8, 0.4)', textAlign: 'center' }}>
-            <span style={{ fontSize: '0.68rem', color: '#facc15', textTransform: 'uppercase', fontWeight: 700 }}>EN CASETA</span>
-            <div style={{ fontFamily: 'var(--font-mono)', fontSize: '1.25rem', fontWeight: 800, color: '#fef08a' }}>
-              {enCasetaCount}
+          <div style={{ background: '#101b30', padding: '0.45rem 0.85rem', borderRadius: 'var(--radius-md)', border: '1px solid rgba(16, 185, 129, 0.4)', textAlign: 'center' }}>
+            <span style={{ fontSize: '0.68rem', color: '#34d399', textTransform: 'uppercase', fontWeight: 700 }}>Disponibles Patio</span>
+            <div style={{ fontFamily: 'var(--font-mono)', fontSize: '1.25rem', fontWeight: 800, color: '#6ee7b7' }}>
+              {disponiblesPatioCount}
             </div>
           </div>
           <div style={{ background: '#101b30', padding: '0.45rem 0.85rem', borderRadius: 'var(--radius-md)', border: '1px solid rgba(6, 182, 212, 0.3)', textAlign: 'center' }}>
@@ -128,10 +150,22 @@ export const PlaneacionView = () => {
               {colocadoCount}
             </div>
           </div>
+          <div style={{ background: '#101b30', padding: '0.45rem 0.85rem', borderRadius: 'var(--radius-md)', border: '1px solid rgba(234, 179, 8, 0.4)', textAlign: 'center' }}>
+            <span style={{ fontSize: '0.68rem', color: '#facc15', textTransform: 'uppercase', fontWeight: 700 }}>EN CASETA</span>
+            <div style={{ fontFamily: 'var(--font-mono)', fontSize: '1.25rem', fontWeight: 800, color: '#fef08a' }}>
+              {enCasetaCount}
+            </div>
+          </div>
           <div style={{ background: '#101b30', padding: '0.45rem 0.85rem', borderRadius: 'var(--radius-md)', border: '1px solid rgba(148, 163, 184, 0.3)', textAlign: 'center' }}>
             <span style={{ fontSize: '0.68rem', color: '#94a3b8', textTransform: 'uppercase', fontWeight: 700 }}>PENDIENTE</span>
             <div style={{ fontFamily: 'var(--font-mono)', fontSize: '1.25rem', fontWeight: 800, color: '#cbd5e1' }}>
               {pendienteCount}
+            </div>
+          </div>
+          <div style={{ background: '#101b30', padding: '0.45rem 0.85rem', borderRadius: 'var(--radius-md)', border: '1px solid rgba(239, 68, 68, 0.4)', textAlign: 'center' }}>
+            <span style={{ fontSize: '0.68rem', color: '#f87171', textTransform: 'uppercase', fontWeight: 700 }}>EN TALLER (BLOQUEADAS)</span>
+            <div style={{ fontFamily: 'var(--font-mono)', fontSize: '1.25rem', fontWeight: 800, color: '#fca5a5' }}>
+              {tallerCount}
             </div>
           </div>
 
@@ -150,7 +184,7 @@ export const PlaneacionView = () => {
               borderRadius: 'var(--radius-md)',
               fontSize: '0.84rem'
             }}
-            onClick={() => exportOfficialExcel(filteredUnits)}
+            onClick={() => exportOfficialExcel(planeacionUnits)}
             title="Descargar archivo Excel con formato y colores idénticos a la plantilla oficial BAZ"
           >
             <FileSpreadsheet size={17} />
@@ -171,7 +205,7 @@ export const PlaneacionView = () => {
               className={`pill-btn ${filterEstatus === 'ALL' ? 'active' : ''}`}
               onClick={() => setFilterEstatus('ALL')}
             >
-              Todos
+              Todos ({planeacionBaseUnits.length})
             </button>
             <button 
               className={`pill-btn ${filterEstatus === 'EN CASETA' ? 'active' : ''}`}
@@ -193,6 +227,13 @@ export const PlaneacionView = () => {
               style={filterEstatus === 'PENDIENTE' ? { background: 'rgba(148, 163, 184, 0.25)', borderColor: '#94a3b8', color: '#cbd5e1', fontWeight: 800 } : {}}
             >
               PENDIENTE ({pendienteCount})
+            </button>
+            <button 
+              className={`pill-btn ${filterEstatus === 'TALLER' ? 'active' : ''}`}
+              onClick={() => setFilterEstatus('TALLER')}
+              style={filterEstatus === 'TALLER' ? { background: 'rgba(239, 68, 68, 0.25)', borderColor: '#ef4444', color: '#f87171', fontWeight: 800 } : {}}
+            >
+              EN TALLER ({tallerCount})
             </button>
           </div>
 
@@ -303,9 +344,10 @@ export const PlaneacionView = () => {
                 </tr>
               ) : (
                 planeacionUnits.map(unit => {
+                  const isEnTaller = unit.estatusPatio === 'Taller' || unit.estatus === 'TALLER';
                   const estatusPlan = unit.estatusPlaneacion || 'PENDIENTE';
-                  const isEnCaseta = estatusPlan === 'EN CASETA';
-                  const isColocado = estatusPlan === 'COLOCADO';
+                  const isEnCaseta = !isEnTaller && estatusPlan === 'EN CASETA';
+                  const isColocado = !isEnTaller && estatusPlan === 'COLOCADO';
                   
                   // Validación de restricciones de matriz Villahermosa
                   const warnings = validarRestriccionesViaje(
@@ -317,8 +359,21 @@ export const PlaneacionView = () => {
                     <tr 
                       key={unit.id}
                       style={{
-                        background: isEnCaseta ? 'rgba(234, 179, 8, 0.06)' : isColocado ? 'rgba(6, 182, 212, 0.04)' : 'transparent',
-                        borderLeft: isEnCaseta ? '4px solid #eab308' : isColocado ? '4px solid #06b6d4' : 'none'
+                        background: isEnTaller 
+                          ? 'rgba(239, 68, 68, 0.06)' 
+                          : isEnCaseta 
+                          ? 'rgba(234, 179, 8, 0.06)' 
+                          : isColocado 
+                          ? 'rgba(6, 182, 212, 0.04)' 
+                          : 'transparent',
+                        borderLeft: isEnTaller 
+                          ? '4px solid #ef4444' 
+                          : isEnCaseta 
+                          ? '4px solid #eab308' 
+                          : isColocado 
+                          ? '4px solid #06b6d4' 
+                          : 'none',
+                        opacity: isEnTaller ? 0.85 : 1
                       }}
                     >
                       {/* NO. VIAJE */}
@@ -447,64 +502,104 @@ export const PlaneacionView = () => {
 
                       {/* ESTATUS OFICIAL (EXCEL) */}
                       <td style={{ textAlign: 'center' }}>
-                        <span className={`status-badge ${
-                          isEnCaseta ? 'status-encaseta' :
-                          isColocado ? 'status-colocado' :
-                          'status-pendiente'
-                        }`}>
-                          {estatusPlan}
-                        </span>
+                        {isEnTaller ? (
+                          <span className="status-badge" style={{ 
+                            background: 'rgba(239, 68, 68, 0.2)', 
+                            color: '#f87171', 
+                            border: '1px solid rgba(239, 68, 68, 0.4)',
+                            fontWeight: 700,
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '0.25rem'
+                          }}>
+                            <Wrench size={11} />
+                            <span>TALLER (BLOQUEADA)</span>
+                          </span>
+                        ) : (
+                          <span className={`status-badge ${
+                            isEnCaseta ? 'status-encaseta' :
+                            isColocado ? 'status-colocado' :
+                            'status-pendiente'
+                          }`}>
+                            {estatusPlan}
+                          </span>
+                        )}
                       </td>
 
                       {/* ACCIONES Y TRANSICIÓN RÁPIDA */}
                       <td style={{ textAlign: 'center' }}>
                         <div style={{ display: 'flex', gap: '0.35rem', justifyContent: 'center', alignItems: 'center' }}>
-                          {estatusPlan === 'PENDIENTE' && (
-                            <button 
-                              className="btn btn-primary"
-                              style={{ padding: '0.28rem 0.55rem', fontSize: '0.72rem' }}
-                              onClick={() => handleStatusChange(unit.id, 'COLOCADO')}
-                              title="Colocar unidad en cortina para carga"
-                            >
-                              <DoorOpen size={12} />
-                              <span>Colocar</span>
-                            </button>
-                          )}
-                          {estatusPlan === 'COLOCADO' && (
-                            <button 
-                              className="btn"
-                              style={{ 
-                                padding: '0.28rem 0.6rem', 
-                                fontSize: '0.72rem', 
-                                background: '#fef08a', 
-                                color: '#713f12', 
-                                border: '1px solid #eab308',
-                                fontWeight: 800,
+                          {isEnTaller ? (
+                            <span 
+                              style={{
                                 display: 'inline-flex',
                                 alignItems: 'center',
-                                gap: '0.3rem'
+                                gap: '0.35rem',
+                                padding: '0.28rem 0.6rem',
+                                borderRadius: 'var(--radius-xs)',
+                                fontSize: '0.72rem',
+                                fontWeight: 700,
+                                background: 'rgba(239, 68, 68, 0.15)',
+                                color: '#f87171',
+                                border: '1px solid rgba(239, 68, 68, 0.35)',
+                                cursor: 'not-allowed',
+                                userSelect: 'none'
                               }}
-                              onClick={() => handleStatusChange(unit.id, 'EN CASETA')}
-                              title="Carga terminada: Pasar a Caseta y liberar a ruta"
+                              title="Unidad en Taller Mecánico — No se puede seleccionar para embarque ni colocar en cortina"
                             >
-                              <Send size={12} />
-                              <span>A Caseta</span>
-                            </button>
-                          )}
-                          {estatusPlan === 'EN CASETA' && (
-                            <button 
-                              className="btn-move"
-                              style={{ padding: '0.25rem 0.45rem', fontSize: '0.7rem' }}
-                              onClick={() => handleStatusChange(unit.id, 'COLOCADO')}
-                              title="Regresar a Colocado si hay ajuste"
-                            >
-                              Retornar
-                            </button>
+                              <Wrench size={12} />
+                              <span>En Taller (No Seleccionable)</span>
+                            </span>
+                          ) : (
+                            <>
+                              {estatusPlan === 'PENDIENTE' && (
+                                <button 
+                                  className="btn btn-primary"
+                                  style={{ padding: '0.28rem 0.55rem', fontSize: '0.72rem' }}
+                                  onClick={() => handleStatusChange(unit.id, 'COLOCADO')}
+                                  title="Colocar unidad en cortina para carga"
+                                >
+                                  <DoorOpen size={12} />
+                                  <span>Colocar</span>
+                                </button>
+                              )}
+                              {estatusPlan === 'COLOCADO' && (
+                                <button 
+                                  className="btn"
+                                  style={{ 
+                                    padding: '0.28rem 0.6rem', 
+                                    fontSize: '0.72rem', 
+                                    background: '#fef08a', 
+                                    color: '#713f12', 
+                                    border: '1px solid #eab308',
+                                    fontWeight: 800,
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '0.3rem'
+                                  }}
+                                  onClick={() => handleStatusChange(unit.id, 'EN CASETA')}
+                                  title="Carga terminada: Pasar a Caseta y liberar a ruta"
+                                >
+                                  <Send size={12} />
+                                  <span>A Caseta</span>
+                                </button>
+                              )}
+                              {estatusPlan === 'EN CASETA' && (
+                                <button 
+                                  className="btn-move"
+                                  style={{ padding: '0.25rem 0.45rem', fontSize: '0.7rem' }}
+                                  onClick={() => handleStatusChange(unit.id, 'COLOCADO')}
+                                  title="Regresar a Colocado si hay ajuste"
+                                >
+                                  Retornar
+                                </button>
+                              )}
+                            </>
                           )}
                           <button 
                             className="btn-action-icon"
                             onClick={() => handleEdit(unit)}
-                            title="Editar datos de viaje"
+                            title="Editar o consultar datos de la unidad"
                           >
                             <Edit3 size={13} />
                           </button>
