@@ -94,8 +94,8 @@ export const UnitModal = () => {
       capUnidad: unidad.capUnidad || prev.capUnidad,
       tipo: unidad.tipo || prev.tipo,
       linea: unidad.linea || prev.linea,
-      operador: isPatioMode ? '' : ((unidad.operador && unidad.operador !== 'VACANTE' && unidad.operador !== 'BAJA') ? unidad.operador : prev.operador),
-      estatusPatio: unidad.estatus === 'TALLER' ? 'Taller' : (prev.estatusPatio || 'Disponible')
+      operador: selectedUnit?.operador || '', // No mostrar operador si la unidad solo está en patio sin estar programada en planeación
+      estatusPatio: unidad.estatusPatio || (unidad.estatus === 'TALLER' ? 'Taller' : (prev.estatusPatio || 'Disponible'))
     }));
   };
 
@@ -434,7 +434,7 @@ export const UnitModal = () => {
 
                 {/* ECO Unidad con Selector Inteligente y Completo */}
                 <div className="form-group full-width">
-                  <label>ECO Unidad (Padrón Oficial - {FLOTA_TOTAL.length} Unidades) *</label>
+                  <label>ECO Unidad (Unidades en Patio — Solo Disponibles y Taller) *</label>
                   <UnidadSelector 
                     value={formData.economico}
                     onSelect={handleSelectUnidad}

@@ -42,22 +42,33 @@ export const UnidadSelector = ({ value, onSelect, mode }) => {
     setIsOpen(!isOpen);
   };
 
-  const filteredUnidades = FLOTA_TOTAL.filter(u => {
-    const liveUnit = units?.find(item => String(item.economico) === String(u.eco));
-    const isTaller = (liveUnit && liveUnit.estatusPatio === 'Taller') || u.estatus === 'TALLER';
-    const isEnRuta = liveUnit && ['En Ruta', 'Espera Descarga', 'Descargando', 'Retrasado', 'Retorno'].includes(liveUnit.estatusSupervisor);
-    const isDisponiblePatio = (liveUnit && (liveUnit.estatusPatio === 'Disponible' || liveUnit.estatusPatio === 'Colocado p/ Carga' || liveUnit.estatusPatio === 'Cargado') && !isEnRuta) || (!liveUnit && u.estatus === 'ACTIVO');
+  const patioUnits = (units || [])
+    .filter(u => {
+      const isEnRuta = ['En Ruta', 'Espera Descarga', 'Descargando', 'Retrasado', 'Retorno'].includes(u.estatusSupervisor);
+      const isPatio = u.estatusPatio === 'Disponible' || u.estatusPatio === 'Colocado p/ Carga' || u.estatusPatio === 'Cargado' || u.estatusPatio === 'Taller';
+      return isPatio && !isEnRuta;
+    })
+    .map(u => {
+      const master = FLOTA_TOTAL.find(f => String(f.eco) === String(u.economico));
+      return {
+        eco: String(u.economico),
+        placas: u.placas || master?.placas || '',
+        tipo: u.tipo || master?.tipo || 'Camioneta',
+        capUnidad: Number(u.capUnidad || master?.capUnidad || 18),
+        linea: u.linea || master?.linea || 'LTI - VHS',
+        estatusPatio: u.estatusPatio || 'Disponible',
+        estatus: u.estatusPatio === 'Taller' ? 'TALLER' : 'ACTIVO'
+      };
+    });
 
-    // REGLA: En planeación solo aparecen las unidades que estén en disponible (es decir en patio) y las que estén en taller
-    if (isPlaneacion && !isDisponiblePatio && !isTaller) {
-      return false;
-    }
+  const sourceList = isPlaneacion ? patioUnits : FLOTA_TOTAL;
 
+  const filteredUnidades = sourceList.filter(u => {
     const q = search.toLowerCase().trim();
     const matchesSearch = !q || 
       u.eco.toLowerCase().includes(q) || 
       u.placas.toLowerCase().includes(q) || 
-      u.operador.toLowerCase().includes(q);
+      (!isPlaneacion && u.operador && u.operador.toLowerCase().includes(q));
 
     const matchesTipo = tipoFilter === 'ALL' || 
       (tipoFilter === 'CAMIONETA' && u.capUnidad === 18) ||
@@ -88,21 +99,23 @@ export const UnidadSelector = ({ value, onSelect, mode }) => {
             <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem', color: '#94a3b8' }}>
               [{selectedUnidad.placas}]
             </span>
-            <span style={{ fontWeight: 700, color: '#fff', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>
-              {selectedUnidad.operador}
-            </span>
+            {!isPlaneacion && selectedUnidad.operador && (
+              <span style={{ fontWeight: 700, color: '#fff', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>
+                {selectedUnidad.operador}
+              </span>
+            )}
             <span style={{ 
               fontSize: '0.72rem', 
               color: selectedUnidad.estatus === 'ACTIVO' ? '#34d399' : selectedUnidad.estatus === 'TALLER' ? '#f87171' : '#fbbf24',
               fontFamily: 'var(--font-mono)',
               fontWeight: 700
             }}>
-              [{selectedUnidad.estatus}]
+              [{selectedUnidad.estatus === 'TALLER' ? 'TALLER' : 'DISPONIBLE'}]
             </span>
           </div>
         ) : (
           <span style={{ color: 'var(--text-muted)' }}>
-            {value ? `ECO ${value}` : isPlaneacion ? 'Seleccionar Unidad Disponible en Patio...' : 'Seleccionar ECO Unidad del Padrón...'}
+            {value ? `ECO ${value}` : isPlaneacion ? 'Seleccionar Unidad de Patio (Sin Operador)...' : 'Seleccionar ECO Unidad del Padrón...'}
           </span>
         )}
 
@@ -127,7 +140,7 @@ export const UnidadSelector = ({ value, onSelect, mode }) => {
             }}>
               <Truck size={13} />
               <span>
-                <strong>Planeación:</strong> Solo unidades <strong>Disponibles en Patio</strong> (las de taller aparecen bloqueadas).
+                <strong>Unidades en Patio:</strong> Solo unidades presentes en Patio (sin operador). Taller bloqueado para selección.
               </span>
             </div>
           )}
@@ -164,7 +177,7 @@ export const UnidadSelector = ({ value, onSelect, mode }) => {
             <input 
               ref={searchInputRef}
               type="text"
-              placeholder="Buscar por número ECO, placas u operador..."
+              placeholder={isPlaneacion ? "Buscar por número ECO o placas..." : "Buscar por número ECO, placas u operador..."}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               onClick={(e) => e.stopPropagation()}
@@ -199,12 +212,11 @@ export const UnidadSelector = ({ value, onSelect, mode }) => {
           <div className="custom-select-options-list">
             {filteredUnidades.length === 0 ? (
               <div style={{ padding: '1.25rem', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.8rem' }}>
-                No se encontraron unidades con ese criterio en {isPlaneacion ? 'Patio' : 'el padrón'}.
+                No se encontraron unidades en Patio con ese criterio.
               </div>
             ) : (
               filteredUnidades.map(u => {
-                const liveUnit = units?.find(item => String(item.economico) === String(u.eco));
-                const isTaller = (liveUnit && liveUnit.estatusPatio === 'Taller') || u.estatus === 'TALLER';
+                const isTaller = (u.estatusPatio === 'Taller') || u.estatus === 'TALLER';
                 const isSelected = selectedUnidad && selectedUnidad.eco === u.eco;
                 const isUnselectable = isPlaneacion && isTaller;
 
@@ -242,9 +254,11 @@ export const UnidadSelector = ({ value, onSelect, mode }) => {
                         <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.82rem', color: '#e2e8f0', fontWeight: 600 }}>
                           Placas: {u.placas}
                         </span>
-                        <span style={{ color: '#fff', fontSize: '0.85rem', fontWeight: 700 }}>
-                          • {u.operador}
-                        </span>
+                        {!isPlaneacion && u.operador && (
+                          <span style={{ color: '#fff', fontSize: '0.85rem', fontWeight: 700 }}>
+                            • {u.operador}
+                          </span>
+                        )}
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
                         {isUnselectable ? (
@@ -271,9 +285,9 @@ export const UnidadSelector = ({ value, onSelect, mode }) => {
                             borderRadius: '4px',
                             fontWeight: 700,
                             fontFamily: 'var(--font-mono)',
-                            background: isTaller ? 'rgba(239, 68, 68, 0.2)' : u.estatus === 'ACTIVO' ? 'rgba(16, 185, 129, 0.2)' : 'rgba(245, 158, 11, 0.2)',
-                            color: isTaller ? '#f87171' : u.estatus === 'ACTIVO' ? '#34d399' : '#fbbf24',
-                            border: `1px solid ${isTaller ? 'rgba(239, 68, 68, 0.4)' : u.estatus === 'ACTIVO' ? 'rgba(16, 185, 129, 0.4)' : 'rgba(245, 158, 11, 0.4)'}`
+                            background: isTaller ? 'rgba(239, 68, 68, 0.2)' : 'rgba(16, 185, 129, 0.2)',
+                            color: isTaller ? '#f87171' : '#34d399',
+                            border: `1px solid ${isTaller ? 'rgba(239, 68, 68, 0.4)' : 'rgba(16, 185, 129, 0.4)'}`
                           }}>
                             {isTaller ? 'TALLER' : 'DISPONIBLE'}
                           </span>
