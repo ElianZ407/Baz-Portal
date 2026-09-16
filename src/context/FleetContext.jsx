@@ -14,6 +14,17 @@ const FleetContext = createContext(null);
 const STORAGE_KEY = 'baz_entregas_fleet_seed_v2';
 const CLIENT_ID = Math.random().toString(36).substring(2) + Date.now().toString(36);
 
+const cleanUnitDestino = (unit) => {
+  if (!unit) return unit;
+  if (unit.destino && typeof unit.destino === 'string') {
+    return {
+      ...unit,
+      destino: unit.destino.replace(/\s*\(Retorno\)/gi, '').trim()
+    };
+  }
+  return unit;
+};
+
 export const FleetProvider = ({ children }) => {
   const [units, setUnits] = useState(() => {
     try {
@@ -21,7 +32,10 @@ export const FleetProvider = ({ children }) => {
       localStorage.removeItem('baz_entregas_fleet_live_clean_v1');
       const saved = localStorage.getItem(STORAGE_KEY);
       if (saved) {
-        return JSON.parse(saved);
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) {
+          return parsed.map(cleanUnitDestino);
+        }
       }
     } catch (e) {
       console.error('Error cargando datos de localStorage', e);
@@ -72,8 +86,9 @@ export const FleetProvider = ({ children }) => {
       setIsCloudLoading(true);
       const remoteData = await fetchViajesDb();
       if (remoteData && remoteData.length > 0) {
-        setUnits(remoteData);
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(remoteData));
+        const cleaned = remoteData.map(cleanUnitDestino);
+        setUnits(cleaned);
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(cleaned));
         setIsCloudConnected(true);
       } else if (remoteData && remoteData.length === 0) {
         // Si la tabla en Supabase está vacía, poblamos con los viajes representativos iniciales
@@ -223,13 +238,14 @@ export const FleetProvider = ({ children }) => {
     
     // Resolver la unidad completa de forma síncrona
     const existingUnit = units.find(u => u.id === unitData.id);
-    const fullUnit = existingUnit
+    const fullUnitRaw = existingUnit
       ? { ...existingUnit, ...unitData, actualizadoEn: now }
       : {
           ...unitData,
           id: unitData.id || `baz-unit-${unitData.economico || Date.now()}`,
           actualizadoEn: now
         };
+    const fullUnit = cleanUnitDestino(fullUnitRaw);
 
     // Actualizar estado local inmediatamente (optimistic UI)
     setUnits(prev => {
@@ -302,7 +318,7 @@ export const FleetProvider = ({ children }) => {
         updated.estatusPatio = 'Disponible';
         updated.estatusPlaneacion = 'PENDIENTE';
       } else if (newStatus === 'Retorno') {
-        updated.destino = `${targetUnit.sucursalOrigen || 'CEDIS VILLAHERMOSA'} (Retorno)`;
+        updated.destino = 'CEDIS VILLAHERMOSA';
       }
     }
 

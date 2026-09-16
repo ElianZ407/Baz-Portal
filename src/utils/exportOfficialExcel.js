@@ -173,8 +173,8 @@ export const exportOfficialExcel = async (units = [], selectedDate = null) => {
       (unit.operador || '').toUpperCase(),            // 7. OPERADOR
       unit.fecha ? unit.fecha.split('-').reverse().join('/') : headerDate, // 8. FECHA
       unit.numCarga || '',                            // 9. # CARGA
-      unit.numSucursal || '',                         // 10. # SUC
-      (unit.destino || '').toUpperCase(),             // 11. SUCURSAL
+      (unit.numSucursal || ''),                         // 10. # SUC
+      ((unit.destino || '').replace(/\s*\(Retorno\)/gi, '').trim()).toUpperCase(), // 11. SUCURSAL
       unit.cortina || '',                             // 12. CORTINAS
       (unit.estatusPlaneacion === 'EN CASETA' || unit.estatusPatio === 'Cargado') ? 'EN CASETA' : (unit.estatusSupervisor || 'PENDIENTE'), // 13. ESTATUS
       planColocacion,                                 // 14. PLAN DE COLOCACIÓN

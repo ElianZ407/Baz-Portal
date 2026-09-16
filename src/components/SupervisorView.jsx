@@ -216,7 +216,9 @@ export const SupervisorView = () => {
                     <td>
                       <div className="route-cell">
                         <MapPin size={14} color="var(--accent-cyan)" />
-                        <span style={{ fontWeight: 600 }}>{unit.destino || 'Sin definir'}</span>
+                        <span style={{ fontWeight: 600 }}>
+                          {unit.destino ? unit.destino.replace(/\s*\(Retorno\)/gi, '').trim() : 'Sin definir'}
+                        </span>
                       </div>
                       <div style={{ display: 'flex', gap: '0.35rem', marginTop: '0.25rem', alignItems: 'center' }}>
                         <span className={unit.fl === 'FORANEO' ? 'badge-fl-foraneo' : 'badge-fl-local'}>

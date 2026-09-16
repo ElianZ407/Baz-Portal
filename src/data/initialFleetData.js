@@ -205,7 +205,7 @@ export const INITIAL_UNITS = [
     numCarga: 'CS00390185',
     numSucursal: '4022',
     sucursalOrigen: 'INTERCEDIS MÉRIDA',
-    destino: 'CEDIS VILLAHERMOSA (Retorno)',
+    destino: 'CEDIS VILLAHERMOSA',
     closter: 'MDA-01',
     fl: 'FORANEO',
     capMax: '110 m³',

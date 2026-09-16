@@ -281,7 +281,7 @@ export const TvDashboardView = () => {
                       <td>
                         <div className="route-cell" style={{ fontSize: '0.98rem', fontWeight: 600 }}>
                           <MapPin size={15} color="var(--accent-cyan)" />
-                          <span>{unit.destino || 'Sin definir'}</span>
+                          <span>{unit.destino ? unit.destino.replace(/\s*\(Retorno\)/gi, '').trim() : 'Sin definir'}</span>
                         </div>
                         <div style={{ display: 'flex', gap: '0.4rem', marginTop: '0.25rem', alignItems: 'center' }}>
                           <span className={unit.fl === 'FORANEO' ? 'badge-fl-foraneo' : 'badge-fl-local'}>
