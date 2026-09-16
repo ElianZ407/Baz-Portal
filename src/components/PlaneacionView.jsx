@@ -14,7 +14,8 @@ import {
   AlertTriangle,
   Compass,
   ArrowRight,
-  Wrench
+  Wrench,
+  Trash2
 } from 'lucide-react';
 import { useFleet } from '../context/FleetContext';
 import { validarRestriccionesViaje, buscarSucursal } from '../data/sucursalesData';
@@ -27,6 +28,8 @@ export const PlaneacionView = () => {
     updateStatus, 
     setSelectedUnit, 
     setIsModalOpen, 
+    deleteUnit,
+    showConfirm,
     searchQuery, 
     setSearchQuery 
   } = useFleet();
@@ -607,6 +610,23 @@ export const PlaneacionView = () => {
                             title="Editar o consultar datos de la unidad"
                           >
                             <Edit3 size={13} />
+                          </button>
+                          <button 
+                            className="btn-action-icon"
+                            style={{ color: '#f87171' }}
+                            onClick={() => {
+                              showConfirm({
+                                title: `¿Eliminar viaje / unidad ECO ${unit.economico}?`,
+                                message: 'Esta unidad será retirada de planeación, patio y de los tableros operativos de monitoreo.',
+                                unit: unit,
+                                confirmText: 'Sí, eliminar',
+                                confirmType: 'danger',
+                                onConfirm: () => deleteUnit(unit.id)
+                              });
+                            }}
+                            title={`Eliminar viaje / unidad ECO ${unit.economico}`}
+                          >
+                            <Trash2 size={13} />
                           </button>
                         </div>
                       </td>

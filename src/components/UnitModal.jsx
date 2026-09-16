@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Save, Truck, Layers, FileSpreadsheet, AlertTriangle, CheckCircle2, MapPin, Wrench } from 'lucide-react';
+import { X, Save, Truck, Layers, FileSpreadsheet, AlertTriangle, CheckCircle2, MapPin, Wrench, Trash2 } from 'lucide-react';
 import { useFleet } from '../context/FleetContext';
 import { LINEAS_TRANSPORTE, TURNOS, BLOQUES } from '../data/initialFleetData';
 import { SUCURSALES_MAESTRAS, buscarSucursal, validarRestriccionesViaje } from '../data/sucursalesData';
@@ -8,7 +8,7 @@ import { SucursalSelector } from './SucursalSelector';
 import { UnidadSelector } from './UnidadSelector';
 
 export const UnitModal = () => {
-  const { isModalOpen, setIsModalOpen, selectedUnit, saveUnit, activeArea } = useFleet();
+  const { isModalOpen, setIsModalOpen, selectedUnit, saveUnit, deleteUnit, showConfirm, activeArea } = useFleet();
   const isPatioMode = activeArea === 'patio';
 
   const [formData, setFormData] = useState({
@@ -664,6 +664,36 @@ export const UnitModal = () => {
           </div>
 
           <div className="modal-footer">
+            {selectedUnit && (
+              <button 
+                type="button" 
+                className="btn btn-secondary"
+                style={{ 
+                  marginRight: 'auto', 
+                  color: '#f87171', 
+                  borderColor: 'rgba(239, 68, 68, 0.4)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.35rem'
+                }}
+                onClick={() => {
+                  showConfirm({
+                    title: `¿Eliminar ${isPatioMode ? 'unidad' : 'viaje / unidad'} ECO ${selectedUnit.economico}?`,
+                    message: 'Esta unidad será retirada de planeación, patio y de los tableros operativos.',
+                    unit: selectedUnit,
+                    confirmText: 'Sí, eliminar',
+                    confirmType: 'danger',
+                    onConfirm: () => {
+                      deleteUnit(selectedUnit.id);
+                      setIsModalOpen(false);
+                    }
+                  });
+                }}
+              >
+                <Trash2 size={15} />
+                <span>Eliminar {isPatioMode ? 'Unidad' : 'Viaje'}</span>
+              </button>
+            )}
             <button 
               type="button" 
               className="btn btn-secondary"

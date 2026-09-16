@@ -9,6 +9,7 @@ import {
   AlertTriangle, 
   MapPin, 
   Edit3,
+  Trash2,
   MessageSquare
 } from 'lucide-react';
 import { useFleet } from '../context/FleetContext';
@@ -19,6 +20,8 @@ export const SupervisorView = () => {
     updateStatus, 
     setSelectedUnit, 
     setIsModalOpen, 
+    deleteUnit,
+    showConfirm,
     searchQuery, 
     setSearchQuery 
   } = useFleet();
@@ -312,13 +315,32 @@ export const SupervisorView = () => {
                       </div>
                     </td>
                     <td style={{ textAlign: 'center' }}>
-                      <button 
-                        className="btn-action-icon"
-                        onClick={() => handleEdit(unit)}
-                        title="Modificar viaje o registro"
-                      >
-                        <Edit3 size={13} />
-                      </button>
+                      <div style={{ display: 'flex', gap: '0.35rem', justifyContent: 'center', alignItems: 'center' }}>
+                        <button 
+                          className="btn-action-icon"
+                          onClick={() => handleEdit(unit)}
+                          title="Modificar viaje o registro"
+                        >
+                          <Edit3 size={13} />
+                        </button>
+                        <button 
+                          className="btn-action-icon"
+                          style={{ color: '#f87171' }}
+                          onClick={() => {
+                            showConfirm({
+                              title: `¿Eliminar viaje / unidad ECO ${unit.economico}?`,
+                              message: 'Esta unidad será retirada de monitoreo, planeación y patio.',
+                              unit: unit,
+                              confirmText: 'Sí, eliminar',
+                              confirmType: 'danger',
+                              onConfirm: () => deleteUnit(unit.id)
+                            });
+                          }}
+                          title={`Eliminar unidad ECO ${unit.economico}`}
+                        >
+                          <Trash2 size={13} />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))
