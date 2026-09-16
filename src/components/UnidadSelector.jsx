@@ -42,24 +42,31 @@ export const UnidadSelector = ({ value, onSelect, mode }) => {
     setIsOpen(!isOpen);
   };
 
-  const patioUnits = (units || [])
+  const patioUnitsMap = new Map();
+  (units || [])
     .filter(u => {
-      const isEnRuta = ['En Ruta', 'Espera Descarga', 'Descargando', 'Retrasado', 'Retorno'].includes(u.estatusSupervisor);
-      const isPatio = u.estatusPatio === 'Disponible' || u.estatusPatio === 'Colocado p/ Carga' || u.estatusPatio === 'Cargado' || u.estatusPatio === 'Taller';
-      return isPatio && !isEnRuta;
+      const isPatio = ['Disponible', 'Colocado p/ Carga', 'Cargado', 'Taller'].includes(u.estatusPatio) || !u.estatusPatio;
+      const isTaller = u.estatusPatio === 'Taller' || u.estatus === 'TALLER';
+      return isPatio || isTaller;
     })
-    .map(u => {
-      const master = FLOTA_TOTAL.find(f => String(f.eco) === String(u.economico));
-      return {
-        eco: String(u.economico),
-        placas: u.placas || master?.placas || '',
-        tipo: u.tipo || master?.tipo || 'Camioneta',
-        capUnidad: Number(u.capUnidad || master?.capUnidad || 18),
-        linea: u.linea || master?.linea || 'LTI - VHS',
-        estatusPatio: u.estatusPatio || 'Disponible',
-        estatus: u.estatusPatio === 'Taller' ? 'TALLER' : 'ACTIVO'
-      };
+    .forEach(u => {
+      if (!u.economico) return;
+      const ecoKey = String(u.economico);
+      if (!patioUnitsMap.has(ecoKey)) {
+        const master = FLOTA_TOTAL.find(f => String(f.eco) === ecoKey);
+        patioUnitsMap.set(ecoKey, {
+          eco: ecoKey,
+          placas: u.placas || master?.placas || '',
+          tipo: u.tipo || master?.tipo || 'Camioneta',
+          capUnidad: Number(u.capUnidad || master?.capUnidad || 18),
+          linea: u.linea || master?.linea || 'LTI - VHS',
+          estatusPatio: u.estatusPatio || 'Disponible',
+          estatus: (u.estatusPatio === 'Taller' || u.estatus === 'TALLER') ? 'TALLER' : 'ACTIVO'
+        });
+      }
     });
+
+  const patioUnits = Array.from(patioUnitsMap.values());
 
   const sourceList = isPlaneacion ? patioUnits : FLOTA_TOTAL;
 

@@ -36,25 +36,24 @@ export const PlaneacionView = () => {
   const [filterEstatus, setFilterEstatus] = useState('ALL'); // 'ALL' | 'PENDIENTE' | 'COLOCADO' | 'EN CASETA' | 'TALLER'
 
   // Filtrado de unidades en planeación:
-  // Solo aparecen las unidades que están en disponible (es decir en patio) y las que están en taller.
-  // Unidades en ruta / fuera de CD (Supervisor) no deben aparecer en planeación.
+  // Aparecen todas las unidades que están en patio (Disponible, Colocado p/ Carga, Cargado) y las que están en taller.
   const planeacionBaseUnits = units.filter(u => {
-    const isEnRuta = ['En Ruta', 'Espera Descarga', 'Descargando', 'Retrasado', 'Retorno'].includes(u.estatusSupervisor);
     const isTaller = u.estatusPatio === 'Taller' || u.estatus === 'TALLER';
-    const isDisponibleEnPatio = (u.estatusPatio === 'Disponible' || u.estatusPatio === 'Colocado p/ Carga' || u.estatusPatio === 'Cargado') && !isEnRuta;
+    const isPatio = ['Disponible', 'Colocado p/ Carga', 'Cargado'].includes(u.estatusPatio) || !u.estatusPatio;
 
-    return isDisponibleEnPatio || isTaller;
+    return isPatio || isTaller;
   });
 
   const planeacionUnits = planeacionBaseUnits.filter(u => {
-    const matchesSearch = 
-      (u.economico && u.economico.toLowerCase().includes(searchQuery.toLowerCase())) ||
-      (u.operador && u.operador.toLowerCase().includes(searchQuery.toLowerCase())) ||
-      (u.destino && u.destino.toLowerCase().includes(searchQuery.toLowerCase())) ||
-      (u.numCarga && u.numCarga.toLowerCase().includes(searchQuery.toLowerCase())) ||
-      (u.placas && u.placas.toLowerCase().includes(searchQuery.toLowerCase())) ||
-      (u.cortina && u.cortina.toLowerCase().includes(searchQuery.toLowerCase())) ||
-      (u.closter && u.closter.toLowerCase().includes(searchQuery.toLowerCase()));
+    const q = searchQuery.toLowerCase().trim();
+    const matchesSearch = !q || 
+      (u.economico && u.economico.toLowerCase().includes(q)) ||
+      (u.operador && u.operador.toLowerCase().includes(q)) ||
+      (u.destino && u.destino.toLowerCase().includes(q)) ||
+      (u.numCarga && u.numCarga.toLowerCase().includes(q)) ||
+      (u.placas && u.placas.toLowerCase().includes(q)) ||
+      (u.cortina && u.cortina.toLowerCase().includes(q)) ||
+      (u.closter && u.closter.toLowerCase().includes(q));
 
     const isTaller = u.estatusPatio === 'Taller' || u.estatus === 'TALLER';
     const matchesBloque = filterBloque === 'ALL' || String(u.bloque) === filterBloque;
