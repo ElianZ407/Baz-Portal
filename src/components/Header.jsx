@@ -7,7 +7,6 @@ import {
   Tv, 
   PlusCircle, 
   Maximize, 
-  RotateCcw,
   Clock,
   HelpCircle,
   FileSpreadsheet
@@ -21,8 +20,6 @@ export const Header = () => {
     setActiveArea, 
     setIsModalOpen, 
     setSelectedUnit, 
-    resetData,
-    showConfirm,
     units
   } = useFleet();
 
@@ -177,22 +174,6 @@ export const Header = () => {
           title="Pantalla Completa (Modo Sala de Monitoreo)"
         >
           <Maximize size={16} />
-        </button>
-
-        <button 
-          className="btn btn-secondary btn-icon-only" 
-          onClick={() => {
-            showConfirm({
-              title: '¿Restablecer unidades iniciales?',
-              message: 'Se restablecerá el tablero operativo con la configuración representativa oficial (1 unidad por cada estatus).',
-              confirmText: 'Restablecer tablero',
-              confirmType: 'warning',
-              onConfirm: () => resetData()
-            });
-          }}
-          title="Restablecer datos originales"
-        >
-          <RotateCcw size={15} />
         </button>
       </div>
     </header>

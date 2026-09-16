@@ -1,5 +1,4 @@
 import React, { createContext, useContext, useState, useEffect, useMemo, useCallback } from 'react';
-import { INITIAL_UNITS } from '../data/initialFleetData';
 import { 
   supabase, 
   isSupabaseConfigured, 
@@ -11,7 +10,7 @@ import {
 
 const FleetContext = createContext(null);
 
-const STORAGE_KEY = 'baz_entregas_fleet_seed_v2';
+const STORAGE_KEY = 'baz_entregas_fleet_v4';
 const CLIENT_ID = Math.random().toString(36).substring(2) + Date.now().toString(36);
 
 const cleanUnitDestino = (unit) => {
@@ -30,6 +29,7 @@ export const FleetProvider = ({ children }) => {
     try {
       localStorage.removeItem('baz_entregas_fleet_data_v1');
       localStorage.removeItem('baz_entregas_fleet_live_clean_v1');
+      localStorage.removeItem('baz_entregas_fleet_seed_v2');
       const saved = localStorage.getItem(STORAGE_KEY);
       if (saved) {
         const parsed = JSON.parse(saved);
@@ -40,7 +40,7 @@ export const FleetProvider = ({ children }) => {
     } catch (e) {
       console.error('Error cargando datos de localStorage', e);
     }
-    return INITIAL_UNITS;
+    return [];
   });
 
   const [activeArea, setActiveArea] = useState('tv'); // 'patio' | 'planeacion' | 'supervisor' | 'tv'
@@ -85,18 +85,10 @@ export const FleetProvider = ({ children }) => {
     try {
       setIsCloudLoading(true);
       const remoteData = await fetchViajesDb();
-      if (remoteData && remoteData.length > 0) {
+      if (remoteData) {
         const cleaned = remoteData.map(cleanUnitDestino);
         setUnits(cleaned);
         localStorage.setItem(STORAGE_KEY, JSON.stringify(cleaned));
-        setIsCloudConnected(true);
-      } else if (remoteData && remoteData.length === 0) {
-        // Si la tabla en Supabase está vacía, poblamos con los viajes representativos iniciales
-        for (const u of INITIAL_UNITS) {
-          await upsertViajeDb(u);
-        }
-        setUnits(INITIAL_UNITS);
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(INITIAL_UNITS));
         setIsCloudConnected(true);
       }
     } catch (err) {
@@ -357,30 +349,6 @@ export const FleetProvider = ({ children }) => {
     }
   };
 
-  // Restablecer datos a la configuración inicial (1 de cada estatus)
-  const resetData = async () => {
-    setUnits(INITIAL_UNITS);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(INITIAL_UNITS));
-
-    if (isSupabaseConfigured() && supabase) {
-      try {
-        // Borrar actuales y poblar con INITIAL_UNITS
-        await supabase.from('viajes_diarios').delete().neq('id', '___non_existent___');
-        for (const u of INITIAL_UNITS) {
-          await upsertViajeDb(u);
-        }
-      } catch (err) {
-        console.error('Error al restablecer datos en Supabase:', err);
-      }
-    }
-
-    if (typeof BroadcastChannel !== 'undefined') {
-      const bc = new BroadcastChannel('baz_fleet_realtime_sync');
-      bc.postMessage({ type: 'SYNC_UNITS', units: INITIAL_UNITS, senderId: CLIENT_ID });
-      bc.close();
-    }
-  };
-
   return (
     <FleetContext.Provider value={{
       units,
@@ -402,7 +370,6 @@ export const FleetProvider = ({ children }) => {
       saveUnit,
       deleteUnit,
       updateStatus,
-      resetData,
       clearAllUnits,
       confirmModal,
       showConfirm,
