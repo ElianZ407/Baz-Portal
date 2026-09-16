@@ -125,6 +125,10 @@ export const UnitModal = () => {
         }
       } else if (value === 'COLOCADO') {
         updated.estatusPatio = 'Colocado p/ Carga';
+        updated.estatusSupervisor = 'Pendiente';
+      } else if (value === 'PENDIENTE') {
+        updated.estatusPatio = 'Disponible';
+        updated.estatusSupervisor = 'Pendiente';
       }
     }
 
@@ -591,7 +595,7 @@ export const UnitModal = () => {
                 </div>
 
                 {/* Estatus Planeación (Oficial Excel) */}
-                <div className="form-group">
+                <div className="form-group full-width">
                   <label>Estatus Planeación (Oficial)</label>
                   <select 
                     name="estatusPlaneacion" 
@@ -609,41 +613,6 @@ export const UnitModal = () => {
                     <option value="PENDIENTE">PENDIENTE</option>
                     <option value="COLOCADO">COLOCADO</option>
                     <option value="EN CASETA">EN CASETA</option>
-                  </select>
-                </div>
-
-                {/* Estatus Patio */}
-                <div className="form-group">
-                  <label>Estatus Patio (En CD)</label>
-                  <select 
-                    name="estatusPatio" 
-                    className="form-control"
-                    value={formData.estatusPatio}
-                    onChange={handleChange}
-                  >
-                    <option value="Disponible">Disponible</option>
-                    <option value="Colocado p/ Carga">Colocado p/ Carga</option>
-                    <option value="Cargado">Cargado</option>
-                    <option value="Taller">Taller / Mtto</option>
-                  </select>
-                </div>
-
-                {/* Estatus Supervisor */}
-                <div className="form-group">
-                  <label>Estatus Supervisor (Ruta)</label>
-                  <select 
-                    name="estatusSupervisor" 
-                    className="form-control"
-                    value={formData.estatusSupervisor}
-                    onChange={handleChange}
-                  >
-                    <option value="Pendiente">Pendiente</option>
-                    <option value="En Ruta">En Ruta</option>
-                    <option value="Espera Descarga">Espera Descarga</option>
-                    <option value="Descargando">Descargando</option>
-                    <option value="Retorno">Retorno</option>
-                    <option value="Retrasado">Retrasado / Alerta</option>
-                    <option value="Completado">Completado</option>
                   </select>
                 </div>
 
