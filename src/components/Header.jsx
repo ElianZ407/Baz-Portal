@@ -14,7 +14,7 @@ import {
   History
 } from 'lucide-react';
 import { useFleet } from '../context/FleetContext';
-import { exportOfficialExcel } from '../utils/exportOfficialExcel';
+import { exportOfficialExcel, exportByModule } from '../utils/exportOfficialExcel';
 
 export const Header = () => {
   const { 
@@ -27,6 +27,28 @@ export const Header = () => {
     setIsSavePlanModalOpen,
     setIsHistoryModalOpen
   } = useFleet();
+
+  const handleExportExcel = () => {
+    exportByModule(activeArea, units);
+  };
+
+  const getExportButtonLabel = () => {
+    switch (activeArea) {
+      case 'patio': return 'Excel Patio';
+      case 'supervisor': return 'Excel Supervisor';
+      case 'tv': return 'Excel Monitoreo';
+      default: return 'Excel Oficial';
+    }
+  };
+
+  const getExportButtonTitle = () => {
+    switch (activeArea) {
+      case 'patio': return 'Descargar reporte Excel del control de patio y andenes';
+      case 'supervisor': return 'Descargar reporte Excel de supervisión y estatus en ruta';
+      case 'tv': return 'Descargar reporte Excel del tablero de monitoreo en tiempo real';
+      default: return 'Descargar archivo Excel oficial BAZ';
+    }
+  };
 
   const [headerTime, setHeaderTime] = useState(new Date());
 
@@ -194,22 +216,24 @@ export const Header = () => {
           )}
         </button>
 
-        <button 
-          className="btn btn-secondary" 
-          style={{ 
-            padding: '0.45rem 0.85rem', 
-            fontSize: '0.82rem', 
-            gap: '0.45rem', 
-            borderColor: 'rgba(34, 197, 94, 0.45)', 
-            background: 'rgba(34, 197, 94, 0.12)',
-            color: '#4ade80'
-          }}
-          onClick={() => exportOfficialExcel(units)}
-          title="Descargar archivo Excel con el formato, colores y tipografía oficial BAZ"
-        >
-          <FileSpreadsheet size={15} color="#4ade80" />
-          <span style={{ fontWeight: 700 }}>Excel Oficial</span>
-        </button>
+        {activeArea !== 'planeacion' && (
+          <button 
+            className="btn btn-secondary" 
+            style={{ 
+              padding: '0.45rem 0.85rem', 
+              fontSize: '0.82rem', 
+              gap: '0.45rem', 
+              borderColor: 'rgba(34, 197, 94, 0.45)', 
+              background: 'rgba(34, 197, 94, 0.12)',
+              color: '#4ade80'
+            }}
+            onClick={handleExportExcel}
+            title={getExportButtonTitle()}
+          >
+            <FileSpreadsheet size={15} color="#4ade80" />
+            <span style={{ fontWeight: 700 }}>{getExportButtonLabel()}</span>
+          </button>
+        )}
 
         <button 
           className="btn btn-secondary" 
