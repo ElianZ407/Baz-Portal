@@ -10,6 +10,7 @@ import {
   savePlanHistoricoDb,
   deletePlanHistoricoDb
 } from '../lib/supabaseClient';
+import { buscarIdOperadorPorNombre, buscarOperadorPorEco } from '../data/flotaMaestraData';
 
 const FleetContext = createContext(null);
 
@@ -22,6 +23,17 @@ const cleanUnitDestino = (unit) => {
   let res = { ...unit };
   if (res.destino && typeof res.destino === 'string') {
     res.destino = res.destino.replace(/\s*\(Retorno\)/gi, '').trim();
+  }
+  // Si falta idOperador, auto-completar desde el catálogo por nombre o por eco
+  if (!res.idOperador) {
+    if (res.operador) {
+      const foundId = buscarIdOperadorPorNombre(res.operador);
+      if (foundId) res.idOperador = foundId;
+    }
+    if (!res.idOperador && res.economico) {
+      const foundEco = buscarOperadorPorEco(res.economico);
+      if (foundEco?.idOperador) res.idOperador = foundEco.idOperador;
+    }
   }
   // Si la unidad está cargada en planeación pero quedó como 'No Disponible' o vacía, corregir a 'Cargado'
   if (res.estatusPlaneacion === 'CARGADO' && (res.estatusSupervisor === 'No Disponible' || !res.estatusSupervisor || res.estatusSupervisor === 'Pendiente')) {

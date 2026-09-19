@@ -3,7 +3,7 @@ import { X, Save, Truck, Layers, FileSpreadsheet, AlertTriangle, CheckCircle2, M
 import { useFleet } from '../context/FleetContext';
 import { LINEAS_TRANSPORTE, TURNOS, BLOQUES } from '../data/initialFleetData';
 import { SUCURSALES_MAESTRAS, buscarSucursal, validarRestriccionesViaje } from '../data/sucursalesData';
-import { FLOTA_TOTAL, buscarUnidadPorEco, OPERADORES_ACTIVOS } from '../data/flotaMaestraData';
+import { FLOTA_TOTAL, buscarUnidadPorEco, OPERADORES_ACTIVOS, buscarIdOperadorPorNombre, buscarOperadorPorEco } from '../data/flotaMaestraData';
 import { SucursalSelector } from './SucursalSelector';
 import { UnidadSelector } from './UnidadSelector';
 import { OperadorSelector } from './OperadorSelector';
@@ -22,6 +22,7 @@ export const UnitModal = () => {
     linea: 'LTI - VHS',
     tipo: 'Sencillo',
     operador: '',
+    idOperador: '',
     turno: 'M1',
     cortina: '51',
     numCarga: 'CS-0039-101',
@@ -43,6 +44,9 @@ export const UnitModal = () => {
 
   useEffect(() => {
     if (selectedUnit) {
+      const resolvedId = selectedUnit.idOperador || 
+        (selectedUnit.operador ? buscarIdOperadorPorNombre(selectedUnit.operador) : (selectedUnit.economico ? buscarOperadorPorEco(selectedUnit.economico)?.idOperador : '')) || '';
+
       setFormData({
         ...selectedUnit,
         noViaje: selectedUnit.noViaje || '',
@@ -50,6 +54,8 @@ export const UnitModal = () => {
         placas: selectedUnit.placas || '',
         capUnidad: selectedUnit.capUnidad || 50,
         linea: selectedUnit.linea || 'LTI - VHS',
+        operador: selectedUnit.operador || '',
+        idOperador: resolvedId,
         numCarga: selectedUnit.numCarga || '',
         closter: selectedUnit.closter || '',
         fl: selectedUnit.fl || 'LOCAL',
@@ -66,6 +72,7 @@ export const UnitModal = () => {
         linea: 'LTI - VHS',
         tipo: 'Sencillo',
         operador: '',
+        idOperador: '',
         turno: 'M1',
         cortina: '',
         numCarga: '',
@@ -89,6 +96,10 @@ export const UnitModal = () => {
 
   // Selección inteligente desde el catálogo de unidades
   const handleSelectUnidad = (unidad) => {
+    const opCatalog = buscarOperadorPorEco(unidad.eco);
+    const resolvedOp = selectedUnit?.operador || unidad.operador || opCatalog?.operador || '';
+    const resolvedId = selectedUnit?.idOperador || unidad.idOperador || opCatalog?.idOperador || buscarIdOperadorPorNombre(resolvedOp) || '';
+
     setFormData(prev => ({
       ...prev,
       economico: unidad.eco,
@@ -96,7 +107,8 @@ export const UnitModal = () => {
       capUnidad: unidad.capUnidad || prev.capUnidad,
       tipo: unidad.tipo || prev.tipo,
       linea: unidad.linea || prev.linea,
-      operador: selectedUnit?.operador || '', // No mostrar operador si la unidad solo está en patio sin estar programada en planeación
+      operador: prev.operador || resolvedOp,
+      idOperador: prev.idOperador || resolvedId,
       estatusPatio: unidad.estatusPatio || (unidad.estatus === 'TALLER' ? 'Taller' : (prev.estatusPatio || 'Disponible'))
     }));
   };
@@ -162,6 +174,8 @@ export const UnitModal = () => {
       return;
     }
 
+    const resolvedIdOp = formData.idOperador || (formData.operador ? buscarIdOperadorPorNombre(formData.operador) : (formData.economico ? buscarOperadorPorEco(formData.economico)?.idOperador : '')) || '';
+
     const payload = isPatioMode ? {
       ...formData,
       operador: '',
@@ -170,6 +184,7 @@ export const UnitModal = () => {
       estatusSupervisor: formData.estatusPatio === 'Taller' ? 'No Disponible' : (formData.estatusSupervisor || 'Pendiente')
     } : {
       ...formData,
+      idOperador: resolvedIdOp,
       estatusSupervisor: (formData.estatusPlaneacion === 'CARGADO' && (formData.estatusSupervisor === 'No Disponible' || !formData.estatusSupervisor || formData.estatusSupervisor === 'Pendiente'))
         ? 'Cargado'
         : (formData.estatusSupervisor || 'Pendiente')
@@ -483,7 +498,27 @@ export const UnitModal = () => {
                   <label>Nombre del Operador</label>
                   <OperadorSelector
                     value={formData.operador}
-                    onChange={(nombre) => setFormData(prev => ({ ...prev, operador: nombre }))}
+                    onChange={(nombre, idOp) => {
+                      const autoId = idOp || buscarIdOperadorPorNombre(nombre);
+                      setFormData(prev => ({ 
+                        ...prev, 
+                        operador: nombre,
+                        idOperador: autoId !== undefined && autoId !== '' ? autoId : (buscarIdOperadorPorNombre(nombre) || prev.idOperador)
+                      }));
+                    }}
+                  />
+                </div>
+
+                {/* ID / Nómina del Operador */}
+                <div className="form-group">
+                  <label>ID / Nómina del Operador</label>
+                  <input 
+                    type="text"
+                    name="idOperador"
+                    className="form-control"
+                    placeholder="Ej: 1080014, 1129366..."
+                    value={formData.idOperador || ''}
+                    onChange={handleChange}
                   />
                 </div>
 

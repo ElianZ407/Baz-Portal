@@ -509,8 +509,15 @@ export const PlaneacionView = () => {
                       {/* OPERADOR */}
                       <td>
                         {unit.operador ? (
-                          <div style={{ fontWeight: 600, color: '#fff' }}>
-                            {unit.operador}
+                          <div>
+                            <div style={{ fontWeight: 600, color: '#fff' }}>
+                              {unit.operador}
+                            </div>
+                            {unit.idOperador && (
+                              <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
+                                ID: {unit.idOperador}
+                              </div>
+                            )}
                           </div>
                         ) : (
                           <span style={{ color: 'var(--text-muted)', fontStyle: 'italic', fontSize: '0.8rem' }}>
