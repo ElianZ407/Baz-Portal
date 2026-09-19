@@ -17,6 +17,7 @@ dist-ssr
 .vercel
 scratch/
 *.sql
+src/data/
 
 
 
