@@ -3,7 +3,7 @@ import { X, Save, Truck, Layers, FileSpreadsheet, AlertTriangle, CheckCircle2, M
 import { useFleet } from '../context/FleetContext';
 import { LINEAS_TRANSPORTE, TURNOS, BLOQUES } from '../data/initialFleetData';
 import { SUCURSALES_MAESTRAS, buscarSucursal, validarRestriccionesViaje } from '../data/sucursalesData';
-import { FLOTA_TOTAL, buscarUnidadPorEco, OPERADORES_ACTIVOS, buscarIdOperadorPorNombre, buscarOperadorPorEco } from '../data/flotaMaestraData';
+import { FLOTA_TOTAL, buscarUnidadPorEco, OPERADORES_ACTIVOS, buscarIdOperadorPorNombre, buscarOperadorPorEco, checkTieneViajeYOperador } from '../data/flotaMaestraData';
 import { SucursalSelector } from './SucursalSelector';
 import { UnidadSelector } from './UnidadSelector';
 import { OperadorSelector } from './OperadorSelector';
@@ -172,6 +172,18 @@ export const UnitModal = () => {
     if (isBlockedForPlaneacion) {
       alert('La unidad seleccionada se encuentra en Taller Mecánico y no puede ser programada en Planeación.');
       return;
+    }
+
+    // Validación oficial: no se puede colocar ni poner en caseta (CARGADO) si falta viaje u operador
+    if (!isPatioMode && (formData.estatusPlaneacion === 'COLOCADO' || formData.estatusPlaneacion === 'CARGADO')) {
+      const { valid, hasViaje, hasOperador } = checkTieneViajeYOperador(formData);
+      if (!valid) {
+        const faltantes = [];
+        if (!hasViaje) faltantes.push('Número de Viaje');
+        if (!hasOperador) faltantes.push('Operador Asignado');
+        alert(`⚠️ Validación Operativa BAZ:\nPara registrar la unidad con estatus ${formData.estatusPlaneacion === 'COLOCADO' ? 'COLOCADO (En Andén)' : 'CARGADO (En Caseta)'}, es obligatorio registrar:\n\n• ${faltantes.join('\n• ')}\n\nPor favor asigne estos datos antes de guardar.`);
+        return;
+      }
     }
 
     const resolvedIdOp = formData.idOperador || (formData.operador ? buscarIdOperadorPorNombre(formData.operador) : (formData.economico ? buscarOperadorPorEco(formData.economico)?.idOperador : '')) || '';
@@ -624,6 +636,23 @@ export const UnitModal = () => {
                       { value: 'CARGADO',   label: 'CARGADO',   color: '#facc15' },
                     ]}
                   />
+                  {!isPatioMode && (formData.estatusPlaneacion === 'COLOCADO' || formData.estatusPlaneacion === 'CARGADO') && !checkTieneViajeYOperador(formData).valid && (
+                    <div style={{
+                      marginTop: '0.45rem',
+                      fontSize: '0.73rem',
+                      color: '#fbbf24',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.4rem',
+                      background: 'rgba(251, 191, 36, 0.1)',
+                      padding: '0.4rem 0.65rem',
+                      borderRadius: '4px',
+                      border: '1px solid rgba(251, 191, 36, 0.3)'
+                    }}>
+                      <AlertTriangle size={13} style={{ flexShrink: 0 }} />
+                      <span>Requiere No. de Viaje y Operador para poder colocar o poner en caseta.</span>
+                    </div>
+                  )}
                 </div>
 
                 {/* Observaciones */}

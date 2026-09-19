@@ -24,6 +24,7 @@ import { useFleet } from '../context/FleetContext';
 import { validarRestriccionesViaje, buscarSucursal } from '../data/sucursalesData';
 import { BLOQUES } from '../data/initialFleetData';
 import { exportOfficialExcel } from '../utils/exportOfficialExcel';
+import { checkTieneViajeYOperador } from '../data/flotaMaestraData';
 
 // Configuración de colores e iconos para los estados de Supervisor reflejados en Planeación
 const getSupervisorStatusConfig = (status) => {
@@ -151,12 +152,29 @@ export const PlaneacionView = () => {
   };
 
   const handleStatusChange = (unitId, newStatus) => {
-    // Si la unidad está en taller, no se puede cambiar estatus ni colocar
     const target = units.find(u => u.id === unitId);
-    if (target && (target.estatusPatio === 'Taller' || target.estatus === 'TALLER')) {
+    if (!target) return;
+
+    // Si la unidad está en taller, no se puede cambiar estatus ni colocar
+    if (target.estatusPatio === 'Taller' || target.estatus === 'TALLER') {
       alert('Esta unidad se encuentra en Taller y no puede ser seleccionada ni colocada en planeación.');
       return;
     }
+
+    // Validación oficial: No se puede colocar ni poner en caseta (CARGADO) si no tiene viaje y operador
+    if (newStatus === 'COLOCADO' || newStatus === 'CARGADO') {
+      const { valid, hasViaje, hasOperador } = checkTieneViajeYOperador(target);
+      if (!valid) {
+        const faltantes = [];
+        if (!hasViaje) faltantes.push('Número de Viaje');
+        if (!hasOperador) faltantes.push('Operador Asignado');
+        const accion = newStatus === 'COLOCADO' ? 'colocar la unidad en cortina' : 'poner la unidad en caseta (marcar cargada)';
+        alert(`⚠️ Validación Operativa BAZ:\nNo se puede ${accion} de la unidad ECO ${target.economico}.\n\nRequisito faltante:\n• ${faltantes.join('\n• ')}\n\nPor favor complete estos datos en la ventana de edición.`);
+        handleEdit(target);
+        return;
+      }
+    }
+
     updateStatus(unitId, 'planeacion', newStatus);
   };
 
@@ -421,6 +439,9 @@ export const PlaneacionView = () => {
                   const isCargado = !isEnTaller && !isSupervisorActive && estatusPlan === 'CARGADO';
                   const isColocado = !isEnTaller && !isSupervisorActive && estatusPlan === 'COLOCADO';
                   
+                  // Validación oficial: Requisito de Viaje y Operador para poder colocar o poner en caseta
+                  const { valid: canColocarOCargar, hasViaje: tieneViaje, hasOperador: tieneOperador } = checkTieneViajeYOperador(unit);
+
                   // Validación de restricciones de matriz Villahermosa
                   const warnings = validarRestriccionesViaje(
                     [unit.numSucursal || unit.destino], 
@@ -708,13 +729,29 @@ export const PlaneacionView = () => {
                             <>
                               {estatusPlan === 'PENDIENTE' && (
                                 <button 
-                                  className="btn btn-primary"
-                                  style={{ padding: '0.28rem 0.55rem', fontSize: '0.72rem' }}
+                                  className="btn"
+                                  style={{ 
+                                    padding: '0.28rem 0.55rem', 
+                                    fontSize: '0.72rem',
+                                    background: canColocarOCargar ? 'var(--accent-cyan)' : 'rgba(51, 65, 85, 0.4)',
+                                    color: canColocarOCargar ? '#0a0f1d' : '#94a3b8',
+                                    border: canColocarOCargar ? 'none' : '1px dashed rgba(148, 163, 184, 0.4)',
+                                    fontWeight: 700,
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '0.3rem',
+                                    cursor: 'pointer'
+                                  }}
                                   onClick={() => handleStatusChange(unit.id, 'COLOCADO')}
-                                  title="Colocar unidad en cortina para carga"
+                                  title={canColocarOCargar 
+                                    ? "Colocar unidad en cortina para carga" 
+                                    : `⚠️ Requiere ${!tieneViaje && !tieneOperador ? 'No. de Viaje y Operador' : !tieneViaje ? 'No. de Viaje' : 'Operador'} para poder colocar`}
                                 >
                                   <DoorOpen size={12} />
                                   <span>Colocar</span>
+                                  {!canColocarOCargar && (
+                                    <AlertTriangle size={11} style={{ color: '#fbbf24', marginLeft: '1px' }} />
+                                  )}
                                 </button>
                               )}
                               {estatusPlan === 'COLOCADO' && (
@@ -723,19 +760,25 @@ export const PlaneacionView = () => {
                                   style={{ 
                                     padding: '0.28rem 0.6rem', 
                                     fontSize: '0.72rem', 
-                                    background: '#fef08a', 
-                                    color: '#713f12', 
-                                    border: '1px solid #eab308',
+                                    background: canColocarOCargar ? '#fef08a' : 'rgba(51, 65, 85, 0.4)', 
+                                    color: canColocarOCargar ? '#713f12' : '#94a3b8', 
+                                    border: canColocarOCargar ? '1px solid #eab308' : '1px dashed rgba(148, 163, 184, 0.4)',
                                     fontWeight: 800,
                                     display: 'inline-flex',
                                     alignItems: 'center',
-                                    gap: '0.3rem'
+                                    gap: '0.3rem',
+                                    cursor: 'pointer'
                                   }}
                                   onClick={() => handleStatusChange(unit.id, 'CARGADO')}
-                                  title="Carga terminada: marcar como Cargado"
+                                  title={canColocarOCargar 
+                                    ? "Carga terminada: marcar como Cargado / En Caseta" 
+                                    : `⚠️ Requiere ${!tieneViaje && !tieneOperador ? 'No. de Viaje y Operador' : !tieneViaje ? 'No. de Viaje' : 'Operador'} para poner en caseta`}
                                 >
                                   <Send size={12} />
                                   <span>Cargado</span>
+                                  {!canColocarOCargar && (
+                                    <AlertTriangle size={11} style={{ color: '#fbbf24', marginLeft: '1px' }} />
+                                  )}
                                 </button>
                               )}
                               {isCargado && (

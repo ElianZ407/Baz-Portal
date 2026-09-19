@@ -127,3 +127,40 @@ export const buscarOperadorPorEco = (eco) => {
   return FLOTA_TOTAL.find(u => u.eco.toLowerCase() === clean) || null;
 };
 
+/**
+ * Valida si una unidad/viaje cuenta con Número de Viaje y Operador asignado.
+ * Es requisito indispensable para poder colocar la unidad en cortina (COLOCADO)
+ * o ponerla en caseta (CARGADO / Salida).
+ */
+export const checkTieneViajeYOperador = (unit) => {
+  if (!unit) return { valid: false, hasViaje: false, hasOperador: false };
+
+  const noViajeStr = String(unit.noViaje || '').trim();
+  const hasViaje = Boolean(
+    noViajeStr &&
+    noViajeStr !== '—' &&
+    noViajeStr !== '-' &&
+    noViajeStr !== '0' &&
+    noViajeStr.toLowerCase() !== 'sin viaje' &&
+    noViajeStr.toLowerCase() !== 'por asignar'
+  );
+
+  const operadorStr = String(unit.operador || '').trim();
+  const hasOperador = Boolean(
+    operadorStr &&
+    operadorStr !== '—' &&
+    operadorStr !== '-' &&
+    operadorStr.toLowerCase() !== 'por asignar' &&
+    operadorStr.toLowerCase() !== 'sin asignar' &&
+    operadorStr.toLowerCase() !== 'vacante' &&
+    operadorStr.toLowerCase() !== 'baja'
+  );
+
+  return {
+    valid: hasViaje && hasOperador,
+    hasViaje,
+    hasOperador
+  };
+};
+
+
