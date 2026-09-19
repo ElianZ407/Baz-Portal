@@ -248,3 +248,51 @@ export const deletePlanHistoricoDb = async (id) => {
   }
 };
 
+// ==========================================
+// CATÁLOGO DE UNIDADES BAZ
+// ==========================================
+
+export const fetchUnidadesDb = async () => {
+  if (!supabase) return null;
+  try {
+    // Intentar leer de la tabla unidades; si no existe aún, intentar de flota_maestra
+    let { data, error } = await supabase
+      .from('unidades')
+      .select('*')
+      .order('eco', { ascending: true });
+
+    if (error && error.code === '42P01') {
+      // Tabla unidades no existe aún en el esquema, fallback a flota_maestra
+      const resFallback = await supabase
+        .from('flota_maestra')
+        .select('*')
+        .order('eco', { ascending: true });
+      return resFallback.data;
+    }
+
+    if (error) {
+      console.warn('Advertencia al consultar unidades en Supabase:', error.message);
+      return null;
+    }
+    return data;
+  } catch (err) {
+    console.warn('Excepción al consultar unidades en Supabase:', err);
+    return null;
+  }
+};
+
+export const upsertUnidadDb = async (unidad) => {
+  if (!supabase) return null;
+  try {
+    const { data, error } = await supabase
+      .from('unidades')
+      .upsert(unidad, { onConflict: 'eco' });
+
+    if (error) throw error;
+    return data;
+  } catch (err) {
+    console.error('Error al guardar unidad en Supabase:', err);
+    throw err;
+  }
+};
+
