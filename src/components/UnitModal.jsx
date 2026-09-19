@@ -10,7 +10,7 @@ import { OperadorSelector } from './OperadorSelector';
 import { CustomSelect } from './CustomSelect';
 
 export const UnitModal = () => {
-  const { isModalOpen, setIsModalOpen, selectedUnit, saveUnit, deleteUnit, showConfirm, showAlert, activeArea } = useFleet();
+  const { isModalOpen, setIsModalOpen, selectedUnit, saveUnit, deleteUnit, showConfirm, showAlert, activeArea, catalogoFlota, catalogoSucursales } = useFleet();
   const isPatioMode = activeArea === 'patio';
 
   const [formData, setFormData] = useState({
