@@ -11,12 +11,13 @@ export const UnidadSelector = ({ value, onSelect, mode }) => {
   const dropdownRef = useRef(null);
   const searchInputRef = useRef(null);
 
-  const { units, activeArea } = useFleet();
+  const { units, activeArea, catalogoFlota } = useFleet();
   const isPlaneacion = mode === 'planeacion' || (!mode && activeArea === 'planeacion');
+  const flotaList = catalogoFlota && Array.isArray(catalogoFlota) && catalogoFlota.length > 0 ? catalogoFlota : FLOTA_TOTAL;
 
   // Unidad actualmente seleccionada
-  const selectedUnidad = FLOTA_TOTAL.find(
-    u => u.eco === String(value) || u.placas.toLowerCase() === String(value).toLowerCase()
+  const selectedUnidad = flotaList.find(
+    u => u.eco === String(value) || (u.placas && u.placas.toLowerCase() === String(value).toLowerCase())
   );
 
   useEffect(() => {
@@ -53,7 +54,7 @@ export const UnidadSelector = ({ value, onSelect, mode }) => {
       if (!u.economico) return;
       const ecoKey = String(u.economico);
       if (!patioUnitsMap.has(ecoKey)) {
-        const master = FLOTA_TOTAL.find(f => String(f.eco) === ecoKey);
+        const master = flotaList.find(f => String(f.eco) === ecoKey);
         patioUnitsMap.set(ecoKey, {
           eco: ecoKey,
           placas: u.placas || master?.placas || '',
@@ -68,7 +69,7 @@ export const UnidadSelector = ({ value, onSelect, mode }) => {
 
   const patioUnits = Array.from(patioUnitsMap.values());
 
-  const sourceList = isPlaneacion ? patioUnits : FLOTA_TOTAL;
+  const sourceList = isPlaneacion ? patioUnits : flotaList;
 
   const filteredUnidades = sourceList.filter(u => {
     const q = search.toLowerCase().trim();

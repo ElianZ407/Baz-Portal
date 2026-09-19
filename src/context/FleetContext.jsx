@@ -8,9 +8,12 @@ import {
   mapDbToUnit,
   fetchPlanesHistoricosDb,
   savePlanHistoricoDb,
-  deletePlanHistoricoDb
+  deletePlanHistoricoDb,
+  fetchFlotaMaestraDb,
+  fetchSucursalesDb
 } from '../lib/supabaseClient';
-import { buscarIdOperadorPorNombre, buscarOperadorPorEco, checkTieneViajeYOperador } from '../data/flotaMaestraData';
+import { FLOTA_TOTAL, buscarIdOperadorPorNombre, buscarOperadorPorEco, checkTieneViajeYOperador } from '../data/flotaMaestraData';
+import { SUCURSALES_MAESTRAS } from '../data/sucursalesData';
 
 const FleetContext = createContext(null);
 
@@ -72,6 +75,10 @@ export const FleetProvider = ({ children }) => {
   // Estados de conectividad Cloud / Supabase
   const [isCloudConnected, setIsCloudConnected] = useState(isSupabaseConfigured());
   const [isCloudLoading, setIsCloudLoading] = useState(false);
+
+  // Catálogos maestros dinámicos (cargados de Supabase para no exponer datos sensibles en GitHub)
+  const [catalogoFlota, setCatalogoFlota] = useState(FLOTA_TOTAL);
+  const [catalogoSucursales, setCatalogoSucursales] = useState(SUCURSALES_MAESTRAS);
 
   // Estados de Historial de Planes / Días
   const [savedPlans, setSavedPlans] = useState(() => {
@@ -172,6 +179,46 @@ export const FleetProvider = ({ children }) => {
     }
   }, []);
 
+  // Función para recargar catálogos maestros desde Supabase (Operadores y Sucursales)
+  const reloadCatalogos = useCallback(async () => {
+    if (!isSupabaseConfigured()) return;
+    try {
+      const [flotaRemote, sucursalesRemote] = await Promise.all([
+        fetchFlotaMaestraDb(),
+        fetchSucursalesDb()
+      ]);
+      if (flotaRemote && Array.isArray(flotaRemote) && flotaRemote.length > 0) {
+        const formattedFlota = flotaRemote.map(f => ({
+          eco: String(f.eco),
+          placas: f.placas || '',
+          idOperador: f.id_operador || f.idOperador || '',
+          operador: f.operador || '',
+          tipo: f.tipo || 'Camioneta',
+          capUnidad: Number(f.cap_unidad || f.capUnidad) || 18,
+          estatus: f.estatus || 'ACTIVO',
+          linea: f.linea || 'LTI - VHS'
+        }));
+        setCatalogoFlota(formattedFlota);
+      }
+      if (sucursalesRemote && Array.isArray(sucursalesRemote) && sucursalesRemote.length > 0) {
+        const formattedSucursales = sucursalesRemote.map(s => ({
+          id: String(s.id),
+          nombre: s.nombre,
+          closter: s.closter || '',
+          sec: s.sec || 1,
+          region: s.region || '',
+          formato: s.formato || '',
+          fl: s.fl || 'LOCAL',
+          capMax: s.cap_max || s.capMax || '',
+          restriccion: s.restriccion || null
+        }));
+        setCatalogoSucursales(formattedSucursales);
+      }
+    } catch (e) {
+      console.warn('Error al cargar catálogos dinámicos de Supabase:', e);
+    }
+  }, []);
+
   // Sincronización Inicial y Suscripción Realtime con Supabase
   useEffect(() => {
     if (!isSupabaseConfigured() || !supabase) {
@@ -179,7 +226,8 @@ export const FleetProvider = ({ children }) => {
       return;
     }
 
-    // Cargar datos remotos y planes históricos
+    // Cargar catálogos remotos, datos remotos y planes históricos
+    reloadCatalogos();
     reloadCloudData();
     reloadHistoricalPlans();
 
@@ -586,7 +634,11 @@ export const FleetProvider = ({ children }) => {
       saveCurrentPlan,
       loadSavedPlan,
       deleteSavedPlan,
-      reloadHistoricalPlans
+      reloadHistoricalPlans,
+      // Catálogos dinámicos
+      catalogoFlota,
+      catalogoSucursales,
+      reloadCatalogos
     }}>
       {children}
     </FleetContext.Provider>

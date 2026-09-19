@@ -93,6 +93,7 @@ export const PlaneacionView = () => {
     deleteUnit,
     showConfirm,
     showAlert,
+    catalogoSucursales,
     searchQuery, 
     setSearchQuery 
   } = useFleet();
@@ -459,7 +460,8 @@ export const PlaneacionView = () => {
                   // Validación de restricciones de matriz Villahermosa
                   const warnings = validarRestriccionesViaje(
                     [unit.numSucursal || unit.destino], 
-                    Number(unit.capUnidad || 50)
+                    Number(unit.capUnidad || 50),
+                    catalogoSucursales
                   );
 
                   return (
