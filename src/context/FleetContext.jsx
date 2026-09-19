@@ -5,23 +5,29 @@ import {
   fetchViajesDb, 
   upsertViajeDb, 
   deleteViajeDb, 
-  mapDbToUnit 
+  mapDbToUnit,
+  fetchPlanesHistoricosDb,
+  savePlanHistoricoDb,
+  deletePlanHistoricoDb
 } from '../lib/supabaseClient';
 
 const FleetContext = createContext(null);
 
 const STORAGE_KEY = 'baz_entregas_fleet_v4';
+const HISTORIAL_KEY = 'baz_historial_planes_v1';
 const CLIENT_ID = Math.random().toString(36).substring(2) + Date.now().toString(36);
 
 const cleanUnitDestino = (unit) => {
   if (!unit) return unit;
-  if (unit.destino && typeof unit.destino === 'string') {
-    return {
-      ...unit,
-      destino: unit.destino.replace(/\s*\(Retorno\)/gi, '').trim()
-    };
+  let res = { ...unit };
+  if (res.destino && typeof res.destino === 'string') {
+    res.destino = res.destino.replace(/\s*\(Retorno\)/gi, '').trim();
   }
-  return unit;
+  // Si la unidad está cargada en planeación pero quedó como 'No Disponible' o vacía, corregir a 'Cargado'
+  if (res.estatusPlaneacion === 'CARGADO' && (res.estatusSupervisor === 'No Disponible' || !res.estatusSupervisor || res.estatusSupervisor === 'Pendiente')) {
+    res.estatusSupervisor = 'Cargado';
+  }
+  return res;
 };
 
 export const FleetProvider = ({ children }) => {
@@ -54,6 +60,22 @@ export const FleetProvider = ({ children }) => {
   // Estados de conectividad Cloud / Supabase
   const [isCloudConnected, setIsCloudConnected] = useState(isSupabaseConfigured());
   const [isCloudLoading, setIsCloudLoading] = useState(false);
+
+  // Estados de Historial de Planes / Días
+  const [savedPlans, setSavedPlans] = useState(() => {
+    try {
+      const saved = localStorage.getItem(HISTORIAL_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) return parsed;
+      }
+    } catch (e) {
+      console.warn('Error al cargar historial_planes de localStorage:', e);
+    }
+    return [];
+  });
+  const [isSavePlanModalOpen, setIsSavePlanModalOpen] = useState(false);
+  const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
 
   const showConfirm = (config) => {
     setConfirmModal({
@@ -98,6 +120,29 @@ export const FleetProvider = ({ children }) => {
     }
   }, []);
 
+  // Función para recargar historial de planes desde Supabase
+  const reloadHistoricalPlans = useCallback(async () => {
+    if (!isSupabaseConfigured()) return;
+    try {
+      const remotePlans = await fetchPlanesHistoricosDb();
+      if (remotePlans && Array.isArray(remotePlans)) {
+        const formatted = remotePlans.map(p => ({
+          id: p.id,
+          fecha: p.fecha,
+          nombre: p.nombre,
+          totalViajes: p.total_viajes,
+          totalCompletados: p.total_completados,
+          unidades: p.datos || [],
+          createdAt: p.created_at
+        }));
+        setSavedPlans(formatted);
+        localStorage.setItem(HISTORIAL_KEY, JSON.stringify(formatted));
+      }
+    } catch (err) {
+      console.warn('No se pudo cargar el historial de planes desde Supabase:', err);
+    }
+  }, []);
+
   // Sincronización Inicial y Suscripción Realtime con Supabase
   useEffect(() => {
     if (!isSupabaseConfigured() || !supabase) {
@@ -105,8 +150,9 @@ export const FleetProvider = ({ children }) => {
       return;
     }
 
-    // Cargar datos remotos
+    // Cargar datos remotos y planes históricos
     reloadCloudData();
+    reloadHistoricalPlans();
 
     // Suscribirse a cambios en tiempo real en la tabla viajes_diarios
     const channel = supabase
@@ -234,7 +280,11 @@ export const FleetProvider = ({ children }) => {
       ? { ...existingUnit, ...unitData, actualizadoEn: now }
       : {
           ...unitData,
-          id: unitData.id || `baz-unit-${unitData.economico || Date.now()}`,
+          id: unitData.id || (
+            typeof crypto !== 'undefined' && crypto.randomUUID
+              ? crypto.randomUUID()
+              : `baz-unit-${Date.now()}-${Math.random().toString(36).substring(2)}`
+          ),
           actualizadoEn: now
         };
     const fullUnit = cleanUnitDestino(fullUnitRaw);
@@ -283,21 +333,31 @@ export const FleetProvider = ({ children }) => {
       if (newStatus === 'Colocado p/ Carga') {
         updated.area = 'planeacion';
         updated.estatusPlaneacion = 'COLOCADO';
+        if (updated.estatusSupervisor === 'No Disponible') {
+          updated.estatusSupervisor = 'Pendiente';
+        }
       } else if (newStatus === 'Taller') {
         updated.area = 'patio';
         updated.estatusSupervisor = 'No Disponible';
         updated.estatusPlaneacion = 'PENDIENTE';
+      } else if (newStatus === 'Disponible') {
+        updated.area = 'patio';
+        updated.estatusSupervisor = 'Pendiente';
       }
     } else if (area === 'planeacion') {
       updated.estatusPlaneacion = newStatus;
       if (newStatus === 'COLOCADO') {
         updated.area = 'planeacion';
         updated.estatusPatio = 'Colocado p/ Carga';
-      } else if (newStatus === 'EN CASETA') {
+        if (updated.estatusSupervisor === 'No Disponible') {
+          updated.estatusSupervisor = 'Pendiente';
+        }
+      } else if (newStatus === 'CARGADO') {
         updated.area = 'supervisor';
         updated.estatusPatio = 'Cargado';
-        if (updated.estatusSupervisor === 'Pendiente' || !updated.estatusSupervisor) {
-          updated.estatusSupervisor = 'En Ruta';
+        // Si el supervisor aún no inicia ruta o estaba en No Disponible/Pendiente, queda como Cargado
+        if (['No Disponible', 'Pendiente', 'Disponible', ''].includes(updated.estatusSupervisor) || !updated.estatusSupervisor) {
+          updated.estatusSupervisor = 'Cargado';
         }
       } else if (newStatus === 'PENDIENTE') {
         updated.area = 'planeacion';
@@ -307,10 +367,23 @@ export const FleetProvider = ({ children }) => {
     } else if (area === 'supervisor') {
       updated.estatusSupervisor = newStatus;
       if (newStatus === 'Completado') {
+        // Ciclo completo: el viaje termina, se bloquea en planeación como COMPLETADO
         updated.estatusPatio = 'Disponible';
-        updated.estatusPlaneacion = 'PENDIENTE';
+        updated.estatusPlaneacion = 'COMPLETADO';
+        updated.area = 'patio';
       } else if (newStatus === 'Retorno') {
+        // En camino de regreso a CEDIS — ya no está CARGADO en Planeación
         updated.destino = 'CEDIS VILLAHERMOSA';
+        updated.estatusPlaneacion = 'PENDIENTE';
+        updated.estatusPatio = 'Disponible';
+      } else if (['En Ruta', 'Espera Descarga', 'Descargando', 'Retrasado'].includes(newStatus)) {
+        // Si estaba en PENDIENTE por retorno o desincronizado, mantener consistencia
+        if (updated.estatusPlaneacion === 'PENDIENTE' || !updated.estatusPlaneacion) {
+          updated.estatusPlaneacion = 'CARGADO';
+        }
+        if (updated.estatusPatio === 'Disponible') {
+          updated.estatusPatio = 'Cargado';
+        }
       }
     }
 
@@ -349,6 +422,94 @@ export const FleetProvider = ({ children }) => {
     }
   };
 
+  // Guardar el plan o día actual
+  const saveCurrentPlan = async ({ nombre, fecha, startNewDay = false }) => {
+    const planDate = fecha || new Date().toISOString().split('T')[0];
+    const planId = `plan-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
+    const snapshotUnits = JSON.parse(JSON.stringify(units));
+    
+    const newPlan = {
+      id: planId,
+      fecha: planDate,
+      nombre: (nombre && nombre.trim()) ? nombre.trim() : `Plan del ${planDate}`,
+      totalViajes: snapshotUnits.length,
+      totalCompletados: snapshotUnits.filter(u => u.estatusPlaneacion === 'COMPLETADO' || u.estatusSupervisor === 'Completado').length,
+      unidades: snapshotUnits,
+      createdAt: new Date().toISOString()
+    };
+
+    // Actualizar estado local e historial en localStorage
+    setSavedPlans(prev => {
+      const updated = [newPlan, ...prev.filter(p => p.id !== planId)];
+      localStorage.setItem(HISTORIAL_KEY, JSON.stringify(updated));
+      return updated;
+    });
+
+    // Sincronizar en Supabase si está disponible
+    if (isSupabaseConfigured()) {
+      try {
+        await savePlanHistoricoDb(newPlan);
+      } catch (e) {
+        console.warn('El plan se guardó localmente pero falló en Supabase:', e);
+      }
+    }
+
+    // Si el usuario eligió comenzar un nuevo día, limpiar el tablero activo
+    if (startNewDay) {
+      await clearAllUnits();
+    }
+
+    return newPlan;
+  };
+
+  // Cargar / Restaurar un plan histórico al tablero activo
+  const loadSavedPlan = async (planId) => {
+    const plan = savedPlans.find(p => p.id === planId);
+    if (!plan || !Array.isArray(plan.unidades)) return false;
+
+    const restoredUnits = plan.unidades.map(cleanUnitDestino);
+    setUnits(restoredUnits);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(restoredUnits));
+
+    // Si Supabase está configurado, actualizar viajes_diarios
+    if (isSupabaseConfigured() && supabase) {
+      try {
+        await supabase.from('viajes_diarios').delete().neq('id', '___non_existent___');
+        for (const u of restoredUnits) {
+          await upsertViajeDb(u);
+        }
+      } catch (err) {
+        console.warn('Error al sincronizar restauración en Supabase:', err);
+      }
+    }
+
+    // Notificar en broadcast channel
+    if (typeof BroadcastChannel !== 'undefined') {
+      const bc = new BroadcastChannel('baz_fleet_realtime_sync');
+      bc.postMessage({ type: 'SYNC_UNITS', units: restoredUnits, senderId: CLIENT_ID });
+      bc.close();
+    }
+
+    return true;
+  };
+
+  // Eliminar un plan histórico
+  const deleteSavedPlan = async (planId) => {
+    setSavedPlans(prev => {
+      const filtered = prev.filter(p => p.id !== planId);
+      localStorage.setItem(HISTORIAL_KEY, JSON.stringify(filtered));
+      return filtered;
+    });
+
+    if (isSupabaseConfigured()) {
+      try {
+        await deletePlanHistoricoDb(planId);
+      } catch (e) {
+        console.warn('Error al eliminar en Supabase:', e);
+      }
+    }
+  };
+
   return (
     <FleetContext.Provider value={{
       units,
@@ -373,7 +534,17 @@ export const FleetProvider = ({ children }) => {
       clearAllUnits,
       confirmModal,
       showConfirm,
-      closeConfirm
+      closeConfirm,
+      // Historial de Planes
+      savedPlans,
+      isSavePlanModalOpen,
+      setIsSavePlanModalOpen,
+      isHistoryModalOpen,
+      setIsHistoryModalOpen,
+      saveCurrentPlan,
+      loadSavedPlan,
+      deleteSavedPlan,
+      reloadHistoricalPlans
     }}>
       {children}
     </FleetContext.Provider>

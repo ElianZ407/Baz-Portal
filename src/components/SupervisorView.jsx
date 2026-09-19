@@ -29,8 +29,27 @@ export const SupervisorView = () => {
   const [filterSubStatus, setFilterSubStatus] = useState('ALL');
   const [filterFL, setFilterFL] = useState('ALL'); // 'ALL' | 'LOCAL' | 'FORANEO'
 
-  // Unidades en seguimiento por el Supervisor (Fuera de CD)
-  const supervisorUnits = units.filter(u => {
+  // Unidades en seguimiento por el Supervisor:
+  // Solo las que están CARGADO en planeación o tienen un estatus activo de tránsito
+  const TRANSIT_STATUSES = ['En Ruta', 'Espera Descarga', 'Descargando', 'Retorno', 'Retrasado', 'Completado'];
+
+  const getEffectiveSupervisorStatus = (unit) => {
+    if (!unit) return 'Pendiente';
+    if (unit.estatusPlaneacion === 'CARGADO' && (!unit.estatusSupervisor || ['No Disponible', 'Pendiente', 'Cargado', 'Disponible'].includes(unit.estatusSupervisor))) {
+      return 'Cargado';
+    }
+    return unit.estatusSupervisor || 'Pendiente';
+  };
+
+  const supervisorBaseUnits = units.filter(u => {
+    const isTaller = u.estatusPatio === 'Taller' || u.estatus === 'TALLER';
+    if (isTaller) return false;
+    const isCargado = u.estatusPlaneacion === 'CARGADO';
+    const hasTransitStatus = TRANSIT_STATUSES.includes(u.estatusSupervisor);
+    return isCargado || hasTransitStatus;
+  });
+
+  const supervisorUnits = supervisorBaseUnits.filter(u => {
     // Buscar texto
     const matchesSearch = 
       u.economico.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -39,10 +58,11 @@ export const SupervisorView = () => {
       (u.closter && u.closter.toLowerCase().includes(searchQuery.toLowerCase())) ||
       (u.sucursalOrigen && u.sucursalOrigen.toLowerCase().includes(searchQuery.toLowerCase()));
 
-    // Filtrar por subestado
+    // Filtrar por subestado normalizado
+    const effectiveStatus = getEffectiveSupervisorStatus(u);
     const matchesStatus = 
       filterSubStatus === 'ALL' || 
-      u.estatusSupervisor === filterSubStatus;
+      effectiveStatus === filterSubStatus;
 
     // Filtrar por F/L
     const matchesFL = 
@@ -65,12 +85,20 @@ export const SupervisorView = () => {
       case 'Retorno': return 'status-retorno';
       case 'Retrasado': return 'status-retrasado';
       case 'Completado': return 'status-completado';
-      default: return 'status-disponible';
+      case 'Cargado': return 'status-encaseta';
+      default: return 'status-encaseta';
     }
   };
 
-  const unidadesLocales = units.filter(u => (u.fl || 'LOCAL') === 'LOCAL');
-  const unidadesForaneas = units.filter(u => u.fl === 'FORANEO');
+  const cargadosCount = supervisorBaseUnits.filter(u => getEffectiveSupervisorStatus(u) === 'Cargado').length;
+  const unidadesLocales = supervisorBaseUnits.filter(u => (u.fl || 'LOCAL') === 'LOCAL');
+  const unidadesForaneas = supervisorBaseUnits.filter(u => u.fl === 'FORANEO');
+  const enRutaCount = supervisorBaseUnits.filter(u => u.estatusSupervisor === 'En Ruta').length;
+  const esperaCount = supervisorBaseUnits.filter(u => u.estatusSupervisor === 'Espera Descarga').length;
+  const descargandoCount = supervisorBaseUnits.filter(u => u.estatusSupervisor === 'Descargando').length;
+  const retornoCount = supervisorBaseUnits.filter(u => u.estatusSupervisor === 'Retorno').length;
+  const retrasadoCount = supervisorBaseUnits.filter(u => u.estatusSupervisor === 'Retrasado').length;
+  const completadoCount = supervisorBaseUnits.filter(u => u.estatusSupervisor === 'Completado').length;
 
   return (
     <div className="supervisor-view">
@@ -118,35 +146,44 @@ export const SupervisorView = () => {
               className={`pill-btn ${filterSubStatus === 'ALL' ? 'active' : ''}`}
               onClick={() => setFilterSubStatus('ALL')}
             >
-              Todos ({units.filter(u => u.estatusSupervisor !== 'Pendiente' && u.estatusSupervisor !== 'No Disponible').length})
+              Todos ({supervisorBaseUnits.length})
             </button>
+            {cargadosCount > 0 && (
+              <button 
+                className={`pill-btn ${filterSubStatus === 'Cargado' ? 'active' : ''}`}
+                onClick={() => setFilterSubStatus('Cargado')}
+                style={filterSubStatus === 'Cargado' ? { background: '#fef08a', borderColor: '#eab308', color: '#713f12', fontWeight: 800 } : {}}
+              >
+                Cargados ({cargadosCount})
+              </button>
+            )}
             <button 
               className={`pill-btn ${filterSubStatus === 'En Ruta' ? 'active' : ''}`}
               onClick={() => setFilterSubStatus('En Ruta')}
             >
               <Navigation size={13} style={{ display: 'inline', marginRight: '3px' }} />
-              En Ruta
+              En Ruta {enRutaCount > 0 && `(${enRutaCount})`}
             </button>
             <button 
               className={`pill-btn ${filterSubStatus === 'Espera Descarga' ? 'active' : ''}`}
               onClick={() => setFilterSubStatus('Espera Descarga')}
             >
               <Clock size={13} style={{ display: 'inline', marginRight: '3px' }} />
-              Espera Descarga
+              Espera Descarga {esperaCount > 0 && `(${esperaCount})`}
             </button>
             <button 
               className={`pill-btn ${filterSubStatus === 'Descargando' ? 'active' : ''}`}
               onClick={() => setFilterSubStatus('Descargando')}
             >
               <ArrowDownCircle size={13} style={{ display: 'inline', marginRight: '3px' }} />
-              Descargando
+              Descargando {descargandoCount > 0 && `(${descargandoCount})`}
             </button>
             <button 
               className={`pill-btn ${filterSubStatus === 'Retorno' ? 'active' : ''}`}
               onClick={() => setFilterSubStatus('Retorno')}
             >
               <RotateCcw size={13} style={{ display: 'inline', marginRight: '3px' }} />
-              Retorno
+              Retorno {retornoCount > 0 && `(${retornoCount})`}
             </button>
             <button 
               className={`pill-btn ${filterSubStatus === 'Retrasado' ? 'active' : ''}`}
@@ -154,14 +191,14 @@ export const SupervisorView = () => {
               style={{ color: '#f87171', borderColor: 'rgba(239, 68, 68, 0.4)' }}
             >
               <AlertTriangle size={13} style={{ display: 'inline', marginRight: '3px' }} />
-              Retrasado / Alerta
+              Retrasado / Alerta {retrasadoCount > 0 && `(${retrasadoCount})`}
             </button>
             <button 
               className={`pill-btn ${filterSubStatus === 'Completado' ? 'active' : ''}`}
               onClick={() => setFilterSubStatus('Completado')}
             >
               <CheckCircle2 size={13} style={{ display: 'inline', marginRight: '3px' }} />
-              Completado
+              Completado {completadoCount > 0 && `(${completadoCount})`}
             </button>
           </div>
         </div>
@@ -244,14 +281,19 @@ export const SupervisorView = () => {
                       </span>
                     </td>
                     <td>
-                      <span className={`status-badge ${getStatusBadgeClass(unit.estatusSupervisor)}`}>
-                        {unit.estatusSupervisor}
-                      </span>
+                      {(() => {
+                        const effStatus = getEffectiveSupervisorStatus(unit);
+                        return (
+                          <span className={`status-badge ${getStatusBadgeClass(effStatus)}`}>
+                            {effStatus === 'Cargado' ? 'CARGADO' : effStatus}
+                          </span>
+                        );
+                      })()}
                     </td>
                     <td>
                       {/* Botones de flujo del Supervisor según pizarra */}
                       <div style={{ display: 'flex', gap: '0.35rem', flexWrap: 'wrap' }}>
-                        {unit.estatusSupervisor !== 'En Ruta' && (
+                        {getEffectiveSupervisorStatus(unit) !== 'En Ruta' && (
                           <button 
                             className="btn-move"
                             onClick={() => updateStatus(unit.id, 'supervisor', 'En Ruta')}

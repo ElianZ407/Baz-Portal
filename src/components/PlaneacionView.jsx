@@ -15,12 +15,73 @@ import {
   Compass,
   ArrowRight,
   Wrench,
-  Trash2
+  Trash2,
+  Clock,
+  ArrowDownCircle,
+  RotateCcw
 } from 'lucide-react';
 import { useFleet } from '../context/FleetContext';
 import { validarRestriccionesViaje, buscarSucursal } from '../data/sucursalesData';
 import { BLOQUES } from '../data/initialFleetData';
 import { exportOfficialExcel } from '../utils/exportOfficialExcel';
+
+// Configuración de colores e iconos para los estados de Supervisor reflejados en Planeación
+const getSupervisorStatusConfig = (status) => {
+  switch (status) {
+    case 'Descargando':
+      return {
+        label: 'DESCARGANDO',
+        color: '#38bdf8', // Cyan idéntico a supervisor
+        bg: 'rgba(56, 189, 248, 0.18)',
+        border: '1px solid rgba(56, 189, 248, 0.4)',
+        borderColor: '#38bdf8',
+        rowBg: 'rgba(56, 189, 248, 0.05)',
+        icon: <ArrowDownCircle size={11} />
+      };
+    case 'En Ruta':
+      return {
+        label: 'EN RUTA',
+        color: '#34d399', // Verde idéntico a supervisor
+        bg: 'rgba(16, 185, 129, 0.18)',
+        border: '1px solid rgba(16, 185, 129, 0.4)',
+        borderColor: '#34d399',
+        rowBg: 'rgba(16, 185, 129, 0.05)',
+        icon: <ArrowRight size={11} />
+      };
+    case 'Espera Descarga':
+      return {
+        label: 'ESPERA DESCARGA',
+        color: '#fbbf24', // Ámbar idéntico a supervisor
+        bg: 'rgba(245, 158, 11, 0.18)',
+        border: '1px solid rgba(245, 158, 11, 0.4)',
+        borderColor: '#f59e0b',
+        rowBg: 'rgba(245, 158, 11, 0.05)',
+        icon: <Clock size={11} />
+      };
+    case 'Retorno':
+      return {
+        label: 'RETORNO',
+        color: '#c084fc', // Púrpura idéntico a supervisor
+        bg: 'rgba(168, 85, 247, 0.18)',
+        border: '1px solid rgba(168, 85, 247, 0.4)',
+        borderColor: '#a855f7',
+        rowBg: 'rgba(168, 85, 247, 0.06)',
+        icon: <RotateCcw size={11} />
+      };
+    case 'Retrasado':
+      return {
+        label: 'RETRASADO / ALERTA',
+        color: '#f87171', // Rojo idéntico a supervisor
+        bg: 'rgba(239, 68, 68, 0.18)',
+        border: '1px solid rgba(239, 68, 68, 0.4)',
+        borderColor: '#ef4444',
+        rowBg: 'rgba(239, 68, 68, 0.06)',
+        icon: <AlertTriangle size={11} />
+      };
+    default:
+      return null;
+  }
+};
 
 export const PlaneacionView = () => {
   const { 
@@ -36,14 +97,15 @@ export const PlaneacionView = () => {
 
   const [filterBloque, setFilterBloque] = useState('ALL');
   const [filterFL, setFilterFL] = useState('ALL'); // 'ALL' | 'LOCAL' | 'FORANEO'
-  const [filterEstatus, setFilterEstatus] = useState('ALL'); // 'ALL' | 'PENDIENTE' | 'COLOCADO' | 'EN CASETA' | 'TALLER'
+  const [filterEstatus, setFilterEstatus] = useState('ALL'); // 'ALL' | 'PENDIENTE' | 'COLOCADO' | 'CARGADO' | 'TALLER'
 
   // Filtrado de unidades en planeación:
-  // Aparecen todas las unidades que están en patio (Disponible, Colocado p/ Carga, Cargado) y las que están en taller.
+  // Aparecen TODAS las unidades que están en patio (Disponible, Colocado p/ Carga, Cargado) y las que están en taller.
+  const SUPERVISOR_ACTIVE_STATUSES = ['En Ruta', 'Espera Descarga', 'Descargando', 'Retorno', 'Retrasado', 'Completado'];
+
   const planeacionBaseUnits = units.filter(u => {
     const isTaller = u.estatusPatio === 'Taller' || u.estatus === 'TALLER';
     const isPatio = ['Disponible', 'Colocado p/ Carga', 'Cargado'].includes(u.estatusPatio) || !u.estatusPatio;
-
     return isPatio || isTaller;
   });
 
@@ -74,7 +136,7 @@ export const PlaneacionView = () => {
     return matchesSearch && matchesBloque && matchesFL && matchesEstatus;
   });
 
-  const enCasetaCount = planeacionBaseUnits.filter(u => u.estatusPatio !== 'Taller' && u.estatusPlaneacion === 'EN CASETA').length;
+  const cargadoCount = planeacionBaseUnits.filter(u => u.estatusPatio !== 'Taller' && u.estatusPlaneacion === 'CARGADO').length;
   const colocadoCount = planeacionBaseUnits.filter(u => u.estatusPatio !== 'Taller' && u.estatusPlaneacion === 'COLOCADO').length;
   const pendienteCount = planeacionBaseUnits.filter(u => u.estatusPatio !== 'Taller' && (u.estatusPlaneacion || 'PENDIENTE') === 'PENDIENTE').length;
   const tallerCount = planeacionBaseUnits.filter(u => u.estatusPatio === 'Taller' || u.estatus === 'TALLER').length;
@@ -134,7 +196,7 @@ export const PlaneacionView = () => {
             </span>
           </div>
           <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
-            Estatus oficial de embarque: COLOCADO, EN CASETA y PENDIENTE con control de cargas y cortinas
+            Estatus oficial de embarque: COLOCADO, CARGADO y PENDIENTE con control de cargas y cortinas
           </p>
         </div>
 
@@ -153,9 +215,9 @@ export const PlaneacionView = () => {
             </div>
           </div>
           <div style={{ background: '#101b30', padding: '0.45rem 0.85rem', borderRadius: 'var(--radius-md)', border: '1px solid rgba(234, 179, 8, 0.4)', textAlign: 'center' }}>
-            <span style={{ fontSize: '0.68rem', color: '#facc15', textTransform: 'uppercase', fontWeight: 700 }}>EN CASETA</span>
+            <span style={{ fontSize: '0.68rem', color: '#facc15', textTransform: 'uppercase', fontWeight: 700 }}>CARGADO</span>
             <div style={{ fontFamily: 'var(--font-mono)', fontSize: '1.25rem', fontWeight: 800, color: '#fef08a' }}>
-              {enCasetaCount}
+              {cargadoCount}
             </div>
           </div>
           <div style={{ background: '#101b30', padding: '0.45rem 0.85rem', borderRadius: 'var(--radius-md)', border: '1px solid rgba(148, 163, 184, 0.3)', textAlign: 'center' }}>
@@ -210,11 +272,11 @@ export const PlaneacionView = () => {
               Todos ({planeacionBaseUnits.length})
             </button>
             <button 
-              className={`pill-btn ${filterEstatus === 'EN CASETA' ? 'active' : ''}`}
-              onClick={() => setFilterEstatus('EN CASETA')}
-              style={filterEstatus === 'EN CASETA' ? { background: '#fef08a', borderColor: '#eab308', color: '#713f12', fontWeight: 800 } : {}}
+              className={`pill-btn ${filterEstatus === 'CARGADO' ? 'active' : ''}`}
+              onClick={() => setFilterEstatus('CARGADO')}
+              style={filterEstatus === 'CARGADO' ? { background: '#fef08a', borderColor: '#eab308', color: '#713f12', fontWeight: 800 } : {}}
             >
-              EN CASETA ({enCasetaCount})
+              CARGADO ({cargadoCount})
             </button>
             <button 
               className={`pill-btn ${filterEstatus === 'COLOCADO' ? 'active' : ''}`}
@@ -313,7 +375,7 @@ export const PlaneacionView = () => {
             Matriz de Embarques y Despacho ({planeacionUnits.filter(u => u.noViaje).length} Viajes Filtrados)
           </h2>
           <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-            Estatus Oficial: COLOCADO, EN CASETA, PENDIENTE (Sincronizado en tiempo real)
+            Estatus Oficial: COLOCADO, CARGADO, PENDIENTE (Sincronizado en tiempo real)
           </span>
         </div>
 
@@ -348,8 +410,16 @@ export const PlaneacionView = () => {
                 planeacionUnits.map(unit => {
                   const isEnTaller = unit.estatusPatio === 'Taller' || unit.estatus === 'TALLER';
                   const estatusPlan = unit.estatusPlaneacion || 'PENDIENTE';
-                  const isEnCaseta = !isEnTaller && estatusPlan === 'EN CASETA';
-                  const isColocado = !isEnTaller && estatusPlan === 'COLOCADO';
+                  const estatusSup = unit.estatusSupervisor || null;
+                  const isCompletado = estatusPlan === 'COMPLETADO' || estatusSup === 'Completado';
+
+                  // Estados activos que vienen de Supervisor con su propio color oficial
+                  const SUPERVISOR_ACTIVE_LIST = ['En Ruta', 'Espera Descarga', 'Descargando', 'Retorno', 'Retrasado'];
+                  const isSupervisorActive = !isEnTaller && !isCompletado && SUPERVISOR_ACTIVE_LIST.includes(estatusSup);
+                  const supConfig = isSupervisorActive ? getSupervisorStatusConfig(estatusSup) : null;
+
+                  const isCargado = !isEnTaller && !isSupervisorActive && estatusPlan === 'CARGADO';
+                  const isColocado = !isEnTaller && !isSupervisorActive && estatusPlan === 'COLOCADO';
                   
                   // Validación de restricciones de matriz Villahermosa
                   const warnings = validarRestriccionesViaje(
@@ -363,14 +433,22 @@ export const PlaneacionView = () => {
                       style={{
                         background: isEnTaller 
                           ? 'rgba(239, 68, 68, 0.06)' 
-                          : isEnCaseta 
+                          : isCompletado
+                          ? 'rgba(16, 185, 129, 0.04)'
+                          : supConfig
+                          ? supConfig.rowBg
+                          : isCargado 
                           ? 'rgba(234, 179, 8, 0.06)' 
                           : isColocado 
                           ? 'rgba(6, 182, 212, 0.04)' 
                           : 'transparent',
                         borderLeft: isEnTaller 
                           ? '4px solid #ef4444' 
-                          : isEnCaseta 
+                          : isCompletado
+                          ? '4px solid #10b981'
+                          : supConfig
+                          ? `4px solid ${supConfig.borderColor}`
+                          : isCargado 
                           ? '4px solid #eab308' 
                           : isColocado 
                           ? '4px solid #06b6d4' 
@@ -523,9 +601,35 @@ export const PlaneacionView = () => {
                             <Wrench size={11} />
                             <span>TALLER (BLOQUEADA)</span>
                           </span>
+                        ) : isCompletado ? (
+                          <span className="status-badge" style={{
+                            background: 'rgba(16, 185, 129, 0.25)',
+                            color: '#34d399',
+                            border: '1px solid rgba(16, 185, 129, 0.5)',
+                            fontWeight: 800,
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '0.25rem'
+                          }}>
+                            <CheckCircle2 size={11} />
+                            <span>COMPLETADO</span>
+                          </span>
+                        ) : supConfig ? (
+                          <span className="status-badge" style={{
+                            background: supConfig.bg,
+                            color: supConfig.color,
+                            border: supConfig.border,
+                            fontWeight: 700,
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '0.25rem'
+                          }}>
+                            {supConfig.icon}
+                            <span>{supConfig.label}</span>
+                          </span>
                         ) : (
                           <span className={`status-badge ${
-                            isEnCaseta ? 'status-encaseta' :
+                            isCargado ? 'status-encaseta' :
                             isColocado ? 'status-colocado' :
                             'status-pendiente'
                           }`}>
@@ -558,6 +662,41 @@ export const PlaneacionView = () => {
                               <Wrench size={12} />
                               <span>En Taller (No Seleccionable)</span>
                             </span>
+                          ) : isCompletado ? (
+                            <span
+                              style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '0.35rem',
+                                padding: '0.28rem 0.6rem',
+                                borderRadius: 'var(--radius-xs)',
+                                fontSize: '0.72rem',
+                                fontWeight: 700,
+                                background: 'rgba(16, 185, 129, 0.15)',
+                                color: '#34d399',
+                                border: '1px solid rgba(16, 185, 129, 0.35)',
+                                userSelect: 'none'
+                              }}
+                            >
+                              <CheckCircle2 size={12} />
+                              <span>Viaje Completado</span>
+                            </span>
+                          ) : isSupervisorActive ? (
+                            <span style={{
+                              fontSize: '0.72rem',
+                              color: supConfig?.color || '#38bdf8',
+                              fontWeight: 600,
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '0.3rem',
+                              padding: '0.22rem 0.55rem',
+                              borderRadius: '4px',
+                              background: supConfig?.bg || 'transparent',
+                              border: supConfig?.border || 'none'
+                            }}>
+                              {supConfig?.icon}
+                              <span>En Supervisor</span>
+                            </span>
                           ) : (
                             <>
                               {estatusPlan === 'PENDIENTE' && (
@@ -585,22 +724,25 @@ export const PlaneacionView = () => {
                                     alignItems: 'center',
                                     gap: '0.3rem'
                                   }}
-                                  onClick={() => handleStatusChange(unit.id, 'EN CASETA')}
-                                  title="Carga terminada: Pasar a Caseta y liberar a ruta"
+                                  onClick={() => handleStatusChange(unit.id, 'CARGADO')}
+                                  title="Carga terminada: marcar como Cargado"
                                 >
                                   <Send size={12} />
-                                  <span>A Caseta</span>
+                                  <span>Cargado</span>
                                 </button>
                               )}
-                              {estatusPlan === 'EN CASETA' && (
-                                <button 
-                                  className="btn-move"
-                                  style={{ padding: '0.25rem 0.45rem', fontSize: '0.7rem' }}
-                                  onClick={() => handleStatusChange(unit.id, 'COLOCADO')}
-                                  title="Regresar a Colocado si hay ajuste"
-                                >
-                                  Retornar
-                                </button>
+                              {isCargado && (
+                                <span style={{
+                                  fontSize: '0.72rem',
+                                  color: '#facc15',
+                                  fontStyle: 'italic',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '0.25rem'
+                                }}>
+                                  <Send size={11} />
+                                  <span>Listo p/ Salida</span>
+                                </span>
                               )}
                             </>
                           )}

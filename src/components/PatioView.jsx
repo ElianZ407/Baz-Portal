@@ -207,45 +207,21 @@ export const PatioView = () => {
                       </div>
 
                       <div className="unit-card-footer">
-                        {/* Acciones para mover estatus en Patio */}
+                        {/* Patio: solo mover a Taller o liberar de Taller */}
                         <div className="unit-card-actions">
-                          {col.id !== 'Disponible' && (
+                          {col.id === 'Taller' ? (
                             <button 
                               className="btn-move"
+                              style={{ borderColor: 'rgba(16, 185, 129, 0.4)', color: '#34d399' }}
                               onClick={(e) => {
                                 e.stopPropagation();
                                 updateStatus(unit.id, 'patio', 'Disponible');
                               }}
-                              title="Marcar como Disponible"
+                              title="Liberar de Taller — Disponible en Patio"
                             >
-                              Disp.
+                              Disponible
                             </button>
-                          )}
-                          {col.id !== 'Colocado p/ Carga' && (
-                            <button 
-                              className="btn-move"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                updateStatus(unit.id, 'patio', 'Colocado p/ Carga');
-                              }}
-                              title="Colocar para carga"
-                            >
-                              Carga
-                            </button>
-                          )}
-                          {col.id !== 'Cargado' && (
-                            <button 
-                              className="btn-move"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                updateStatus(unit.id, 'patio', 'Cargado');
-                              }}
-                              title="Marcar como Cargado"
-                            >
-                              Cargado
-                            </button>
-                          )}
-                          {col.id !== 'Taller' && (
+                          ) : (
                             <button 
                               className="btn-move"
                               style={{ borderColor: 'rgba(239, 68, 68, 0.4)', color: '#f87171' }}
@@ -253,7 +229,7 @@ export const PatioView = () => {
                                 e.stopPropagation();
                                 updateStatus(unit.id, 'patio', 'Taller');
                               }}
-                              title="Enviar a Taller"
+                              title="Enviar a Taller Mecánico"
                             >
                               Taller
                             </button>
