@@ -10,7 +10,7 @@ import {
   savePlanHistoricoDb,
   deletePlanHistoricoDb
 } from '../lib/supabaseClient';
-import { buscarIdOperadorPorNombre, buscarOperadorPorEco } from '../data/flotaMaestraData';
+import { buscarIdOperadorPorNombre, buscarOperadorPorEco, checkTieneViajeYOperador } from '../data/flotaMaestraData';
 
 const FleetContext = createContext(null);
 
@@ -337,6 +337,18 @@ export const FleetProvider = ({ children }) => {
     
     const targetUnit = units.find(u => u.id === unitId);
     if (!targetUnit) return;
+
+    // Validación oficial: Si se intenta colocar o poner en caseta/cargado, DEBE tener No. de Viaje y Operador
+    if (
+      (area === 'planeacion' && (newStatus === 'COLOCADO' || newStatus === 'CARGADO')) ||
+      (area === 'patio' && (newStatus === 'Colocado p/ Carga' || newStatus === 'Cargado'))
+    ) {
+      const { valid } = checkTieneViajeYOperador(targetUnit);
+      if (!valid) {
+        console.warn(`[Validación Bloqueada] La unidad ECO ${targetUnit.economico} requiere No. de Viaje y Operador para pasar a ${newStatus}.`);
+        return;
+      }
+    }
 
     const updated = { ...targetUnit, actualizadoEn: now };
 
