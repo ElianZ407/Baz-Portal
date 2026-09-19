@@ -8,6 +8,8 @@ import { TvDashboardView } from './components/TvDashboardView';
 import { UnitModal } from './components/UnitModal';
 import { ConfirmModal } from './components/ConfirmModal';
 import { ManualAyudaModal } from './components/ManualAyudaModal';
+import { SavePlanModal } from './components/SavePlanModal';
+import { PlanHistoryModal } from './components/PlanHistoryModal';
 
 const AppContent = () => {
   const { activeArea } = useFleet();
@@ -39,6 +41,8 @@ const AppContent = () => {
       <UnitModal />
       <ConfirmModal />
       <ManualAyudaModal />
+      <SavePlanModal />
+      <PlanHistoryModal />
     </div>
   );
 };

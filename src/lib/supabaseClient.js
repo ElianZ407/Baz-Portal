@@ -179,3 +179,72 @@ export const deleteViajeDb = async (id) => {
   }
   return data;
 };
+
+// ==========================================
+// OPERACIONES HISTÓRICAS DE PLANES / DÍAS
+// ==========================================
+
+export const fetchPlanesHistoricosDb = async () => {
+  if (!supabase) return null;
+  try {
+    const { data, error } = await supabase
+      .from('historial_planes')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      // Si la tabla aún no fue creada en Supabase, no lanzar error fatal
+      console.warn('Advertencia al consultar historial_planes:', error.message);
+      return null;
+    }
+    return data;
+  } catch (err) {
+    console.warn('Excepción al consultar historial_planes:', err);
+    return null;
+  }
+};
+
+export const savePlanHistoricoDb = async (plan) => {
+  if (!supabase) return null;
+  try {
+    const row = {
+      id: plan.id,
+      fecha: plan.fecha,
+      nombre: plan.nombre || `Plan ${plan.fecha}`,
+      total_viajes: plan.totalViajes || (plan.unidades ? plan.unidades.length : 0),
+      total_completados: plan.totalCompletados || 0,
+      datos: plan.unidades || [],
+      created_at: plan.createdAt || new Date().toISOString()
+    };
+
+    const { data, error } = await supabase
+      .from('historial_planes')
+      .upsert(row, { onConflict: 'id' });
+
+    if (error) {
+      console.warn('Error al guardar en historial_planes en Supabase:', error);
+      throw error;
+    }
+    return data;
+  } catch (err) {
+    console.warn('Excepción al guardar en historial_planes:', err);
+    throw err;
+  }
+};
+
+export const deletePlanHistoricoDb = async (id) => {
+  if (!supabase) return null;
+  try {
+    const { data, error } = await supabase
+      .from('historial_planes')
+      .delete()
+      .eq('id', id);
+
+    if (error) throw error;
+    return data;
+  } catch (err) {
+    console.error('Error al eliminar plan histórico en Supabase:', err);
+    throw err;
+  }
+};
+

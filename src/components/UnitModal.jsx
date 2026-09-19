@@ -6,6 +6,8 @@ import { SUCURSALES_MAESTRAS, buscarSucursal, validarRestriccionesViaje } from '
 import { FLOTA_TOTAL, buscarUnidadPorEco, OPERADORES_ACTIVOS } from '../data/flotaMaestraData';
 import { SucursalSelector } from './SucursalSelector';
 import { UnidadSelector } from './UnidadSelector';
+import { OperadorSelector } from './OperadorSelector';
+import { CustomSelect } from './CustomSelect';
 
 export const UnitModal = () => {
   const { isModalOpen, setIsModalOpen, selectedUnit, saveUnit, deleteUnit, showConfirm, activeArea } = useFleet();
@@ -118,17 +120,21 @@ export const UnitModal = () => {
 
     // Si el usuario cambia el estatus de planeación
     if (name === 'estatusPlaneacion') {
-      if (value === 'EN CASETA') {
+      if (value === 'CARGADO') {
         updated.estatusPatio = 'Cargado';
-        if (updated.estatusSupervisor === 'Pendiente' || !updated.estatusSupervisor) {
-          updated.estatusSupervisor = 'En Ruta';
+        if (['Pendiente', 'No Disponible', 'En Espera', ''].includes(updated.estatusSupervisor) || !updated.estatusSupervisor) {
+          updated.estatusSupervisor = 'Cargado';
         }
       } else if (value === 'COLOCADO') {
         updated.estatusPatio = 'Colocado p/ Carga';
-        updated.estatusSupervisor = 'Pendiente';
+        if (updated.estatusSupervisor === 'No Disponible') {
+          updated.estatusSupervisor = 'Pendiente';
+        }
       } else if (value === 'PENDIENTE') {
         updated.estatusPatio = 'Disponible';
-        updated.estatusSupervisor = 'Pendiente';
+        if (updated.estatusSupervisor === 'No Disponible') {
+          updated.estatusSupervisor = 'Pendiente';
+        }
       }
     }
 
@@ -161,8 +167,13 @@ export const UnitModal = () => {
       operador: '',
       idOperador: '',
       estatusPlaneacion: formData.estatusPlaneacion || 'PENDIENTE',
-      estatusSupervisor: formData.estatusSupervisor || 'Pendiente'
-    } : formData;
+      estatusSupervisor: formData.estatusPatio === 'Taller' ? 'No Disponible' : (formData.estatusSupervisor || 'Pendiente')
+    } : {
+      ...formData,
+      estatusSupervisor: (formData.estatusPlaneacion === 'CARGADO' && (formData.estatusSupervisor === 'No Disponible' || !formData.estatusSupervisor || formData.estatusSupervisor === 'Pendiente'))
+        ? 'Cargado'
+        : (formData.estatusSupervisor || 'Pendiente')
+    };
 
     saveUnit(payload);
     setIsModalOpen(false);
@@ -197,12 +208,7 @@ export const UnitModal = () => {
           </button>
         </div>
 
-        {/* Datalist solo para operadores */}
-        <datalist id="operadores-list">
-          {OPERADORES_ACTIVOS.map(op => (
-            <option key={op} value={op} />
-          ))}
-        </datalist>
+        {/* datalist eliminado — reemplazado por OperadorSelector */}
 
         <form onSubmit={handleSubmit}>
           <div className="modal-body">
@@ -315,69 +321,60 @@ export const UnitModal = () => {
                 {/* Capacidad Unidad */}
                 <div className="form-group">
                   <label>Capacidad Unidad (m³)</label>
-                  <select 
-                    name="capUnidad" 
-                    className="form-control"
+                  <CustomSelect
                     value={formData.capUnidad}
-                    onChange={handleChange}
-                  >
-                    <option value={18}>18 m³ (Camioneta / Rabón Chico)</option>
-                    <option value={40}>40 m³ (Madrina Mediana)</option>
-                    <option value={50}>50 m³ (Madrina Estándar / Rango Medio)</option>
-                    <option value={70}>70 m³ (Intercedis / Trailer)</option>
-                    <option value={90}>90 m³ (Caja Seca Sencilla)</option>
-                    <option value={110}>110 m³ (Full Tráiler)</option>
-                  </select>
+                    onChange={v => setFormData(prev => ({ ...prev, capUnidad: Number(v) }))}
+                    options={[
+                      { value: 18,  label: '18 m³', sub: 'Camioneta / Rabón Chico' },
+                      { value: 40,  label: '40 m³', sub: 'Madrina Mediana' },
+                      { value: 50,  label: '50 m³', sub: 'Madrina Estándar / Rango Medio' },
+                      { value: 70,  label: '70 m³', sub: 'Intercedis / Trailer' },
+                      { value: 90,  label: '90 m³', sub: 'Caja Seca Sencilla' },
+                      { value: 110, label: '110 m³', sub: 'Full Tráiler' },
+                    ]}
+                  />
                 </div>
 
                 {/* Tipo de Unidad */}
                 <div className="form-group">
                   <label>Tipo de Vehículo</label>
-                  <select 
-                    name="tipo" 
-                    className="form-control"
+                  <CustomSelect
                     value={formData.tipo}
-                    onChange={handleChange}
-                  >
-                    <option value="Camioneta">Camioneta (18 m³)</option>
-                    <option value="Rango Medio">Rango Medio (50 m³)</option>
-                    <option value="Madrina / Rango Medio">Madrina / Rango Medio</option>
-                    <option value="Sencillo">Sencillo (90 m³)</option>
-                    <option value="Tracto / Sencillo">Tracto / Sencillo</option>
-                    <option value="Tracto / Full">Tracto / Full (110 m³)</option>
-                  </select>
+                    onChange={v => setFormData(prev => ({ ...prev, tipo: v }))}
+                    options={[
+                      { value: 'Camioneta',           label: 'Camioneta',           sub: '18 m³' },
+                      { value: 'Rango Medio',         label: 'Rango Medio',         sub: '50 m³' },
+                      { value: 'Madrina / Rango Medio', label: 'Madrina / Rango Medio' },
+                      { value: 'Sencillo',            label: 'Sencillo',            sub: '90 m³' },
+                      { value: 'Tracto / Sencillo',   label: 'Tracto / Sencillo' },
+                      { value: 'Tracto / Full',       label: 'Tracto / Full',       sub: '110 m³' },
+                    ]}
+                  />
                 </div>
 
                 {/* Línea de Transporte */}
                 <div className="form-group">
                   <label>Línea de Transporte</label>
-                  <select 
-                    name="linea" 
-                    className="form-control"
+                  <CustomSelect
                     value={formData.linea}
-                    onChange={handleChange}
-                  >
-                    {LINEAS_TRANSPORTE.map(l => (
-                      <option key={l} value={l}>{l}</option>
-                    ))}
-                  </select>
+                    onChange={v => setFormData(prev => ({ ...prev, linea: v }))}
+                    options={LINEAS_TRANSPORTE.map(l => ({ value: l, label: l }))}
+                  />
                 </div>
 
                 {/* Estatus Patio */}
                 <div className="form-group">
                   <label>Estatus en Patio (En CD) *</label>
-                  <select 
-                    name="estatusPatio" 
-                    className="form-control"
+                  <CustomSelect
                     value={formData.estatusPatio}
-                    onChange={handleChange}
-                    style={{ fontWeight: 700 }}
-                  >
-                    <option value="Disponible">🟢 Disponible en Patio</option>
-                    <option value="Colocado p/ Carga">🟡 Colocado p/ Carga</option>
-                    <option value="Cargado">🔵 Cargado</option>
-                    <option value="Taller">🔴 Taller / Mtto</option>
-                  </select>
+                    onChange={v => setFormData(prev => ({ ...prev, estatusPatio: v }))}
+                    options={[
+                      { value: 'Disponible',       label: '🟢 Disponible en Patio' },
+                      { value: 'Colocado p/ Carga', label: '🟡 Colocado p/ Carga' },
+                      { value: 'Cargado',          label: '🔵 Cargado' },
+                      { value: 'Taller',           label: '🔴 Taller / Mtto' },
+                    ]}
+                  />
                 </div>
 
                 {/* Cajón / Rampa en Patio */}
@@ -424,16 +421,11 @@ export const UnitModal = () => {
                 {/* Bloque */}
                 <div className="form-group">
                   <label>Bloque de Salida</label>
-                  <select 
-                    name="bloque" 
-                    className="form-control"
+                  <CustomSelect
                     value={formData.bloque}
-                    onChange={handleChange}
-                  >
-                    {BLOQUES.map(b => (
-                      <option key={b} value={b}>Bloque {b}</option>
-                    ))}
-                  </select>
+                    onChange={v => setFormData(prev => ({ ...prev, bloque: Number(v) }))}
+                    options={BLOQUES.map(b => ({ value: b, label: `Bloque ${b}` }))}
+                  />
                 </div>
 
                 {/* ECO Unidad con Selector Inteligente y Completo */}
@@ -462,47 +454,36 @@ export const UnitModal = () => {
                 {/* Capacidad Unidad */}
                 <div className="form-group">
                   <label>Capacidad Unidad (Motos / Vol.)</label>
-                  <select 
-                    name="capUnidad" 
-                    className="form-control"
+                  <CustomSelect
                     value={formData.capUnidad}
-                    onChange={handleChange}
-                  >
-                    <option value={18}>18 (Camioneta / Rabón Chico)</option>
-                    <option value={40}>40 (Madrina Mediana)</option>
-                    <option value={50}>50 (Madrina Estándar / Rango Medio)</option>
-                    <option value={70}>70 (Intercedis / Trailer)</option>
-                    <option value={90}>90 (Caja Seca Sencilla)</option>
-                    <option value={110}>110 (Full Tráiler)</option>
-                  </select>
+                    onChange={v => setFormData(prev => ({ ...prev, capUnidad: Number(v) }))}
+                    options={[
+                      { value: 18,  label: '18',  sub: 'Camioneta / Rabón Chico' },
+                      { value: 40,  label: '40',  sub: 'Madrina Mediana' },
+                      { value: 50,  label: '50',  sub: 'Madrina Estándar / Rango Medio' },
+                      { value: 70,  label: '70',  sub: 'Intercedis / Trailer' },
+                      { value: 90,  label: '90',  sub: 'Caja Seca Sencilla' },
+                      { value: 110, label: '110', sub: 'Full Tráiler' },
+                    ]}
+                  />
                 </div>
 
                 {/* Línea de Transporte */}
                 <div className="form-group">
                   <label>Línea de Transporte</label>
-                  <select 
-                    name="linea" 
-                    className="form-control"
+                  <CustomSelect
                     value={formData.linea}
-                    onChange={handleChange}
-                  >
-                    {LINEAS_TRANSPORTE.map(l => (
-                      <option key={l} value={l}>{l}</option>
-                    ))}
-                  </select>
+                    onChange={v => setFormData(prev => ({ ...prev, linea: v }))}
+                    options={LINEAS_TRANSPORTE.map(l => ({ value: l, label: l }))}
+                  />
                 </div>
 
                 {/* Operador */}
                 <div className="form-group">
                   <label>Nombre del Operador</label>
-                  <input 
-                    type="text"
-                    name="operador"
-                    list="operadores-list"
-                    className="form-control"
-                    placeholder="Ej: ANTONIO PEREZ PALMA..."
+                  <OperadorSelector
                     value={formData.operador}
-                    onChange={handleChange}
+                    onChange={(nombre) => setFormData(prev => ({ ...prev, operador: nombre }))}
                   />
                 </div>
 
@@ -557,15 +538,14 @@ export const UnitModal = () => {
                 {/* Tipo F / L */}
                 <div className="form-group">
                   <label>Clasificación (F / L)</label>
-                  <select 
-                    name="fl" 
-                    className="form-control"
+                  <CustomSelect
                     value={formData.fl || 'LOCAL'}
-                    onChange={handleChange}
-                  >
-                    <option value="LOCAL">LOCAL (Tabasco / Zonas de corta distancia)</option>
-                    <option value="FORANEO">FORÁNEO (Chiapas, Oaxaca, Península, Veracruz)</option>
-                  </select>
+                    onChange={v => setFormData(prev => ({ ...prev, fl: v }))}
+                    options={[
+                      { value: 'LOCAL',   label: 'LOCAL',   sub: 'Tabasco / Zonas de corta distancia' },
+                      { value: 'FORANEO', label: 'FORÁNEO', sub: 'Chiapas, Oaxaca, Península, Veracruz' },
+                    ]}
+                  />
                 </div>
 
                 {/* Hora de Salida */}
@@ -597,23 +577,18 @@ export const UnitModal = () => {
                 {/* Estatus Planeación (Oficial Excel) */}
                 <div className="form-group full-width">
                   <label>Estatus Planeación (Oficial)</label>
-                  <select 
-                    name="estatusPlaneacion" 
-                    className="form-control"
+                  <CustomSelect
                     value={formData.estatusPlaneacion || 'PENDIENTE'}
-                    onChange={handleChange}
-                    style={
-                      formData.estatusPlaneacion === 'EN CASETA' 
-                        ? { background: '#fef08a', color: '#713f12', fontWeight: 800, borderColor: '#eab308' } 
-                        : formData.estatusPlaneacion === 'COLOCADO'
-                        ? { borderColor: '#06b6d4', color: '#22d3ee' }
-                        : {}
-                    }
-                  >
-                    <option value="PENDIENTE">PENDIENTE</option>
-                    <option value="COLOCADO">COLOCADO</option>
-                    <option value="EN CASETA">EN CASETA</option>
-                  </select>
+                    onChange={v => {
+                      const e = { target: { name: 'estatusPlaneacion', value: v } };
+                      handleChange(e);
+                    }}
+                    options={[
+                      { value: 'PENDIENTE', label: 'PENDIENTE', color: '#94a3b8' },
+                      { value: 'COLOCADO',  label: 'COLOCADO',  color: '#22d3ee' },
+                      { value: 'CARGADO',   label: 'CARGADO',   color: '#facc15' },
+                    ]}
+                  />
                 </div>
 
                 {/* Observaciones */}

@@ -7,9 +7,11 @@ import {
   Tv, 
   PlusCircle, 
   Maximize, 
-  Clock,
-  HelpCircle,
-  FileSpreadsheet
+  Clock, 
+  HelpCircle, 
+  FileSpreadsheet,
+  Save,
+  History
 } from 'lucide-react';
 import { useFleet } from '../context/FleetContext';
 import { exportOfficialExcel } from '../utils/exportOfficialExcel';
@@ -20,7 +22,10 @@ export const Header = () => {
     setActiveArea, 
     setIsModalOpen, 
     setSelectedUnit, 
-    units
+    units,
+    savedPlans,
+    setIsSavePlanModalOpen,
+    setIsHistoryModalOpen
   } = useFleet();
 
   const [headerTime, setHeaderTime] = useState(new Date());
@@ -129,13 +134,64 @@ export const Header = () => {
           <span>{dateString.toUpperCase()} | {timeString}</span>
         </div>
 
+        {activeArea === 'planeacion' && (
+          <button 
+            className="btn btn-primary"
+            onClick={handleOpenNewUnit}
+            title="Registrar nuevo viaje en planeación"
+          >
+            <PlusCircle size={16} />
+            <span>Nuevo Viaje</span>
+          </button>
+        )}
+
         <button 
-          className="btn btn-primary"
-          onClick={handleOpenNewUnit}
-          title="Registrar nueva unidad en el sistema"
+          className="btn btn-secondary" 
+          style={{ 
+            padding: '0.45rem 0.85rem', 
+            fontSize: '0.82rem', 
+            gap: '0.45rem', 
+            borderColor: 'rgba(6, 182, 212, 0.4)', 
+            background: 'rgba(6, 182, 212, 0.12)',
+            color: '#22d3ee'
+          }}
+          onClick={() => setIsSavePlanModalOpen(true)}
+          title="Guardar / Archivar el plan del día y opcionalmente comenzar nuevo día"
         >
-          <PlusCircle size={16} />
-          <span>Nueva Unidad</span>
+          <Save size={15} color="#22d3ee" />
+          <span style={{ fontWeight: 700 }}>Guardar Día</span>
+        </button>
+
+        <button 
+          className="btn btn-secondary" 
+          style={{ 
+            padding: '0.45rem 0.85rem', 
+            fontSize: '0.82rem', 
+            gap: '0.45rem', 
+            borderColor: 'rgba(168, 85, 247, 0.4)', 
+            background: 'rgba(168, 85, 247, 0.12)',
+            color: '#c084fc',
+            display: 'flex',
+            alignItems: 'center'
+          }}
+          onClick={() => setIsHistoryModalOpen(true)}
+          title="Consultar historial de planes guardados, exportar sus Excel o restaurarlos"
+        >
+          <History size={15} color="#c084fc" />
+          <span style={{ fontWeight: 700 }}>Historial</span>
+          {savedPlans && savedPlans.length > 0 && (
+            <span style={{
+              background: '#a855f7',
+              color: '#fff',
+              borderRadius: '10px',
+              padding: '0.05rem 0.4rem',
+              fontSize: '0.65rem',
+              fontWeight: 800,
+              marginLeft: '0.1rem'
+            }}>
+              {savedPlans.length}
+            </span>
+          )}
         </button>
 
         <button 
