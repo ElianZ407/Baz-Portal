@@ -250,7 +250,14 @@ export const SupervisorView = () => {
                     <td>
                       <div className="operator-cell">
                         <span className="operator-name">{unit.operador || 'POR ASIGNAR'}</span>
-                        <span className="operator-shift">Turno: {unit.turno || 'M1'}</span>
+                        <div style={{ display: 'flex', gap: '0.45rem', alignItems: 'center' }}>
+                          <span className="operator-shift">Turno: {unit.turno || 'M1'}</span>
+                          {unit.idOperador && (
+                            <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
+                              • ID: {unit.idOperador}
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </td>
                     <td>

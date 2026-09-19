@@ -111,3 +111,19 @@ export const OPERADORES_ACTIVOS = Array.from(
       .filter(op => op && op !== "VACANTE" && op !== "BAJA")
   )
 ).sort();
+
+// Buscar ID de Operador por su Nombre Oficial
+export const buscarIdOperadorPorNombre = (nombreOperador) => {
+  if (!nombreOperador) return '';
+  const clean = String(nombreOperador).trim().toLowerCase();
+  const found = FLOTA_TOTAL.find(u => (u.operador || '').trim().toLowerCase() === clean);
+  return found?.idOperador || '';
+};
+
+// Buscar Unidad y Operador por número económico
+export const buscarOperadorPorEco = (eco) => {
+  if (!eco) return null;
+  const clean = String(eco).trim().toLowerCase();
+  return FLOTA_TOTAL.find(u => u.eco.toLowerCase() === clean) || null;
+};
+

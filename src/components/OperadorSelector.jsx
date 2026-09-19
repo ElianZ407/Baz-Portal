@@ -59,9 +59,21 @@ export const OperadorSelector = ({ value, onChange, placeholder = 'Ej: ANTONIO P
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [isOpen]);
 
-  const handleSelect = (op) => { onChange(op.nombre); setIsOpen(false); setSearch(''); };
-  const handleInputChange = (e) => onChange(e.target.value.toUpperCase());
-  const handleClear = () => { onChange(''); setSearch(''); if (inputRef.current) inputRef.current.focus(); };
+  const handleSelect = (op) => { 
+    onChange(op.nombre, op.idOperador || ''); 
+    setIsOpen(false); 
+    setSearch(''); 
+  };
+  const handleInputChange = (e) => {
+    const val = e.target.value.toUpperCase();
+    const matched = allOperadores.find(o => o.nombre.toUpperCase() === val.trim());
+    onChange(val, matched ? (matched.idOperador || '') : '');
+  };
+  const handleClear = () => { 
+    onChange('', ''); 
+    setSearch(''); 
+    if (inputRef.current) inputRef.current.focus(); 
+  };
 
   return (
     <div ref={dropdownRef} style={{ position: 'relative', width: '100%' }}>
@@ -92,7 +104,7 @@ export const OperadorSelector = ({ value, onChange, placeholder = 'Ej: ANTONIO P
         <div style={{ position: 'absolute', top: 'calc(100% + 4px)', left: 0, right: 0, background: '#0f1c2e', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', boxShadow: '0 8px 32px rgba(0,0,0,0.5)', zIndex: 9999, overflow: 'hidden', maxHeight: '320px', display: 'flex', flexDirection: 'column' }}>
           <div style={{ padding: '0.55rem 0.75rem', borderBottom: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'rgba(6, 182, 212, 0.05)' }}>
             <Search size={14} color="var(--accent-cyan)" style={{ flexShrink: 0 }} />
-            <input ref={searchRef} type="text" placeholder="Buscar operador..." value={search} onChange={(e) => setSearch(e.target.value)} onClick={(e) => e.stopPropagation()} style={{ background: 'transparent', border: 'none', outline: 'none', color: '#f1f5f9', fontSize: '0.83rem', flex: 1, fontFamily: 'var(--font-sans)' }} />
+            <input ref={searchRef} type="text" placeholder="Buscar operador o nómina..." value={search} onChange={(e) => setSearch(e.target.value)} onClick={(e) => e.stopPropagation()} style={{ background: 'transparent', border: 'none', outline: 'none', color: '#f1f5f9', fontSize: '0.83rem', flex: 1, fontFamily: 'var(--font-sans)' }} />
             {search && <button type="button" onClick={() => setSearch('')} style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: 0, display: 'flex' }}><X size={13} /></button>}
           </div>
           <div style={{ overflowY: 'auto', flex: 1 }}>
@@ -109,9 +121,14 @@ export const OperadorSelector = ({ value, onChange, placeholder = 'Ej: ANTONIO P
                     onMouseLeave={e => e.currentTarget.style.background = isSelected ? 'rgba(6, 182, 212, 0.12)' : 'transparent'}
                   >
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
                         <User size={13} color={isRecent ? '#22d3ee' : '#64748b'} style={{ flexShrink: 0 }} />
                         <span style={{ fontWeight: 700, fontSize: '0.83rem', color: isSelected ? 'var(--accent-cyan)' : '#f1f5f9', letterSpacing: '0.01em' }}>{op.nombre}</span>
+                        {op.idOperador && (
+                          <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
+                            (ID: {op.idOperador})
+                          </span>
+                        )}
                       </div>
                       {isRecent && (
                         <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.2rem', fontSize: '0.65rem', fontWeight: 700, background: 'rgba(6, 182, 212, 0.15)', color: '#22d3ee', border: '1px solid rgba(6, 182, 212, 0.3)', borderRadius: '4px', padding: '0.1rem 0.4rem' }}>
