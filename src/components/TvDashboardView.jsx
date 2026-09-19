@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Tv, 
   MapPin, 
@@ -22,6 +22,24 @@ export const TvDashboardView = () => {
   } = useFleet();
 
   const [filterFL, setFilterFL] = useState('ALL'); // 'ALL' | 'LOCAL' | 'FORANEO'
+  const [currentDate, setCurrentDate] = useState(() => {
+    return new Date().toLocaleDateString('es-MX', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric'
+    });
+  });
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentDate(new Date().toLocaleDateString('es-MX', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric'
+      }));
+    }, 60000);
+    return () => clearInterval(interval);
+  }, []);
 
   // Filtrar según el estado seleccionado, búsqueda y F/L
   const filteredUnits = units.filter(unit => {
@@ -109,17 +127,8 @@ export const TvDashboardView = () => {
             <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
               Fecha Operativa
             </span>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', justifyContent: 'flex-end', color: 'var(--accent-cyan)', fontWeight: 700, fontFamily: 'var(--font-mono)' }}>
-              <span>10/09/2026</span>
-            </div>
-          </div>
-          <div style={{ textAlign: 'right' }}>
-            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-              Transmisión
-            </span>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', justifyContent: 'flex-end', color: '#34d399', fontWeight: 600 }}>
-              <span className="clock-dot"></span>
-              <span>EN VIVO</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', justifyContent: 'flex-end', color: 'var(--accent-cyan)', fontWeight: 700, fontFamily: 'var(--font-mono)', fontSize: '0.95rem' }}>
+              <span>{currentDate}</span>
             </div>
           </div>
         </div>

@@ -192,7 +192,7 @@ export const PlaneacionView = () => {
               fontWeight: 700,
               border: '1px solid rgba(6, 182, 212, 0.3)'
             }}>
-              CD VILLAHERMOSA • 10/09/2026
+              CD VILLAHERMOSA • {new Date().toLocaleDateString('es-MX', { day: '2-digit', month: '2-digit', year: 'numeric' })}
             </span>
           </div>
           <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
