@@ -10,7 +10,7 @@ import { OperadorSelector } from './OperadorSelector';
 import { CustomSelect } from './CustomSelect';
 
 export const UnitModal = () => {
-  const { isModalOpen, setIsModalOpen, selectedUnit, saveUnit, deleteUnit, showConfirm, activeArea } = useFleet();
+  const { isModalOpen, setIsModalOpen, selectedUnit, saveUnit, deleteUnit, showConfirm, showAlert, activeArea } = useFleet();
   const isPatioMode = activeArea === 'patio';
 
   const [formData, setFormData] = useState({
@@ -165,12 +165,23 @@ export const UnitModal = () => {
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!formData.economico) {
-      alert('Por favor seleccione o ingrese el número económico de la unidad');
+      showAlert({
+        title: 'Dato Requerido',
+        message: 'Por favor seleccione o ingrese el número económico de la unidad.',
+        confirmType: 'warning',
+        confirmText: 'Entendido'
+      });
       return;
     }
 
     if (isBlockedForPlaneacion) {
-      alert('La unidad seleccionada se encuentra en Taller Mecánico y no puede ser programada en Planeación.');
+      showAlert({
+        title: 'Unidad en Taller Mecánico',
+        message: `La unidad ECO ${formData.economico} se encuentra en Taller Mecánico y no puede ser programada en Planeación.`,
+        unit: formData,
+        confirmType: 'danger',
+        confirmText: 'Entendido'
+      });
       return;
     }
 
@@ -181,7 +192,14 @@ export const UnitModal = () => {
         const faltantes = [];
         if (!hasViaje) faltantes.push('Número de Viaje');
         if (!hasOperador) faltantes.push('Operador Asignado');
-        alert(`⚠️ Validación Operativa BAZ:\nPara registrar la unidad con estatus ${formData.estatusPlaneacion === 'COLOCADO' ? 'COLOCADO (En Andén)' : 'CARGADO (En Caseta)'}, es obligatorio registrar:\n\n• ${faltantes.join('\n• ')}\n\nPor favor asigne estos datos antes de guardar.`);
+        
+        showAlert({
+          title: 'Validación Operativa — BAZ Entregas',
+          message: `Para registrar la unidad con estatus ${formData.estatusPlaneacion === 'COLOCADO' ? 'COLOCADO (En Cortina)' : 'CARGADO (En Caseta)'}, es obligatorio registrar:\n\n• ${faltantes.join('\n• ')}\n\nPor favor asigne estos datos antes de guardar.`,
+          unit: formData,
+          confirmType: 'warning',
+          confirmText: 'Entendido'
+        });
         return;
       }
     }

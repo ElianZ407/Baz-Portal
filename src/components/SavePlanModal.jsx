@@ -18,7 +18,8 @@ export const SavePlanModal = () => {
     isSavePlanModalOpen, 
     setIsSavePlanModalOpen, 
     saveCurrentPlan,
-    setIsHistoryModalOpen
+    setIsHistoryModalOpen,
+    showAlert
   } = useFleet();
 
   const todayStr = new Date().toISOString().split('T')[0];
@@ -38,7 +39,12 @@ export const SavePlanModal = () => {
   const handleSave = async (e) => {
     e.preventDefault();
     if (totalViajes === 0) {
-      alert('No hay viajes en el tablero actual para guardar.');
+      showAlert({
+        title: 'Sin Viajes Activos',
+        message: 'No hay viajes en el tablero actual para guardar.',
+        confirmType: 'warning',
+        confirmText: 'Entendido'
+      });
       return;
     }
 
@@ -57,7 +63,12 @@ export const SavePlanModal = () => {
       }, 1200);
     } catch (err) {
       setIsSaving(false);
-      alert('Ocurrió un error al guardar el plan: ' + err.message);
+      showAlert({
+        title: 'Error al Guardar Plan',
+        message: 'Ocurrió un error al guardar el plan: ' + err.message,
+        confirmType: 'danger',
+        confirmText: 'Entendido'
+      });
     }
   };
 

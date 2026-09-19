@@ -25,7 +25,8 @@ export const PlanHistoryModal = () => {
     loadSavedPlan, 
     deleteSavedPlan,
     setIsSavePlanModalOpen,
-    showConfirm
+    showConfirm,
+    showAlert
   } = useFleet();
 
   const [searchTerm, setSearchTerm] = useState('');
@@ -50,7 +51,12 @@ export const PlanHistoryModal = () => {
     } catch (err) {
       setDownloadingId(null);
       console.error('Error al exportar Excel histórico:', err);
-      alert('Error al generar Excel: ' + err.message);
+      showAlert({
+        title: 'Error al Generar Excel',
+        message: 'Ocurrió un error al generar el archivo Excel: ' + err.message,
+        confirmType: 'danger',
+        confirmText: 'Entendido'
+      });
     }
   };
 
