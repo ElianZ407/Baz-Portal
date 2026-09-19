@@ -46,21 +46,32 @@ export const UnitModal = () => {
     if (selectedUnit) {
       const resolvedId = selectedUnit.idOperador || 
         (selectedUnit.operador ? buscarIdOperadorPorNombre(selectedUnit.operador) : (selectedUnit.economico ? buscarOperadorPorEco(selectedUnit.economico)?.idOperador : '')) || '';
-
       setFormData({
         ...selectedUnit,
         noViaje: selectedUnit.noViaje || '',
-        bloque: selectedUnit.bloque || 1,
-        placas: selectedUnit.placas || '',
-        capUnidad: selectedUnit.capUnidad || 50,
+        bloque: Number(selectedUnit.bloque) || 1,
+        capUnidad: Number(selectedUnit.capUnidad) || 18,
         linea: selectedUnit.linea || 'LTI - VHS',
+        tipo: selectedUnit.tipo || 'Camioneta',
         operador: selectedUnit.operador || '',
-        idOperador: resolvedId,
+        idOperador: selectedUnit.idOperador || '',
+        turno: selectedUnit.turno || 'M1',
+        cortina: selectedUnit.cortina || '',
         numCarga: selectedUnit.numCarga || '',
+        numSucursal: selectedUnit.numSucursal || '',
+        sucursalOrigen: selectedUnit.sucursalOrigen || 'CEDIS VILLAHERMOSA',
+        destino: (selectedUnit.destino || '').replace(/\s*\(Retorno\)/gi, '').trim(),
         closter: selectedUnit.closter || '',
         fl: selectedUnit.fl || 'LOCAL',
         capMax: selectedUnit.capMax || '',
-        estatusPlaneacion: selectedUnit.estatusPlaneacion || 'PENDIENTE'
+        fecha: selectedUnit.fecha || new Date().toISOString().split('T')[0],
+        horaSalida: selectedUnit.horaSalida || '',
+        tiempoEstimadoHrs: Number(selectedUnit.tiempoEstimadoHrs) || 0,
+        eta: selectedUnit.eta || '',
+        estatusPatio: selectedUnit.estatusPatio || 'Disponible',
+        estatusPlaneacion: selectedUnit.estatusPlaneacion || 'PENDIENTE',
+        estatusSupervisor: selectedUnit.estatusSupervisor || 'Pendiente',
+        observaciones: selectedUnit.observaciones || ''
       });
     } else {
       setFormData({
@@ -83,9 +94,9 @@ export const UnitModal = () => {
         fl: 'LOCAL',
         capMax: '',
         fecha: new Date().toISOString().split('T')[0],
-        horaSalida: '08:00 AM',
-        tiempoEstimadoHrs: 3.0,
-        eta: '11:00 AM',
+        horaSalida: '',
+        tiempoEstimadoHrs: 0,
+        eta: '',
         estatusPatio: 'Disponible',
         estatusPlaneacion: 'PENDIENTE',
         estatusSupervisor: 'Pendiente',
@@ -94,34 +105,32 @@ export const UnitModal = () => {
     }
   }, [selectedUnit, isModalOpen]);
 
-  // Selección inteligente desde el catálogo de unidades
-  const handleSelectUnidad = (unidad) => {
-    const opCatalog = buscarOperadorPorEco(unidad.eco);
-    const resolvedOp = selectedUnit?.operador || unidad.operador || opCatalog?.operador || '';
-    const resolvedId = selectedUnit?.idOperador || unidad.idOperador || opCatalog?.idOperador || buscarIdOperadorPorNombre(resolvedOp) || '';
-
-    setFormData(prev => ({
-      ...prev,
-      economico: unidad.eco,
-      placas: unidad.placas,
-      capUnidad: unidad.capUnidad || prev.capUnidad,
-      tipo: unidad.tipo || prev.tipo,
-      linea: unidad.linea || prev.linea,
-      operador: prev.operador || resolvedOp,
-      idOperador: prev.idOperador || resolvedId,
-      estatusPatio: unidad.estatusPatio || (unidad.estatus === 'TALLER' ? 'Taller' : (prev.estatusPatio || 'Disponible'))
-    }));
-  };
-
-  // Selección inteligente desde el catálogo de sucursales
+  // Selección inteligente de sucursal desde el selector custom
   const handleSelectSucursal = (sucursal) => {
+    if (!sucursal) return;
     setFormData(prev => ({
       ...prev,
       numSucursal: sucursal.id,
       destino: sucursal.nombre,
       closter: sucursal.closter,
-      fl: sucursal.fl,
-      capMax: sucursal.capMax
+      fl: sucursal.fl || 'LOCAL',
+      capMax: sucursal.capMax || ''
+    }));
+  };
+
+  // Selección inteligente de unidad desde el padrón
+  const handleSelectUnidad = (unidad) => {
+    if (!unidad) return;
+    setFormData(prev => ({
+      ...prev,
+      economico: unidad.eco,
+      placas: unidad.placas,
+      tipo: unidad.tipo || prev.tipo,
+      capUnidad: Number(unidad.capUnidad || prev.capUnidad),
+      linea: unidad.linea || prev.linea,
+      estatusPatio: unidad.estatusPatio || prev.estatusPatio || 'Disponible',
+      operador: isPatioMode ? '' : (prev.operador || unidad.operador || ''),
+      idOperador: isPatioMode ? '' : (prev.idOperador || unidad.idOperador || '')
     }));
   };
 
@@ -155,9 +164,9 @@ export const UnitModal = () => {
 
   // Validaciones operativas según matriz de CD Villahermosa y padrón de flota
   const targetIdOrName = formData.numSucursal || formData.destino;
-  const warnings = targetIdOrName ? validarRestriccionesViaje([targetIdOrName], Number(formData.capUnidad)) : [];
-  const sucursalInfo = targetIdOrName ? buscarSucursal(targetIdOrName) : null;
-  const flotaInfo = buscarUnidadPorEco(formData.economico);
+  const warnings = targetIdOrName ? validarRestriccionesViaje([targetIdOrName], Number(formData.capUnidad), catalogoSucursales) : [];
+  const sucursalInfo = targetIdOrName ? buscarSucursal(targetIdOrName, catalogoSucursales) : null;
+  const flotaInfo = buscarUnidadPorEco(formData.economico, catalogoFlota);
 
   const isTallerUnit = formData.estatusPatio === 'Taller' || flotaInfo?.estatus === 'TALLER';
   const isBlockedForPlaneacion = !isPatioMode && isTallerUnit;
@@ -204,7 +213,7 @@ export const UnitModal = () => {
       }
     }
 
-    const resolvedIdOp = formData.idOperador || (formData.operador ? buscarIdOperadorPorNombre(formData.operador) : (formData.economico ? buscarOperadorPorEco(formData.economico)?.idOperador : '')) || '';
+    const resolvedIdOp = formData.idOperador || (formData.operador ? buscarIdOperadorPorNombre(formData.operador, catalogoFlota) : (formData.economico ? buscarOperadorPorEco(formData.economico, catalogoFlota)?.idOperador : '')) || '';
 
     const payload = isPatioMode ? {
       ...formData,

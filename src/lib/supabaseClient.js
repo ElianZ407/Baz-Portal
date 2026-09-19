@@ -296,3 +296,42 @@ export const upsertUnidadDb = async (unidad) => {
   }
 };
 
+export const fetchFlotaMaestraDb = async () => {
+  if (!supabase) return null;
+  try {
+    const { data, error } = await supabase
+      .from('flota_maestra')
+      .select('*')
+      .order('eco', { ascending: true });
+
+    if (error) {
+      console.warn('Advertencia al consultar flota_maestra en Supabase:', error.message);
+      return null;
+    }
+    return data;
+  } catch (err) {
+    console.warn('Excepción al consultar flota_maestra en Supabase:', err);
+    return null;
+  }
+};
+
+export const fetchSucursalesDb = async () => {
+  if (!supabase) return null;
+  try {
+    const { data, error } = await supabase
+      .from('sucursales_maestras')
+      .select('*')
+      .order('id', { ascending: true });
+
+    if (error) {
+      console.warn('Advertencia al consultar sucursales_maestras en Supabase:', error.message);
+      return null;
+    }
+    return data;
+  } catch (err) {
+    console.warn('Excepción al consultar sucursales_maestras en Supabase:', err);
+    return null;
+  }
+};
+
+

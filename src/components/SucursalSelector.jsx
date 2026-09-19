@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Search, ChevronDown, Check, X, MapPin, AlertTriangle } from 'lucide-react';
 import { SUCURSALES_MAESTRAS } from '../data/sucursalesData';
+import { useFleet } from '../context/FleetContext';
 
 export const SucursalSelector = ({ value, onSelect }) => {
   const [isOpen, setIsOpen] = useState(false);
@@ -9,9 +10,14 @@ export const SucursalSelector = ({ value, onSelect }) => {
   const dropdownRef = useRef(null);
   const searchInputRef = useRef(null);
 
+  const { catalogoSucursales } = useFleet();
+  const sucursalesList = catalogoSucursales && Array.isArray(catalogoSucursales) && catalogoSucursales.length > 0
+    ? catalogoSucursales
+    : SUCURSALES_MAESTRAS;
+
   // Encontrar la sucursal seleccionada actualmente
-  const selectedSucursal = SUCURSALES_MAESTRAS.find(
-    s => s.id === String(value) || s.nombre.toLowerCase() === String(value).toLowerCase()
+  const selectedSucursal = sucursalesList.find(
+    s => String(s.id) === String(value) || (s.nombre && s.nombre.toLowerCase() === String(value).toLowerCase())
   );
 
   // Cerrar al hacer clic afuera
@@ -39,12 +45,12 @@ export const SucursalSelector = ({ value, onSelect }) => {
     setIsOpen(!isOpen);
   };
 
-  const filteredSucursales = SUCURSALES_MAESTRAS.filter(s => {
+  const filteredSucursales = sucursalesList.filter(s => {
     const q = search.toLowerCase().trim();
     const matchesSearch = !q || 
-      s.nombre.toLowerCase().includes(q) || 
-      s.id.includes(q) || 
-      s.closter.toLowerCase().includes(q) ||
+      (s.nombre && s.nombre.toLowerCase().includes(q)) || 
+      String(s.id).includes(q) || 
+      (s.closter && s.closter.toLowerCase().includes(q)) ||
       (s.region && s.region.toLowerCase().includes(q));
 
     const matchesRegion = regionFilter === 'ALL' || 

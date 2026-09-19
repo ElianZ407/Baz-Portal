@@ -10,10 +10,11 @@ export const OperadorSelector = ({ value, onChange, placeholder = 'Ej: ANTONIO P
   const inputRef = useRef(null);
   const searchRef = useRef(null);
 
-  const { units } = useFleet();
+  const { units, catalogoFlota } = useFleet();
 
   const allOperadores = useMemo(() => {
-    const fromCatalog = FLOTA_TOTAL
+    const flotaList = catalogoFlota && Array.isArray(catalogoFlota) && catalogoFlota.length > 0 ? catalogoFlota : FLOTA_TOTAL;
+    const fromCatalog = flotaList
       .filter(u => u.operador && u.operador !== 'VACANTE' && u.operador !== 'BAJA' && u.estatus === 'ACTIVO')
       .map(u => ({ nombre: u.operador, idOperador: u.idOperador || '', source: 'catalog', eco: u.eco }));
 
@@ -40,7 +41,7 @@ export const OperadorSelector = ({ value, onChange, placeholder = 'Ej: ANTONIO P
       if (!seen.has(key)) { seen.add(key); merged.push({ ...op, nombre: key }); }
     }
     return merged;
-  }, [units]);
+  }, [units, catalogoFlota]);
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase().trim();
