@@ -1275,6 +1275,7 @@ body {
   font-size: 0.85rem;
   color: var(--text-secondary);
   line-height: 1.45;
+  white-space: pre-line;
 }
 
 .confirm-close-btn {

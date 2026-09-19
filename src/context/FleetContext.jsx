@@ -96,8 +96,25 @@ export const FleetProvider = ({ children }) => {
       message: config.message || '',
       unit: config.unit || null,
       confirmText: config.confirmText || 'Confirmar',
+      cancelText: config.cancelText || 'Cancelar',
       confirmType: config.confirmType || 'danger',
+      hideCancel: Boolean(config.hideCancel),
       onConfirm: config.onConfirm || (() => {})
+    });
+  };
+
+  const showAlert = (config) => {
+    const cfg = typeof config === 'string' ? { message: config } : config;
+    setConfirmModal({
+      isOpen: true,
+      title: cfg.title || 'Validación Operativa — BAZ',
+      message: cfg.message || '',
+      unit: cfg.unit || null,
+      confirmText: cfg.confirmText || 'Entendido',
+      cancelText: 'Cerrar',
+      confirmType: cfg.confirmType || 'warning',
+      hideCancel: true,
+      onConfirm: cfg.onConfirm || (() => {})
     });
   };
 
@@ -558,6 +575,7 @@ export const FleetProvider = ({ children }) => {
       clearAllUnits,
       confirmModal,
       showConfirm,
+      showAlert,
       closeConfirm,
       // Historial de Planes
       savedPlans,

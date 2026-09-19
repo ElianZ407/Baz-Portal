@@ -39,7 +39,9 @@ export const ConfirmModal = () => {
     message = '',
     unit = null,
     confirmText = 'Confirmar',
+    cancelText = 'Cancelar',
     confirmType = 'danger',
+    hideCancel = false,
     onConfirm
   } = confirmModal;
 
@@ -55,7 +57,10 @@ export const ConfirmModal = () => {
       return <Trash2 size={22} />;
     }
     if (confirmType === 'warning') {
-      return <RotateCcw size={22} />;
+      return <AlertTriangle size={22} />;
+    }
+    if (confirmType === 'primary') {
+      return <CheckCircle2 size={22} />;
     }
     return <AlertTriangle size={22} />;
   };
@@ -77,7 +82,7 @@ export const ConfirmModal = () => {
           </div>
           <div className="confirm-text-area">
             <h3>{title}</h3>
-            {message && <p>{message}</p>}
+            {message && <p style={{ whiteSpace: 'pre-line' }}>{message}</p>}
           </div>
           <button 
             className="confirm-close-btn" 
@@ -126,13 +131,15 @@ export const ConfirmModal = () => {
         )}
 
         <div className="confirm-modal-footer">
-          <button 
-            type="button" 
-            className="btn-confirm-cancel" 
-            onClick={closeConfirm}
-          >
-            Cancelar
-          </button>
+          {!hideCancel && (
+            <button 
+              type="button" 
+              className="btn-confirm-cancel" 
+              onClick={closeConfirm}
+            >
+              {cancelText}
+            </button>
+          )}
           <button 
             type="button" 
             className={`btn-confirm-action ${confirmType}`}
@@ -146,4 +153,5 @@ export const ConfirmModal = () => {
       </div>
     </div>
   );
+
 };

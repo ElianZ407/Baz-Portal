@@ -92,6 +92,7 @@ export const PlaneacionView = () => {
     setIsModalOpen, 
     deleteUnit,
     showConfirm,
+    showAlert,
     searchQuery, 
     setSearchQuery 
   } = useFleet();
@@ -157,7 +158,13 @@ export const PlaneacionView = () => {
 
     // Si la unidad está en taller, no se puede cambiar estatus ni colocar
     if (target.estatusPatio === 'Taller' || target.estatus === 'TALLER') {
-      alert('Esta unidad se encuentra en Taller y no puede ser seleccionada ni colocada en planeación.');
+      showAlert({
+        title: 'Unidad en Taller Mecánico',
+        message: `La unidad ECO ${target.economico} se encuentra en Taller Mecánico y no puede ser programada ni colocada en planeación.`,
+        unit: target,
+        confirmType: 'danger',
+        confirmText: 'Entendido'
+      });
       return;
     }
 
@@ -168,9 +175,16 @@ export const PlaneacionView = () => {
         const faltantes = [];
         if (!hasViaje) faltantes.push('Número de Viaje');
         if (!hasOperador) faltantes.push('Operador Asignado');
-        const accion = newStatus === 'COLOCADO' ? 'colocar la unidad en cortina' : 'poner la unidad en caseta (marcar cargada)';
-        alert(`⚠️ Validación Operativa BAZ:\nNo se puede ${accion} de la unidad ECO ${target.economico}.\n\nRequisito faltante:\n• ${faltantes.join('\n• ')}\n\nPor favor complete estos datos en la ventana de edición.`);
-        handleEdit(target);
+        const accion = newStatus === 'COLOCADO' ? 'colocar en cortina' : 'poner en caseta (marcar cargada)';
+        
+        showAlert({
+          title: 'Validación Operativa — BAZ Entregas',
+          message: `No se puede ${accion} la unidad ECO ${target.economico}.\n\nRequisito obligatorio faltante:\n• ${faltantes.join('\n• ')}\n\nPor favor complete estos datos para continuar.`,
+          unit: target,
+          confirmType: 'warning',
+          confirmText: 'Completar Datos',
+          onConfirm: () => handleEdit(target)
+        });
         return;
       }
     }
