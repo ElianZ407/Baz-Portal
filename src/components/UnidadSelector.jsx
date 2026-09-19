@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Search, ChevronDown, Check, X, Truck, Wrench, AlertTriangle } from 'lucide-react';
-import { FLOTA_TOTAL } from '../data/flotaMaestraData';
+import { FLOTA_TOTAL } from '../constants/fleetConstants';
 import { useFleet } from '../context/FleetContext';
 
 export const UnidadSelector = ({ value, onSelect, mode }) => {

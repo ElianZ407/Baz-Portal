@@ -12,8 +12,8 @@ import {
   fetchFlotaMaestraDb,
   fetchSucursalesDb
 } from '../lib/supabaseClient';
-import { FLOTA_TOTAL, buscarIdOperadorPorNombre, buscarOperadorPorEco, checkTieneViajeYOperador } from '../data/flotaMaestraData';
-import { SUCURSALES_MAESTRAS } from '../data/sucursalesData';
+import { FLOTA_TOTAL, SUCURSALES_MAESTRAS } from '../constants/fleetConstants';
+import { buscarIdOperadorPorNombre, buscarOperadorPorEco, checkTieneViajeYOperador } from '../utils/fleetUtils';
 
 const FleetContext = createContext(null);
 

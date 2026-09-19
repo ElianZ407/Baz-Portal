@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { Search, ChevronDown, X, User, Clock } from 'lucide-react';
-import { FLOTA_TOTAL } from '../data/flotaMaestraData';
+import { FLOTA_TOTAL } from '../constants/fleetConstants';
 import { useFleet } from '../context/FleetContext';
 
 export const OperadorSelector = ({ value, onChange, placeholder = 'Ej: ANTONIO PEREZ PALMA...' }) => {

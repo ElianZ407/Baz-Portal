@@ -21,10 +21,9 @@ import {
   RotateCcw
 } from 'lucide-react';
 import { useFleet } from '../context/FleetContext';
-import { validarRestriccionesViaje, buscarSucursal } from '../data/sucursalesData';
-import { BLOQUES } from '../data/initialFleetData';
+import { BLOQUES } from '../constants/fleetConstants';
+import { validarRestriccionesViaje, buscarSucursal, checkTieneViajeYOperador } from '../utils/fleetUtils';
 import { exportOfficialExcel } from '../utils/exportOfficialExcel';
-import { checkTieneViajeYOperador } from '../data/flotaMaestraData';
 
 // Configuración de colores e iconos para los estados de Supervisor reflejados en Planeación
 const getSupervisorStatusConfig = (status) => {

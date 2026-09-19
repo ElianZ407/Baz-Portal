@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Search, ChevronDown, Check, X, MapPin, AlertTriangle } from 'lucide-react';
-import { SUCURSALES_MAESTRAS } from '../data/sucursalesData';
+import { SUCURSALES_MAESTRAS } from '../constants/fleetConstants';
 import { useFleet } from '../context/FleetContext';
 
 export const SucursalSelector = ({ value, onSelect }) => {

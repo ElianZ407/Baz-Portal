@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { X, Save, Truck, Layers, FileSpreadsheet, AlertTriangle, CheckCircle2, MapPin, Wrench, Trash2 } from 'lucide-react';
 import { useFleet } from '../context/FleetContext';
-import { LINEAS_TRANSPORTE, TURNOS, BLOQUES } from '../data/initialFleetData';
-import { SUCURSALES_MAESTRAS, buscarSucursal, validarRestriccionesViaje } from '../data/sucursalesData';
-import { FLOTA_TOTAL, buscarUnidadPorEco, OPERADORES_ACTIVOS, buscarIdOperadorPorNombre, buscarOperadorPorEco, checkTieneViajeYOperador } from '../data/flotaMaestraData';
+import { LINEAS_TRANSPORTE, TURNOS, BLOQUES, SUCURSALES_MAESTRAS, FLOTA_TOTAL, OPERADORES_ACTIVOS } from '../constants/fleetConstants';
+import { buscarSucursal, validarRestriccionesViaje, buscarUnidadPorEco, buscarIdOperadorPorNombre, buscarOperadorPorEco, checkTieneViajeYOperador } from '../utils/fleetUtils';
 import { SucursalSelector } from './SucursalSelector';
 import { UnidadSelector } from './UnidadSelector';
 import { OperadorSelector } from './OperadorSelector';
