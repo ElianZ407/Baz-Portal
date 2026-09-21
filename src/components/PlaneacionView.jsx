@@ -168,13 +168,14 @@ export const PlaneacionView = () => {
       return;
     }
 
-    // Validación oficial: No se puede colocar ni poner en caseta (CARGADO) si no tiene viaje y operador
+    // Validación oficial: No se puede colocar ni poner en caseta (CARGADO) si no tiene viaje, operador y destino
     if (newStatus === 'COLOCADO' || newStatus === 'CARGADO') {
-      const { valid, hasViaje, hasOperador } = checkTieneViajeYOperador(target);
+      const { valid, hasViaje, hasOperador, hasDestino } = checkTieneViajeYOperador(target);
       if (!valid) {
         const faltantes = [];
         if (!hasViaje) faltantes.push('Número de Viaje');
         if (!hasOperador) faltantes.push('Operador Asignado');
+        if (!hasDestino) faltantes.push('Destino / Sucursal Asignada');
         const accion = newStatus === 'COLOCADO' ? 'colocar en cortina' : 'poner en caseta (marcar cargada)';
         
         showAlert({
@@ -453,8 +454,15 @@ export const PlaneacionView = () => {
                   const isCargado = !isEnTaller && !isSupervisorActive && estatusPlan === 'CARGADO';
                   const isColocado = !isEnTaller && !isSupervisorActive && estatusPlan === 'COLOCADO';
                   
-                  // Validación oficial: Requisito de Viaje y Operador para poder colocar o poner en caseta
-                  const { valid: canColocarOCargar, hasViaje: tieneViaje, hasOperador: tieneOperador } = checkTieneViajeYOperador(unit);
+                  // Validación oficial: Requisito de Viaje, Operador y Destino para poder colocar o poner en caseta
+                  const { valid: canColocarOCargar, hasViaje: tieneViaje, hasOperador: tieneOperador, hasDestino: tieneDestino } = checkTieneViajeYOperador(unit);
+                  const getFaltantesMsg = () => {
+                    const f = [];
+                    if (!tieneViaje) f.push('No. de Viaje');
+                    if (!tieneOperador) f.push('Operador');
+                    if (!tieneDestino) f.push('Destino');
+                    return f.join(', ');
+                  };
 
                   // Validación de restricciones de matriz Villahermosa
                   const warnings = validarRestriccionesViaje(
@@ -760,7 +768,7 @@ export const PlaneacionView = () => {
                                   onClick={() => handleStatusChange(unit.id, 'COLOCADO')}
                                   title={canColocarOCargar 
                                     ? "Colocar unidad en cortina para carga" 
-                                    : `⚠️ Requiere ${!tieneViaje && !tieneOperador ? 'No. de Viaje y Operador' : !tieneViaje ? 'No. de Viaje' : 'Operador'} para poder colocar`}
+                                    : `⚠️ Requiere ${getFaltantesMsg()} para poder colocar`}
                                 >
                                   <DoorOpen size={12} />
                                   <span>Colocar</span>
@@ -777,7 +785,7 @@ export const PlaneacionView = () => {
                                     fontSize: '0.72rem', 
                                     background: canColocarOCargar ? '#fef08a' : 'rgba(51, 65, 85, 0.4)', 
                                     color: canColocarOCargar ? '#713f12' : '#94a3b8', 
-                                    border: canColocarOCargar ? '1px solid #eab308' : '1px dashed rgba(148, 163, 184, 0.4)',
+                                    border: canColocarOCargar ? '1px solid #eab308' : '1px dashed rgba(148, 163, 184, 0.4)', 
                                     fontWeight: 800,
                                     display: 'inline-flex',
                                     alignItems: 'center',
@@ -787,7 +795,7 @@ export const PlaneacionView = () => {
                                   onClick={() => handleStatusChange(unit.id, 'CARGADO')}
                                   title={canColocarOCargar 
                                     ? "Carga terminada: marcar como Cargado / En Caseta" 
-                                    : `⚠️ Requiere ${!tieneViaje && !tieneOperador ? 'No. de Viaje y Operador' : !tieneViaje ? 'No. de Viaje' : 'Operador'} para poner en caseta`}
+                                    : `⚠️ Requiere ${getFaltantesMsg()} para poner en caseta`}
                                 >
                                   <Send size={12} />
                                   <span>Cargado</span>

@@ -75,9 +75,9 @@ export const buscarOperadorPorEco = (eco, catalogo = FLOTA_TOTAL) => {
   return (catalogo || FLOTA_TOTAL).find(u => (u.eco || '').toLowerCase() === clean) || null;
 };
 
-// Valida si una unidad/viaje cuenta con Número de Viaje y Operador asignado
+// Valida si una unidad/viaje cuenta con Número de Viaje, Operador y Destino asignado
 export const checkTieneViajeYOperador = (unit) => {
-  if (!unit) return { valid: false, hasViaje: false, hasOperador: false };
+  if (!unit) return { valid: false, hasViaje: false, hasOperador: false, hasDestino: false };
 
   const noViajeStr = String(unit.noViaje || '').trim();
   const hasViaje = Boolean(
@@ -100,9 +100,20 @@ export const checkTieneViajeYOperador = (unit) => {
     operadorStr.toLowerCase() !== 'baja'
   );
 
+  const destinoStr = String(unit.destino || unit.numSucursal || '').trim();
+  const hasDestino = Boolean(
+    destinoStr &&
+    destinoStr !== '—' &&
+    destinoStr !== '-' &&
+    destinoStr.toLowerCase() !== 'sin destino' &&
+    destinoStr.toLowerCase() !== 'por asignar' &&
+    destinoStr.toLowerCase() !== 'sin asignar'
+  );
+
   return {
-    valid: hasViaje && hasOperador,
+    valid: hasViaje && hasOperador && hasDestino,
     hasViaje,
-    hasOperador
+    hasOperador,
+    hasDestino
   };
 };

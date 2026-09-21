@@ -403,14 +403,14 @@ export const FleetProvider = ({ children }) => {
     const targetUnit = units.find(u => u.id === unitId);
     if (!targetUnit) return;
 
-    // Validación oficial: Si se intenta colocar o poner en caseta/cargado, DEBE tener No. de Viaje y Operador
+    // Validación oficial: Si se intenta colocar o poner en caseta/cargado, DEBE tener No. de Viaje, Operador y Destino
     if (
       (area === 'planeacion' && (newStatus === 'COLOCADO' || newStatus === 'CARGADO')) ||
       (area === 'patio' && (newStatus === 'Colocado p/ Carga' || newStatus === 'Cargado'))
     ) {
       const { valid } = checkTieneViajeYOperador(targetUnit);
       if (!valid) {
-        console.warn(`[Validación Bloqueada] La unidad ECO ${targetUnit.economico} requiere No. de Viaje y Operador para pasar a ${newStatus}.`);
+        console.warn(`[Validación Bloqueada] La unidad ECO ${targetUnit.economico} requiere No. de Viaje, Operador y Destino para pasar a ${newStatus}.`);
         return;
       }
     }

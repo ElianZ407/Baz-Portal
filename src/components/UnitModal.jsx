@@ -193,13 +193,14 @@ export const UnitModal = () => {
       return;
     }
 
-    // Validación oficial: no se puede colocar ni poner en caseta (CARGADO) si falta viaje u operador
+    // Validación oficial: no se puede colocar ni poner en caseta (CARGADO) si falta viaje, operador o destino
     if (!isPatioMode && (formData.estatusPlaneacion === 'COLOCADO' || formData.estatusPlaneacion === 'CARGADO')) {
-      const { valid, hasViaje, hasOperador } = checkTieneViajeYOperador(formData);
+      const { valid, hasViaje, hasOperador, hasDestino } = checkTieneViajeYOperador(formData);
       if (!valid) {
         const faltantes = [];
         if (!hasViaje) faltantes.push('Número de Viaje');
         if (!hasOperador) faltantes.push('Operador Asignado');
+        if (!hasDestino) faltantes.push('Destino / Sucursal Asignada');
         
         showAlert({
           title: 'Validación Operativa — BAZ Entregas',
@@ -676,7 +677,7 @@ export const UnitModal = () => {
                       border: '1px solid rgba(251, 191, 36, 0.3)'
                     }}>
                       <AlertTriangle size={13} style={{ flexShrink: 0 }} />
-                      <span>Requiere No. de Viaje y Operador para poder colocar o poner en caseta.</span>
+                      <span>Requiere No. de Viaje, Operador y Destino para poder colocar o poner en caseta.</span>
                     </div>
                   )}
                 </div>
