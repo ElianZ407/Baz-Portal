@@ -6,7 +6,8 @@ import {
   X, 
   Truck,
   MapPin,
-  UserCheck
+  UserCheck,
+  CheckCircle2
 } from 'lucide-react';
 import { useFleet } from '../context/FleetContext';
 
