@@ -574,6 +574,13 @@ body {
   font-weight: 700 !important;
 }
 
+.status-programado {
+  background: rgba(234, 179, 8, 0.16) !important;
+  border-color: rgba(234, 179, 8, 0.45) !important;
+  color: #facc15 !important;
+  font-weight: 800 !important;
+}
+
 .status-retrasado,
 .status-taller {
   background: var(--status-red-bg);

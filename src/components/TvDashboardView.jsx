@@ -84,6 +84,11 @@ export const TvDashboardView = () => {
         return 'status-encaseta';
       case 'COLOCADO':
         return 'status-colocado';
+      case 'PROGRAMADO':
+      case 'Programado':
+      case 'Pendiente':
+      case 'PENDIENTE':
+        return 'status-programado';
       case 'Espera Descarga':
       case 'EN SUCURSAL':
       case 'En Cortina':
@@ -325,6 +330,7 @@ export const TvDashboardView = () => {
                         <span className={`status-badge ${
                           unit.estatusPlaneacion === 'EN CASETA' ? 'status-encaseta' :
                           unit.estatusPlaneacion === 'COLOCADO' ? 'status-colocado' :
+                          unit.estatusPlaneacion === 'PENDIENTE' ? 'status-programado' :
                           getStatusBadgeClass(unit.estatusSupervisor)
                         }`}>
                           {unit.estatusPlaneacion === 'EN CASETA' ? 'EN CASETA (SALIDA)' :
