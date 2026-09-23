@@ -186,7 +186,7 @@ export const TvDashboardView = () => {
               <input 
                 type="text"
                 className="search-input"
-                placeholder="Buscar en pantalla TV..."
+                placeholder="Buscar en resumen general..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
               />

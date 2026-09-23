@@ -35,7 +35,7 @@ const AppContent = () => {
       }}>
         <span>BAZ Entregas — Sistema Integrado de Control de Flota y Patio</span>
         <span style={{ margin: '0 0.5rem' }}>•</span>
-        <span>Áreas: Patio (En CD) | Planeación | Supervisor (Fuera de CD) | Tablero TV</span>
+        <span>Áreas: Patio (En CD) | Planeación | Supervisor (Fuera de CD) | Resumen General</span>
       </footer>
 
       <UnitModal />

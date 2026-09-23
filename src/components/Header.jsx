@@ -36,7 +36,7 @@ export const Header = () => {
     switch (activeArea) {
       case 'patio': return 'Excel Patio';
       case 'supervisor': return 'Excel Supervisor';
-      case 'tv': return 'Excel Monitoreo';
+      case 'tv': return 'Excel Resumen';
       default: return 'Excel Oficial';
     }
   };
@@ -45,7 +45,7 @@ export const Header = () => {
     switch (activeArea) {
       case 'patio': return 'Descargar reporte Excel del control de patio y andenes';
       case 'supervisor': return 'Descargar reporte Excel de supervisión y estatus en ruta';
-      case 'tv': return 'Descargar reporte Excel del tablero de monitoreo en tiempo real';
+      case 'tv': return 'Descargar reporte Excel del resumen general de monitoreo';
       default: return 'Descargar archivo Excel oficial BAZ';
     }
   };
@@ -143,11 +143,11 @@ export const Header = () => {
         <button 
           className={`nav-tab tv-tab ${activeArea === 'tv' ? 'active' : ''}`}
           onClick={() => setActiveArea('tv')}
-          title="Pizarra de Control para Proyección en Pantalla / TV"
+          title="Resumen General de Unidades y Embarques en Tiempo Real"
         >
           <Tv size={16} />
-          <span className="tab-full-text">Tablero TV en Vivo</span>
-          <span className="tab-short-text">Tablero TV</span>
+          <span className="tab-full-text">Resumen General</span>
+          <span className="tab-short-text">Resumen</span>
           <span className="badge-counter">{units.length}</span>
         </button>
       </nav>
