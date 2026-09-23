@@ -1,5 +1,5 @@
 import React from 'react';
-import { Eye, ArrowLeft, RefreshCw, Calendar, ShieldCheck } from 'lucide-react';
+import { Eye, ArrowLeft, RefreshCw, Calendar } from 'lucide-react';
 import { useFleet } from '../context/FleetContext';
 
 export const HistoricalBanner = () => {
@@ -41,10 +41,6 @@ export const HistoricalBanner = () => {
             <span>{historicalPlanView.fecha}</span>
             <span>•</span>
             <span>{historicalPlanView.totalViajes} Viajes</span>
-          </span>
-          <span className="historical-protection-notice">
-            <ShieldCheck size={14} color="#34d399" />
-            <span>Tu plan de hoy está protegido y a salvo</span>
           </span>
         </div>
       </div>
