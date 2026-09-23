@@ -313,6 +313,24 @@ export const TvDashboardView = () => {
                           <MapPin size={15} color="var(--accent-cyan)" />
                           <span>{unit.destino ? unit.destino.replace(/\s*\(Retorno\)/gi, '').trim() : 'Sin definir'}</span>
                         </div>
+                        {unit.destinosSecundarios && unit.destinosSecundarios.length > 0 && (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', marginTop: '0.25rem', flexWrap: 'wrap' }}>
+                            <span style={{
+                              fontSize: '0.7rem',
+                              background: 'rgba(6, 182, 212, 0.18)',
+                              color: '#38bdf8',
+                              border: '1px solid rgba(56, 189, 248, 0.35)',
+                              padding: '0.08rem 0.4rem',
+                              borderRadius: '4px',
+                              fontWeight: 700
+                            }}>
+                              +{unit.destinosSecundarios.length} Entrega{unit.destinosSecundarios.length > 1 ? 's' : ''}:
+                            </span>
+                            <span style={{ fontSize: '0.74rem', color: '#94a3b8', fontFamily: 'var(--font-sans)' }}>
+                              {unit.destinosSecundarios.map(p => p.esVtex ? (p.destino?.startsWith('VTEX') ? p.destino : `VTEX (S-${p.numSucursal || ''})`) : (p.destino || `#${p.numSucursal}`)).join(' ➔ ')}
+                            </span>
+                          </div>
+                        )}
                         <div style={{ display: 'flex', gap: '0.4rem', marginTop: '0.25rem', alignItems: 'center' }}>
                           <span className={unit.fl === 'FORANEO' ? 'badge-fl-foraneo' : 'badge-fl-local'}>
                             {unit.fl === 'FORANEO' ? 'FORÁNEO' : 'LOCAL'}

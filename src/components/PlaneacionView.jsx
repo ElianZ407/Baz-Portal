@@ -18,7 +18,8 @@ import {
   Trash2,
   Clock,
   ArrowDownCircle,
-  RotateCcw
+  RotateCcw,
+  Package
 } from 'lucide-react';
 import { useFleet } from '../context/FleetContext';
 import { BLOQUES } from '../constants/fleetConstants';
@@ -464,17 +465,22 @@ export const PlaneacionView = () => {
                     return f.join(', ');
                   };
 
-                  // Validación de restricciones de matriz Villahermosa
+                  // Validación de restricciones de matriz Villahermosa (todas las tiendas de la ruta)
+                  const allDestinosToCheck = [
+                    unit.numSucursal || unit.destino,
+                    ...(unit.destinosSecundarios || []).map(p => p.numSucursal || p.destino)
+                  ].filter(Boolean);
+
                   const warnings = validarRestriccionesViaje(
-                    [unit.numSucursal || unit.destino], 
+                    allDestinosToCheck, 
                     Number(unit.capUnidad || 50),
                     catalogoSucursales
                   );
 
                   return (
-                    <tr 
-                      key={unit.id}
-                      style={{
+                    <React.Fragment key={unit.id}>
+                      <tr 
+                        style={{
                         background: isEnTaller 
                           ? 'rgba(239, 68, 68, 0.06)' 
                           : isCompletado
@@ -613,7 +619,29 @@ export const PlaneacionView = () => {
                       {/* SUCURSAL / DESTINO */}
                       <td>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-                          <span style={{ fontWeight: 600, color: '#f1f5f9' }}>{unit.destino || 'Sin destino'}</span>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', flexWrap: 'wrap' }}>
+                            <span style={{ fontWeight: 600, color: '#f1f5f9' }}>{unit.destino || 'Sin destino'}</span>
+                            {unit.destinosSecundarios && unit.destinosSecundarios.length > 0 && (
+                              <span 
+                                style={{
+                                  background: 'linear-gradient(135deg, rgba(6, 182, 212, 0.2), rgba(59, 130, 246, 0.2))',
+                                  color: '#38bdf8',
+                                  border: '1px solid rgba(56, 189, 248, 0.4)',
+                                  padding: '0.12rem 0.45rem',
+                                  borderRadius: '4px',
+                                  fontSize: '0.72rem',
+                                  fontWeight: 700,
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '0.25rem'
+                                }}
+                                title={`Ruta con ${unit.destinosSecundarios.length + 1} entregas consolidadas en este viaje`}
+                              >
+                                <Layers size={11} />
+                                <span>{unit.destinosSecundarios.length + 1} Entregas</span>
+                              </span>
+                            )}
+                          </div>
                           {warnings.length > 0 && (
                             <span 
                               className="alert-restriction-pill"
@@ -862,7 +890,167 @@ export const PlaneacionView = () => {
                         </div>
                       </td>
                     </tr>
-                  );
+
+                    {/* SUB-FILAS DE PARADAS SECUNDARIAS / VTEX (RUTA MULTIPARADA) */}
+                    {Array.isArray(unit.destinosSecundarios) && unit.destinosSecundarios.map((parada, pIdx) => {
+                      const isVtex = Boolean(parada.esVtex);
+                      const vtexLabel = isVtex 
+                        ? (parada.destino && parada.destino.startsWith('VTEX') 
+                            ? parada.destino 
+                            : `VTEX: ${parada.folioVtex || parada.destino || ''} (S-${parada.numSucursal || unit.numSucursal || ''})`)
+                        : parada.destino;
+
+                      return (
+                        <tr
+                          key={parada.id || `${unit.id}-sub-${pIdx}`}
+                          className="subrow-multistop"
+                          style={{
+                            background: isVtex ? 'rgba(250, 204, 21, 0.08)' : 'rgba(15, 23, 42, 0.45)',
+                            borderLeft: isVtex ? '4px solid #facc15' : '4px solid rgba(56, 189, 248, 0.35)',
+                            borderBottom: '1px solid rgba(255, 255, 255, 0.05)'
+                          }}
+                        >
+                          {/* NO. VIAJE */}
+                          <td style={{ textAlign: 'center', color: isVtex ? '#facc15' : 'var(--accent-cyan)', fontSize: '0.85rem' }}>
+                            <span title={`Entrega #${pIdx + 2} del Viaje #${unit.noViaje || ''}`}>↳</span>
+                          </td>
+
+                          {/* ECO UNIDAD */}
+                          <td style={{ fontSize: '0.74rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>
+                            {unit.economico ? `(ECO ${unit.economico})` : '—'}
+                          </td>
+
+                          {/* BLOQUE */}
+                          <td style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.75rem' }}>
+                            —
+                          </td>
+
+                          {/* PLACAS */}
+                          <td style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>
+                            —
+                          </td>
+
+                          {/* CAP UNIDAD */}
+                          <td style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.75rem' }}>
+                            —
+                          </td>
+
+                          {/* LINEA */}
+                          <td style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>
+                            —
+                          </td>
+
+                          {/* OPERADOR */}
+                          <td style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>
+                            {unit.operador ? `(Mismo operador)` : '—'}
+                          </td>
+
+                          {/* # CARGA */}
+                          <td>
+                            <span style={{ 
+                              fontFamily: 'var(--font-mono)', 
+                              fontSize: '0.75rem', 
+                              background: 'rgba(255,255,255,0.03)', 
+                              padding: '0.15rem 0.35rem', 
+                              borderRadius: '4px',
+                              color: '#cbd5e1'
+                            }}>
+                              {parada.numCarga || unit.numCarga || '—'}
+                            </span>
+                          </td>
+
+                          {/* # SUC */}
+                          <td style={{ 
+                            textAlign: 'center', 
+                            fontFamily: 'var(--font-mono)', 
+                            fontSize: '0.82rem', 
+                            color: isVtex ? '#facc15' : 'var(--accent-cyan)', 
+                            fontWeight: 700 
+                          }}>
+                            {parada.numSucursal || '—'}
+                          </td>
+
+                          {/* SUCURSAL / DESTINO */}
+                          <td>
+                            {isVtex ? (
+                              <div style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '0.4rem',
+                                background: 'rgba(250, 204, 21, 0.15)',
+                                border: '1px solid rgba(250, 204, 21, 0.4)',
+                                color: '#fef08a',
+                                padding: '0.2rem 0.55rem',
+                                borderRadius: '4px',
+                                fontWeight: 700,
+                                fontSize: '0.82rem',
+                                fontFamily: 'var(--font-mono)'
+                              }}>
+                                <Package size={13} color="#facc15" />
+                                <span>{vtexLabel}</span>
+                              </div>
+                            ) : (
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                                <span style={{ color: 'var(--accent-cyan)', fontSize: '0.75rem' }}>📍</span>
+                                <span style={{ fontWeight: 600, color: '#e2e8f0', fontSize: '0.82rem' }}>
+                                  {parada.destino || 'Sin definir'}
+                                </span>
+                                <span style={{ 
+                                  fontSize: '0.68rem', 
+                                  color: 'var(--text-muted)',
+                                  background: 'rgba(255, 255, 255, 0.05)',
+                                  padding: '0.08rem 0.35rem',
+                                  borderRadius: '3px'
+                                }}>
+                                  Parada #{pIdx + 2}
+                                </span>
+                              </div>
+                            )}
+                          </td>
+
+                          {/* CLÓSTER & TIPO */}
+                          <td>
+                            <span className="badge-closter" style={{ fontSize: '0.7rem', opacity: 0.85 }}>
+                              {parada.closter || unit.closter || 'HUB-VHSA'}
+                            </span>
+                          </td>
+
+                          {/* CORTINAS */}
+                          <td style={{ textAlign: 'center', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                            {parada.cortina || unit.cortina || '—'}
+                          </td>
+
+                          {/* ESTATUS */}
+                          <td style={{ textAlign: 'center' }}>
+                            <span style={{
+                              fontSize: '0.7rem',
+                              color: 'var(--text-muted)',
+                              fontFamily: 'var(--font-mono)',
+                              padding: '0.15rem 0.45rem',
+                              borderRadius: '4px',
+                              background: 'rgba(255, 255, 255, 0.04)',
+                              border: '1px dashed rgba(255, 255, 255, 0.1)'
+                            }}>
+                              {isCargado ? 'CARGADO' : isColocado ? 'COLOCADO' : estatusPlan}
+                            </span>
+                          </td>
+
+                          {/* ACCIONES */}
+                          <td style={{ textAlign: 'center' }}>
+                            <button
+                              className="btn-action-icon"
+                              onClick={() => handleEdit(unit)}
+                              title="Editar viaje y sus paradas"
+                              style={{ opacity: 0.7 }}
+                            >
+                              <Edit3 size={12} />
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </React.Fragment>
+                );
                 })
               )}
             </tbody>

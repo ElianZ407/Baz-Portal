@@ -250,8 +250,60 @@ export const exportOfficialExcel = async (units = [], selectedDate = null) => {
       }
     });
 
-    // Si la unidad tiene entregas secundarias o VTEX, agregar sub-fila idéntica a la imagen
-    if (unit.observaciones && unit.observaciones.toLowerCase().includes('vtex')) {
+    // Si la unidad tiene entregas secundarias o VTEX (Ruta Multiparada), agregar sub-filas idénticas a la imagen oficial BAZ
+    if (Array.isArray(unit.destinosSecundarios) && unit.destinosSecundarios.length > 0) {
+      unit.destinosSecundarios.forEach((parada) => {
+        const isVtex = Boolean(parada.esVtex);
+        const vtexText = isVtex
+          ? (parada.destino && parada.destino.startsWith('VTEX')
+              ? parada.destino
+              : `VTEX: ${parada.folioVtex || parada.destino || ''} (S-${parada.numSucursal || unit.numSucursal || ''})`)
+          : ((parada.destino || '').replace(/\s*\(Retorno\)/gi, '').trim()).toUpperCase();
+
+        const secRowData = [
+          '', // 1. NO. VIAJE
+          '', // 2. ECO UNIDAD
+          '', // 3. BLOQUE
+          '', // 4. PLACAS
+          '', // 5. CAP UNIDAD
+          '', // 6. LINEA
+          '', // 7. OPERADOR
+          '', // 8. FECHA
+          parada.numCarga || '', // 9. # CARGA
+          parada.numSucursal || '', // 10. # SUC
+          vtexText, // 11. SUCURSAL
+          parada.cortina || '', // 12. CORTINAS
+          (unit.estatusPlaneacion === 'EN CASETA' || unit.estatusPatio === 'Cargado') ? 'EN CASETA' : (unit.estatusSupervisor || 'PENDIENTE'), // 13. ESTATUS
+          '', '', '', '', '', '', '', '', '', '', '' // 14 a 24
+        ];
+
+        const secRow = worksheet.addRow(secRowData);
+        secRow.height = 19;
+        secRow.eachCell({ includeEmpty: true }, (cell, colNumber) => {
+          cell.font = { 
+            name: FONT_FAMILY, 
+            size: 8.5, 
+            bold: isVtex && (colNumber === 10 || colNumber === 11),
+            color: { argb: COLOR_TEXT_BLACK } 
+          };
+          cell.border = ALL_BORDERS;
+
+          if (colNumber === 11) {
+            cell.alignment = { horizontal: 'left', vertical: 'middle' };
+          } else {
+            cell.alignment = { horizontal: 'center', vertical: 'middle' };
+          }
+
+          // Si es VTEX, pintar las celdas 10 y 11 de amarillo pastel (#FFFF99) idéntico a la plantilla BAZ
+          if (isVtex && (colNumber === 10 || colNumber === 11)) {
+            cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: COLOR_YELLOW_SOFT } };
+          } else {
+            cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: COLOR_WHITE } };
+          }
+        });
+      });
+    } else if (unit.observaciones && unit.observaciones.toLowerCase().includes('vtex')) {
+      // Fallback para notas rápidas de VTEX en observaciones
       const vtexRow = worksheet.addRow([
         '', '', '', '', '', '', '', '', '', '',
         `VTEX: ${unit.numCarga || '45713018'} - C`,

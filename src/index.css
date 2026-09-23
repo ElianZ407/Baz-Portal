@@ -2252,3 +2252,19 @@ body {
   }
 }
 
+/* ==========================================================================
+   Estilos de Subfilas Multiparada y VTEX (Matriz Oficial BAZ)
+   ========================================================================== */
+.subrow-multistop {
+  transition: background 0.15s ease;
+}
+
+.subrow-multistop:hover {
+  filter: brightness(1.08);
+}
+
+.subrow-multistop td {
+  padding-top: 0.4rem !important;
+  padding-bottom: 0.4rem !important;
+}
+

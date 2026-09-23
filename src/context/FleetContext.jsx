@@ -27,6 +27,32 @@ const cleanUnitDestino = (unit) => {
   if (res.destino && typeof res.destino === 'string') {
     res.destino = res.destino.replace(/\s*\(Retorno\)/gi, '').trim();
   }
+
+  // Garantizar array válido para destinosSecundarios (múltiples entregas / paradas por viaje)
+  if (!Array.isArray(res.destinosSecundarios)) {
+    if (typeof res.destinosSecundarios === 'string' && res.destinosSecundarios.trim().startsWith('[')) {
+      try {
+        res.destinosSecundarios = JSON.parse(res.destinosSecundarios);
+      } catch (e) {
+        res.destinosSecundarios = [];
+      }
+    } else if (res.observaciones && typeof res.observaciones === 'string' && res.observaciones.includes('__PARADAS__:')) {
+      try {
+        const match = res.observaciones.match(/__PARADAS__:(\[.*?\])(?:$|\n)/s);
+        if (match && match[1]) {
+          res.destinosSecundarios = JSON.parse(match[1]);
+          res.observaciones = res.observaciones.replace(/__PARADAS__:\[.*?\](?:\n|$)/gs, '').trim();
+        } else {
+          res.destinosSecundarios = [];
+        }
+      } catch (e) {
+        res.destinosSecundarios = [];
+      }
+    } else {
+      res.destinosSecundarios = [];
+    }
+  }
+
   // Si falta idOperador, auto-completar desde el catálogo por nombre o por eco
   if (!res.idOperador) {
     if (res.operador) {

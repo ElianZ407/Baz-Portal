@@ -73,68 +73,95 @@ export const clearSupabaseCredentials = () => {
 };
 
 // Mapeo de columnas de Base de Datos (snake_case) <-> Objeto de Viaje (camelCase)
-export const mapDbToUnit = (row) => ({
-  id: row.id,
-  noViaje: row.no_viaje || '',
-  economico: row.economico || '',
-  bloque: Number(row.bloque) || 1,
-  placas: row.placas || '',
-  capUnidad: Number(row.cap_unidad) || 0,
-  linea: row.linea || 'LTI - VHS',
-  tipo: row.tipo || '',
-  operador: row.operador || '',
-  idOperador: row.id_operador || '',
-  turno: row.turno || 'M1',
-  cortina: row.cortina || '',
-  numCarga: row.num_carga || '',
-  numSucursal: row.num_sucursal || '',
-  sucursalOrigen: row.sucursal_origen || 'CEDIS VILLAHERMOSA',
-  destino: (row.destino || '').replace(/\s*\(Retorno\)/gi, '').trim(),
-  closter: row.closter || '',
-  fl: row.fl || 'LOCAL',
-  capMax: row.cap_max || '',
-  fecha: row.fecha || '',
-  horaSalida: row.hora_salida || '',
-  tiempoEstimadoHrs: Number(row.tiempo_estimado_hrs) || 0,
-  eta: row.eta || '',
-  estatusPatio: row.estatus_patio || 'Disponible',
-  estatusPlaneacion: row.estatus_planeacion || 'PENDIENTE',
-  estatusSupervisor: row.estatus_supervisor || 'Pendiente',
-  observaciones: row.observaciones || '',
-  actualizadoEn: row.actualizado_en || ''
-});
+export const mapDbToUnit = (row) => {
+  let destinosSecundarios = [];
+  let obs = row.observaciones || '';
+  if (obs.includes('__PARADAS__:')) {
+    try {
+      const match = obs.match(/__PARADAS__:(\[.*?\])(?:$|\n)/s);
+      if (match && match[1]) {
+        destinosSecundarios = JSON.parse(match[1]);
+        obs = obs.replace(/__PARADAS__:\[.*?\](?:\n|$)/gs, '').trim();
+      }
+    } catch (e) {
+      destinosSecundarios = [];
+    }
+  }
 
-export const mapUnitToDb = (unit) => ({
-  id: unit.id,
-  no_viaje: unit.noViaje || '',
-  economico: unit.economico || '',
-  bloque: Number(unit.bloque) || 1,
-  placas: unit.placas || '',
-  cap_unidad: Number(unit.capUnidad) || 0,
-  linea: unit.linea || 'LTI - VHS',
-  tipo: unit.tipo || '',
-  operador: unit.operador || '',
-  id_operador: unit.idOperador || '',
-  turno: unit.turno || 'M1',
-  cortina: unit.cortina || '',
-  num_carga: unit.numCarga || '',
-  num_sucursal: unit.numSucursal || '',
-  sucursal_origen: unit.sucursalOrigen || 'CEDIS VILLAHERMOSA',
-  destino: (unit.destino || '').replace(/\s*\(Retorno\)/gi, '').trim(),
-  closter: unit.closter || '',
-  fl: unit.fl || 'LOCAL',
-  cap_max: unit.capMax || '',
-  fecha: unit.fecha || '',
-  hora_salida: unit.horaSalida || '',
-  tiempo_estimado_hrs: Number(unit.tiempoEstimadoHrs) || 0,
-  eta: unit.eta || '',
-  estatus_patio: unit.estatusPatio || 'Disponible',
-  estatus_planeacion: unit.estatusPlaneacion || 'PENDIENTE',
-  estatus_supervisor: unit.estatusSupervisor || 'Pendiente',
-  observaciones: unit.observaciones || '',
-  actualizado_en: unit.actualizadoEn || '',
-  updated_at: new Date().toISOString()
-});
+  return {
+    id: row.id,
+    noViaje: row.no_viaje || '',
+    economico: row.economico || '',
+    bloque: Number(row.bloque) || 1,
+    placas: row.placas || '',
+    capUnidad: Number(row.cap_unidad) || 0,
+    linea: row.linea || 'LTI - VHS',
+    tipo: row.tipo || '',
+    operador: row.operador || '',
+    idOperador: row.id_operador || '',
+    turno: row.turno || 'M1',
+    cortina: row.cortina || '',
+    numCarga: row.num_carga || '',
+    numSucursal: row.num_sucursal || '',
+    sucursalOrigen: row.sucursal_origen || 'CEDIS VILLAHERMOSA',
+    destino: (row.destino || '').replace(/\s*\(Retorno\)/gi, '').trim(),
+    destinosSecundarios: Array.isArray(destinosSecundarios) ? destinosSecundarios : [],
+    closter: row.closter || '',
+    fl: row.fl || 'LOCAL',
+    capMax: row.cap_max || '',
+    fecha: row.fecha || '',
+    horaSalida: row.hora_salida || '',
+    tiempoEstimadoHrs: Number(row.tiempo_estimado_hrs) || 0,
+    eta: row.eta || '',
+    estatusPatio: row.estatus_patio || 'Disponible',
+    estatusPlaneacion: row.estatus_planeacion || 'PENDIENTE',
+    estatusSupervisor: row.estatus_supervisor || 'Pendiente',
+    observaciones: obs,
+    actualizadoEn: row.actualizado_en || ''
+  };
+};
+
+export const mapUnitToDb = (unit) => {
+  let obs = unit.observaciones || '';
+  if (Array.isArray(unit.destinosSecundarios) && unit.destinosSecundarios.length > 0) {
+    obs = obs.replace(/__PARADAS__:\[.*?\](?:\n|$)/gs, '').trim();
+    obs = obs 
+      ? `${obs}\n__PARADAS__:${JSON.stringify(unit.destinosSecundarios)}` 
+      : `__PARADAS__:${JSON.stringify(unit.destinosSecundarios)}`;
+  }
+
+  return {
+    id: unit.id,
+    no_viaje: unit.noViaje || '',
+    economico: unit.economico || '',
+    bloque: Number(unit.bloque) || 1,
+    placas: unit.placas || '',
+    cap_unidad: Number(unit.capUnidad) || 0,
+    linea: unit.linea || 'LTI - VHS',
+    tipo: unit.tipo || '',
+    operador: unit.operador || '',
+    id_operador: unit.idOperador || '',
+    turno: unit.turno || 'M1',
+    cortina: unit.cortina || '',
+    num_carga: unit.numCarga || '',
+    num_sucursal: unit.numSucursal || '',
+    sucursal_origen: unit.sucursalOrigen || 'CEDIS VILLAHERMOSA',
+    destino: (unit.destino || '').replace(/\s*\(Retorno\)/gi, '').trim(),
+    closter: unit.closter || '',
+    fl: unit.fl || 'LOCAL',
+    cap_max: unit.capMax || '',
+    fecha: unit.fecha || '',
+    hora_salida: unit.horaSalida || '',
+    tiempo_estimado_hrs: Number(unit.tiempoEstimadoHrs) || 0,
+    eta: unit.eta || '',
+    estatus_patio: unit.estatusPatio || 'Disponible',
+    estatus_planeacion: unit.estatusPlaneacion || 'PENDIENTE',
+    estatus_supervisor: unit.estatusSupervisor || 'Pendiente',
+    observaciones: obs,
+    actualizado_en: unit.actualizadoEn || '',
+    updated_at: new Date().toISOString()
+  };
+};
 
 // Helpers de operaciones en Supabase
 export const fetchViajesDb = async () => {

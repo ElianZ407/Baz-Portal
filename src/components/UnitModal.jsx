@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Save, Truck, Layers, FileSpreadsheet, AlertTriangle, CheckCircle2, MapPin, Wrench, Trash2 } from 'lucide-react';
+import { X, Save, Truck, Layers, FileSpreadsheet, AlertTriangle, CheckCircle2, MapPin, Wrench, Trash2, Plus, Package } from 'lucide-react';
 import { useFleet } from '../context/FleetContext';
 import { LINEAS_TRANSPORTE, TURNOS, BLOQUES, SUCURSALES_MAESTRAS, FLOTA_TOTAL, OPERADORES_ACTIVOS } from '../constants/fleetConstants';
 import { buscarSucursal, validarRestriccionesViaje, buscarUnidadPorEco, buscarIdOperadorPorNombre, buscarOperadorPorEco, checkTieneViajeYOperador } from '../utils/fleetUtils';
@@ -28,6 +28,7 @@ export const UnitModal = () => {
     numSucursal: '',
     sucursalOrigen: 'CEDIS VILLAHERMOSA',
     destino: '',
+    destinosSecundarios: [],
     closter: '',
     fl: 'LOCAL',
     capMax: '',
@@ -45,6 +46,13 @@ export const UnitModal = () => {
     if (selectedUnit) {
       const resolvedId = selectedUnit.idOperador || 
         (selectedUnit.operador ? buscarIdOperadorPorNombre(selectedUnit.operador) : (selectedUnit.economico ? buscarOperadorPorEco(selectedUnit.economico)?.idOperador : '')) || '';
+      
+      const secDestinos = Array.isArray(selectedUnit.destinosSecundarios)
+        ? selectedUnit.destinosSecundarios
+        : (typeof selectedUnit.destinosSecundarios === 'string' && selectedUnit.destinosSecundarios.startsWith('[')
+            ? JSON.parse(selectedUnit.destinosSecundarios)
+            : []);
+
       setFormData({
         ...selectedUnit,
         noViaje: selectedUnit.noViaje || '',
@@ -60,6 +68,7 @@ export const UnitModal = () => {
         numSucursal: selectedUnit.numSucursal || '',
         sucursalOrigen: selectedUnit.sucursalOrigen || 'CEDIS VILLAHERMOSA',
         destino: (selectedUnit.destino || '').replace(/\s*\(Retorno\)/gi, '').trim(),
+        destinosSecundarios: secDestinos,
         closter: selectedUnit.closter || '',
         fl: selectedUnit.fl || 'LOCAL',
         capMax: selectedUnit.capMax || '',
@@ -89,6 +98,7 @@ export const UnitModal = () => {
         numSucursal: '',
         sucursalOrigen: 'CEDIS VILLAHERMOSA',
         destino: '',
+        destinosSecundarios: [],
         closter: '',
         fl: 'LOCAL',
         capMax: '',
@@ -114,6 +124,79 @@ export const UnitModal = () => {
       closter: sucursal.closter,
       fl: sucursal.fl || 'LOCAL',
       capMax: sucursal.capMax || ''
+    }));
+  };
+
+  // Manejo de paradas secundarias (múltiples entregas / destinos en un solo viaje)
+  const handleAddParada = () => {
+    setFormData(prev => ({
+      ...prev,
+      destinosSecundarios: [
+        ...(prev.destinosSecundarios || []),
+        {
+          id: `parada-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+          numSucursal: '',
+          destino: '',
+          closter: '',
+          numCarga: '',
+          esVtex: false,
+          folioVtex: '',
+          cortina: prev.cortina || ''
+        }
+      ]
+    }));
+  };
+
+  const handleAddVtex = () => {
+    setFormData(prev => ({
+      ...prev,
+      destinosSecundarios: [
+        ...(prev.destinosSecundarios || []),
+        {
+          id: `vtex-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+          numSucursal: prev.numSucursal || '',
+          destino: 'VTEX',
+          closter: '',
+          numCarga: '',
+          esVtex: true,
+          folioVtex: '',
+          cortina: prev.cortina || ''
+        }
+      ]
+    }));
+  };
+
+  const handleUpdateParada = (id, field, value) => {
+    setFormData(prev => ({
+      ...prev,
+      destinosSecundarios: (prev.destinosSecundarios || []).map(p => {
+        if (p.id !== id) return p;
+        return { ...p, [field]: value };
+      })
+    }));
+  };
+
+  const handleSelectSucursalParada = (id, sucursal) => {
+    if (!sucursal) return;
+    setFormData(prev => ({
+      ...prev,
+      destinosSecundarios: (prev.destinosSecundarios || []).map(p => {
+        if (p.id !== id) return p;
+        return {
+          ...p,
+          numSucursal: sucursal.id,
+          destino: sucursal.nombre,
+          closter: sucursal.closter || '',
+          fl: sucursal.fl || 'LOCAL'
+        };
+      })
+    }));
+  };
+
+  const handleRemoveParada = (id) => {
+    setFormData(prev => ({
+      ...prev,
+      destinosSecundarios: (prev.destinosSecundarios || []).filter(p => p.id !== id)
     }));
   };
 
@@ -600,11 +683,221 @@ export const UnitModal = () => {
 
                 {/* Selector Inteligente de Sucursal Destino (Siempre muestra todas) */}
                 <div className="form-group full-width">
-                  <label>Sucursal Destino (Catálogo CD Villahermosa - {SUCURSALES_MAESTRAS.length} Tiendas)</label>
+                  <label style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span>Destino Principal (#1) — Catálogo CD Villahermosa ({SUCURSALES_MAESTRAS.length} Tiendas)</span>
+                    <span style={{ fontSize: '0.72rem', color: 'var(--accent-cyan)' }}>Primer punto de entrega</span>
+                  </label>
                   <SucursalSelector 
                     value={formData.numSucursal || formData.destino}
                     onSelect={handleSelectSucursal}
                   />
+                </div>
+
+                {/* GESTIÓN DE VARIAS ENTREGAS / VIAJES EN UNO (MULTITRIP / PARADAS / VTEX) */}
+                <div className="form-group full-width" style={{
+                  background: 'rgba(15, 23, 42, 0.65)',
+                  border: '1px solid rgba(56, 189, 248, 0.25)',
+                  borderRadius: '10px',
+                  padding: '1rem',
+                  marginTop: '0.5rem',
+                  marginBottom: '0.5rem'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.75rem', marginBottom: '0.85rem' }}>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <Layers size={16} color="var(--accent-cyan)" />
+                        <strong style={{ color: '#fff', fontSize: '0.9rem' }}>
+                          Ruta Multiparada: Varias Entregas en este Viaje
+                        </strong>
+                        <span style={{ 
+                          fontSize: '0.72rem', 
+                          background: 'rgba(56, 189, 248, 0.15)', 
+                          color: '#38bdf8', 
+                          padding: '0.15rem 0.5rem', 
+                          borderRadius: '4px',
+                          fontFamily: 'var(--font-mono)',
+                          fontWeight: 700
+                        }}>
+                          {1 + (formData.destinosSecundarios?.length || 0)} Entregas totales
+                        </span>
+                      </div>
+                      <p style={{ margin: '0.2rem 0 0 0', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                        Agrega sucursales secundarias o paquetes VTEX que se entregarán en la misma unidad y ruta.
+                      </p>
+                    </div>
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <button
+                        type="button"
+                        className="btn btn-secondary"
+                        onClick={handleAddParada}
+                        style={{
+                          fontSize: '0.76rem',
+                          padding: '0.35rem 0.75rem',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.35rem',
+                          borderColor: 'rgba(56, 189, 248, 0.4)',
+                          color: '#38bdf8'
+                        }}
+                      >
+                        <Plus size={13} />
+                        <span>+ Agregar Sucursal</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        className="btn btn-secondary"
+                        onClick={handleAddVtex}
+                        style={{
+                          fontSize: '0.76rem',
+                          padding: '0.35rem 0.75rem',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.35rem',
+                          background: 'rgba(250, 204, 21, 0.12)',
+                          borderColor: 'rgba(250, 204, 21, 0.4)',
+                          color: '#facc15'
+                        }}
+                      >
+                        <Package size={13} />
+                        <span>+ Agregar VTEX</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* LISTADO DE PARADAS SECUNDARIAS */}
+                  {formData.destinosSecundarios && formData.destinosSecundarios.length > 0 ? (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
+                      {formData.destinosSecundarios.map((parada, pIdx) => (
+                        <div 
+                          key={parada.id || pIdx}
+                          style={{
+                            background: parada.esVtex ? 'rgba(250, 204, 21, 0.08)' : 'rgba(30, 41, 59, 0.6)',
+                            border: parada.esVtex ? '1px solid rgba(250, 204, 21, 0.35)' : '1px solid rgba(255, 255, 255, 0.08)',
+                            borderRadius: '8px',
+                            padding: '0.75rem',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: '0.5rem'
+                          }}
+                        >
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+                              <span style={{
+                                fontSize: '0.72rem',
+                                fontWeight: 700,
+                                fontFamily: 'var(--font-mono)',
+                                background: parada.esVtex ? '#facc15' : 'rgba(56, 189, 248, 0.2)',
+                                color: parada.esVtex ? '#000' : '#38bdf8',
+                                padding: '0.1rem 0.45rem',
+                                borderRadius: '4px'
+                              }}>
+                                {parada.esVtex ? '📦 ENTREGA VTEX' : `📍 PARADA #${pIdx + 2}`}
+                              </span>
+                              {parada.numSucursal && (
+                                <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontFamily: 'var(--font-mono)' }}>
+                                  #{parada.numSucursal}
+                                </span>
+                              )}
+                            </div>
+
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveParada(parada.id)}
+                              style={{
+                                background: 'transparent',
+                                border: 'none',
+                                color: '#f87171',
+                                cursor: 'pointer',
+                                padding: '0.2rem',
+                                display: 'flex',
+                                alignItems: 'center',
+                                borderRadius: '4px'
+                              }}
+                              title="Eliminar esta entrega del viaje"
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          </div>
+
+                          {parada.esVtex ? (
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr auto', gap: '0.5rem', alignItems: 'center' }}>
+                              <div>
+                                <label style={{ fontSize: '0.7rem', color: '#facc15', marginBottom: '0.2rem', display: 'block' }}>
+                                  Folio de Pedido VTEX *
+                                </label>
+                                <input
+                                  type="text"
+                                  className="form-control"
+                                  placeholder="Ej: 45781356, 45781398..."
+                                  value={parada.folioVtex || ''}
+                                  onChange={(e) => handleUpdateParada(parada.id, 'folioVtex', e.target.value)}
+                                  style={{ fontSize: '0.8rem', padding: '0.35rem 0.6rem' }}
+                                />
+                              </div>
+
+                              <div>
+                                <label style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', marginBottom: '0.2rem', display: 'block' }}>
+                                  Sucursal Asignada (S-####)
+                                </label>
+                                <input
+                                  type="text"
+                                  className="form-control"
+                                  placeholder="Ej: 1258, 2078..."
+                                  value={parada.numSucursal || ''}
+                                  onChange={(e) => handleUpdateParada(parada.id, 'numSucursal', e.target.value)}
+                                  style={{ fontSize: '0.8rem', padding: '0.35rem 0.6rem' }}
+                                />
+                              </div>
+
+                              <div style={{ paddingTop: '1rem', fontSize: '0.75rem', fontFamily: 'var(--font-mono)', color: '#facc15', whiteSpace: 'nowrap' }}>
+                                ➜ VTEX: {parada.folioVtex || '...'} (S-{parada.numSucursal || '...'})
+                              </div>
+                            </div>
+                          ) : (
+                            <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '0.5rem' }}>
+                              <div>
+                                <label style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', marginBottom: '0.2rem', display: 'block' }}>
+                                  Sucursal / Destino Adicional
+                                </label>
+                                <SucursalSelector
+                                  value={parada.numSucursal || parada.destino}
+                                  onSelect={(suc) => handleSelectSucursalParada(parada.id, suc)}
+                                />
+                              </div>
+
+                              <div>
+                                <label style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', marginBottom: '0.2rem', display: 'block' }}>
+                                  # Carga (Opcional)
+                                </label>
+                                <input
+                                  type="text"
+                                  className="form-control"
+                                  placeholder={formData.numCarga || 'CS0038...'}
+                                  value={parada.numCarga || ''}
+                                  onChange={(e) => handleUpdateParada(parada.id, 'numCarga', e.target.value)}
+                                  style={{ fontSize: '0.8rem', padding: '0.45rem 0.6rem' }}
+                                />
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div style={{
+                      textAlign: 'center',
+                      padding: '0.85rem',
+                      background: 'rgba(0, 0, 0, 0.2)',
+                      borderRadius: '6px',
+                      border: '1px dashed rgba(255, 255, 255, 0.1)',
+                      color: 'var(--text-muted)',
+                      fontSize: '0.78rem'
+                    }}>
+                      Este viaje solo tiene 1 destino. Haz clic en <strong>+ Agregar Sucursal</strong> o <strong>+ Agregar VTEX</strong> si la misma unidad lleva varias entregas.
+                    </div>
+                  )}
                 </div>
 
                 {/* Clóster Logístico (Auto) */}
