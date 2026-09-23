@@ -245,7 +245,23 @@ export const SupervisorView = () => {
                     background: unit.estatusSupervisor === 'Retrasado' ? 'rgba(239, 68, 68, 0.05)' : 'transparent'
                   }}>
                     <td>
-                      <span className="eco-pill">ECO {unit.economico}</span>
+                      {unit.economico ? (
+                        <span className="eco-pill">ECO {unit.economico}</span>
+                      ) : (
+                        <span style={{ 
+                          fontSize: '0.72rem', 
+                          color: '#94a3b8', 
+                          fontWeight: 700,
+                          fontFamily: 'var(--font-mono)',
+                          background: 'rgba(255, 255, 255, 0.05)',
+                          border: '1px dashed rgba(148, 163, 184, 0.35)',
+                          padding: '0.2rem 0.5rem',
+                          borderRadius: '4px',
+                          display: 'inline-block'
+                        }}>
+                          POR ASIGNAR
+                        </span>
+                      )}
                     </td>
                     <td>
                       <div className="operator-cell">

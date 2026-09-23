@@ -119,11 +119,18 @@ export const UnitModal = () => {
 
   // Selección inteligente de unidad desde el padrón
   const handleSelectUnidad = (unidad) => {
-    if (!unidad) return;
+    if (!unidad || !unidad.eco) {
+      setFormData(prev => ({
+        ...prev,
+        economico: '',
+        placas: ''
+      }));
+      return;
+    }
     setFormData(prev => ({
       ...prev,
       economico: unidad.eco,
-      placas: unidad.placas,
+      placas: unidad.placas || '',
       tipo: unidad.tipo || prev.tipo,
       capUnidad: Number(unidad.capUnidad || prev.capUnidad),
       linea: unidad.linea || prev.linea,
@@ -165,24 +172,26 @@ export const UnitModal = () => {
   const targetIdOrName = formData.numSucursal || formData.destino;
   const warnings = targetIdOrName ? validarRestriccionesViaje([targetIdOrName], Number(formData.capUnidad), catalogoSucursales) : [];
   const sucursalInfo = targetIdOrName ? buscarSucursal(targetIdOrName, catalogoSucursales) : null;
-  const flotaInfo = buscarUnidadPorEco(formData.economico, catalogoFlota);
+  const flotaInfo = formData.economico ? buscarUnidadPorEco(formData.economico, catalogoFlota) : null;
 
   const isTallerUnit = formData.estatusPatio === 'Taller' || flotaInfo?.estatus === 'TALLER';
   const isBlockedForPlaneacion = !isPatioMode && isTallerUnit;
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (!formData.economico) {
+
+    // Solo en Patio es obligatorio el número económico (porque Patio registra vehículos físicos)
+    if (isPatioMode && !formData.economico) {
       showAlert({
-        title: 'Dato Requerido',
-        message: 'Por favor seleccione o ingrese el número económico de la unidad.',
+        title: 'Dato Requerido en Patio',
+        message: 'Por favor seleccione o ingrese el número económico de la unidad para registrar en Patio.',
         confirmType: 'warning',
         confirmText: 'Entendido'
       });
       return;
     }
 
-    if (isBlockedForPlaneacion) {
+    if (formData.economico && isBlockedForPlaneacion) {
       showAlert({
         title: 'Unidad en Taller Mecánico',
         message: `La unidad ECO ${formData.economico} se encuentra en Taller Mecánico y no puede ser programada en Planeación.`,
@@ -247,8 +256,10 @@ export const UnitModal = () => {
                 <FileSpreadsheet size={20} style={{ display: 'inline', verticalAlign: 'middle', marginRight: '8px', color: 'var(--accent-cyan)' }} />
               )}
               {isPatioMode 
-                ? (selectedUnit ? `Gestionar Unidad en Patio ECO ${selectedUnit.economico}` : 'Registrar Nueva Unidad en Patio')
-                : (selectedUnit ? `Editar Viaje / Unidad ECO ${selectedUnit.economico}` : 'Registrar Nuevo Embarque / Unidad')
+                ? (selectedUnit ? `Gestionar Unidad en Patio ECO ${selectedUnit.economico || 'S/N'}` : 'Registrar Nueva Unidad en Patio')
+                : (selectedUnit 
+                    ? (selectedUnit.economico ? `Editar Viaje / Unidad ECO ${selectedUnit.economico}` : `Editar Viaje ${selectedUnit.noViaje ? `#${selectedUnit.noViaje}` : ''}`) 
+                    : 'Registrar Nuevo Embarque / Viaje')
               }
             </h3>
             <p style={{ margin: 0, fontSize: '0.78rem', color: isPatioMode ? '#34d399' : 'var(--text-muted)' }}>
@@ -484,7 +495,7 @@ export const UnitModal = () => {
 
                 {/* ECO Unidad con Selector Inteligente y Completo */}
                 <div className="form-group full-width">
-                  <label>ECO Unidad (Unidades en Patio — Solo Disponibles y Taller) *</label>
+                  <label>ECO Unidad <span style={{ color: 'var(--text-muted)', fontSize: '0.72rem', textTransform: 'none', fontWeight: 500 }}>(Opcional — Puedes dejarlo por asignar si aún no defines el vehículo)</span></label>
                   <UnidadSelector 
                     value={formData.economico}
                     onSelect={handleSelectUnidad}

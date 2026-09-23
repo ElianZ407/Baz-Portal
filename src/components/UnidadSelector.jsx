@@ -122,6 +122,28 @@ export const UnidadSelector = ({ value, onSelect, mode }) => {
         )}
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', marginLeft: 'auto' }}>
+          {value && (
+            <span
+              onClick={(e) => {
+                e.stopPropagation();
+                onSelect(null);
+              }}
+              title="Quitar unidad asignada (dejar sin unidad)"
+              style={{ 
+                padding: '0.2rem', 
+                cursor: 'pointer', 
+                display: 'flex', 
+                alignItems: 'center', 
+                color: 'var(--text-muted)',
+                borderRadius: '4px',
+                transition: 'color 0.15s'
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.color = '#f87171'}
+              onMouseLeave={(e) => e.currentTarget.style.color = 'var(--text-muted)'}
+            >
+              <X size={14} />
+            </span>
+          )}
           <ChevronDown size={16} color="var(--text-muted)" style={{ transform: isOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
         </div>
       </div>
@@ -212,6 +234,40 @@ export const UnidadSelector = ({ value, onSelect, mode }) => {
           </div>
 
           <div className="custom-select-options-list">
+            {/* Opción para registrar viaje sin unidad física asignada */}
+            {isPlaneacion && (
+              <div
+                className={`custom-select-option-item ${!value ? 'selected' : ''}`}
+                style={{ 
+                  borderBottom: '1px solid rgba(255, 255, 255, 0.08)', 
+                  cursor: 'pointer',
+                  background: !value ? 'rgba(6, 182, 212, 0.1)' : 'rgba(255, 255, 255, 0.02)'
+                }}
+                onClick={() => {
+                  onSelect(null);
+                  setIsOpen(false);
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                  <span style={{ 
+                    fontSize: '0.74rem', 
+                    color: 'var(--accent-cyan)', 
+                    fontWeight: 700, 
+                    fontFamily: 'var(--font-mono)',
+                    padding: '0.15rem 0.45rem',
+                    borderRadius: '4px',
+                    background: 'rgba(6, 182, 212, 0.15)',
+                    border: '1px solid rgba(6, 182, 212, 0.35)'
+                  }}>
+                    SIN UNIDAD
+                  </span>
+                  <span style={{ fontSize: '0.8rem', color: '#cbd5e1' }}>
+                    Registrar viaje sin unidad asignada (Por asignar en patio)
+                  </span>
+                </div>
+              </div>
+            )}
+
             {filteredUnidades.length === 0 ? (
               <div style={{ padding: '1.25rem', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.8rem' }}>
                 No se encontraron unidades con ese criterio.

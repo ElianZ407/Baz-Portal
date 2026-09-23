@@ -516,9 +516,25 @@ export const PlaneacionView = () => {
 
                       {/* ECO UNIDAD */}
                       <td>
-                        <span className="eco-pill" style={{ fontSize: '0.88rem' }}>
-                          {unit.economico}
-                        </span>
+                        {unit.economico ? (
+                          <span className="eco-pill" style={{ fontSize: '0.88rem' }}>
+                            {unit.economico}
+                          </span>
+                        ) : (
+                          <span style={{ 
+                            fontSize: '0.72rem', 
+                            color: '#94a3b8', 
+                            fontWeight: 700,
+                            fontFamily: 'var(--font-mono)',
+                            background: 'rgba(255, 255, 255, 0.05)',
+                            border: '1px dashed rgba(148, 163, 184, 0.35)',
+                            padding: '0.2rem 0.5rem',
+                            borderRadius: '4px',
+                            display: 'inline-block'
+                          }}>
+                            POR ASIGNAR
+                          </span>
+                        )}
                       </td>
 
                       {/* BLOQUE */}
@@ -831,15 +847,15 @@ export const PlaneacionView = () => {
                             style={{ color: '#f87171' }}
                             onClick={() => {
                               showConfirm({
-                                title: `¿Eliminar viaje / unidad ECO ${unit.economico}?`,
-                                message: 'Esta unidad será retirada de planeación, patio y de los tableros operativos de monitoreo.',
+                                title: `¿Eliminar viaje ${unit.noViaje ? `#${unit.noViaje}` : ''} ${unit.economico ? `(ECO ${unit.economico})` : ''}?`,
+                                message: 'Este viaje será retirado de planeación y de los tableros operativos de monitoreo.',
                                 unit: unit,
                                 confirmText: 'Sí, eliminar',
                                 confirmType: 'danger',
                                 onConfirm: () => deleteUnit(unit.id)
                               });
                             }}
-                            title={`Eliminar viaje / unidad ECO ${unit.economico}`}
+                            title={`Eliminar viaje ${unit.noViaje ? `#${unit.noViaje}` : ''}`}
                           >
                             <Trash2 size={13} />
                           </button>
