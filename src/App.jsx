@@ -10,6 +10,7 @@ import { ConfirmModal } from './components/ConfirmModal';
 import { ManualAyudaModal } from './components/ManualAyudaModal';
 import { SavePlanModal } from './components/SavePlanModal';
 import { PlanHistoryModal } from './components/PlanHistoryModal';
+import { HistoricalBanner } from './components/HistoricalBanner';
 
 const AppContent = () => {
   const { activeArea } = useFleet();
@@ -17,6 +18,7 @@ const AppContent = () => {
   return (
     <div className={`app-container ${activeArea === 'tv' ? 'tv-mode' : ''}`}>
       <Header />
+      <HistoricalBanner />
       
       <main className="main-content">
         {activeArea === 'patio' && <PatioView />}

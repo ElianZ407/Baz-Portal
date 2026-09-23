@@ -12,7 +12,9 @@ import {
   Clock, 
   Bookmark,
   ArrowRight,
-  AlertTriangle
+  AlertTriangle,
+  Eye,
+  RotateCcw
 } from 'lucide-react';
 import { useFleet } from '../context/FleetContext';
 import { exportOfficialExcel } from '../utils/exportOfficialExcel';
@@ -22,6 +24,8 @@ export const PlanHistoryModal = () => {
     savedPlans, 
     isHistoryModalOpen, 
     setIsHistoryModalOpen, 
+    viewHistoricalPlan,
+    restorePlanAsActive,
     loadSavedPlan, 
     deleteSavedPlan,
     setIsSavePlanModalOpen,
@@ -60,15 +64,18 @@ export const PlanHistoryModal = () => {
     }
   };
 
-  const handleLoadPlan = (plan) => {
+  const handleViewPlan = (plan) => {
+    viewHistoricalPlan(plan.id);
+  };
+
+  const handleRestorePlan = (plan) => {
     showConfirm({
-      title: `¿Cargar ${plan.nombre}?`,
-      message: `Esta acción cargará los ${plan.totalViajes} viajes de este plan en el tablero activo de monitoreo y reemplazará los datos actuales.`,
-      confirmText: 'Sí, Cargar Plan',
+      title: `¿Restaurar "${plan.nombre}" como Plan Activo?`,
+      message: `Esta acción cargará los ${plan.totalViajes} viajes en el tablero activo. Para proteger tu trabajo, el sistema guardará automáticamente una copia de respaldo de tu plan actual en el Historial para que nunca pierdas nada.`,
+      confirmText: 'Sí, Restaurar con Respaldo',
       confirmType: 'primary',
       onConfirm: async () => {
-        await loadSavedPlan(plan.id);
-        setIsHistoryModalOpen(false);
+        await restorePlanAsActive(plan.id);
       }
     });
   };
@@ -291,9 +298,11 @@ export const PlanHistoryModal = () => {
                     <div style={{ 
                       display: 'flex', 
                       justifyContent: 'flex-end', 
+                      alignItems: 'center',
                       gap: '0.5rem', 
                       borderTop: '1px solid rgba(255, 255, 255, 0.05)', 
-                      paddingTop: '0.65rem' 
+                      paddingTop: '0.65rem',
+                      flexWrap: 'wrap'
                     }}>
                       <button 
                         type="button" 
@@ -317,12 +326,36 @@ export const PlanHistoryModal = () => {
                       <button 
                         type="button" 
                         className="btn btn-primary"
-                        onClick={() => handleLoadPlan(plan)}
-                        style={{ fontSize: '0.76rem', padding: '0.35rem 0.85rem', gap: '0.35rem' }}
-                        title="Restaurar este plan en el tablero activo"
+                        onClick={() => handleViewPlan(plan)}
+                        style={{ 
+                          fontSize: '0.76rem', 
+                          padding: '0.35rem 0.85rem', 
+                          gap: '0.35rem',
+                          background: 'linear-gradient(135deg, #0284c7, #0369a1)',
+                          borderColor: '#38bdf8'
+                        }}
+                        title="Ver y consultar este día en el tablero sin modificar ni borrar tu plan actual"
                       >
-                        <UploadCloud size={13} />
-                        <span>Cargar en Tablero</span>
+                        <Eye size={13} />
+                        <span>Ver en Tablero</span>
+                      </button>
+
+                      <button 
+                        type="button" 
+                        className="btn btn-secondary"
+                        onClick={() => handleRestorePlan(plan)}
+                        style={{ 
+                          fontSize: '0.76rem', 
+                          padding: '0.35rem 0.75rem', 
+                          gap: '0.35rem',
+                          color: '#c084fc',
+                          borderColor: 'rgba(168, 85, 247, 0.4)',
+                          background: 'rgba(168, 85, 247, 0.08)'
+                        }}
+                        title="Restaurar este plan como el activo (se genera un respaldo automático de tu plan actual)"
+                      >
+                        <RotateCcw size={13} color="#c084fc" />
+                        <span>Restaurar</span>
                       </button>
 
                       <button 

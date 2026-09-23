@@ -95,6 +95,7 @@ export const FleetProvider = ({ children }) => {
   });
   const [isSavePlanModalOpen, setIsSavePlanModalOpen] = useState(false);
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
+  const [historicalPlanView, setHistoricalPlanView] = useState(null); // null o el objeto plan que se está consultando
 
   const showConfirm = (config) => {
     setConfirmModal({
@@ -322,19 +323,27 @@ export const FleetProvider = ({ children }) => {
     }
   }, [units]);
 
-  // KPIs en tiempo real basados exactamente en el tablero TV
+  // Si estamos en modo consulta histórica, mostrar las unidades de ese plan
+  const displayedUnits = useMemo(() => {
+    if (historicalPlanView && Array.isArray(historicalPlanView.unidades)) {
+      return historicalPlanView.unidades.map(cleanUnitDestino);
+    }
+    return units;
+  }, [historicalPlanView, units]);
+
+  // KPIs en tiempo real basados exactamente en las unidades en pantalla
   const kpis = useMemo(() => {
-    const total = units.length;
-    const enTransito = units.filter(u => u.estatusSupervisor === 'En Ruta').length;
-    const enSucursalRampa = units.filter(u => 
+    const total = displayedUnits.length;
+    const enTransito = displayedUnits.filter(u => u.estatusSupervisor === 'En Ruta').length;
+    const enSucursalRampa = displayedUnits.filter(u => 
       ['Espera Descarga', 'Descargando'].includes(u.estatusSupervisor) ||
       u.estatusPlaneacion === 'En Cortina' ||
       u.estatusPatio === 'Colocado p/ Carga'
     ).length;
-    const retrasadas = units.filter(u => u.estatusSupervisor === 'Retrasado').length;
-    const enTaller = units.filter(u => u.estatusPatio === 'Taller').length;
-    const disponiblesPatio = units.filter(u => u.estatusPatio === 'Disponible').length;
-    const cargadasPatio = units.filter(u => u.estatusPatio === 'Cargado').length;
+    const retrasadas = displayedUnits.filter(u => u.estatusSupervisor === 'Retrasado').length;
+    const enTaller = displayedUnits.filter(u => u.estatusPatio === 'Taller').length;
+    const disponiblesPatio = displayedUnits.filter(u => u.estatusPatio === 'Disponible').length;
+    const cargadasPatio = displayedUnits.filter(u => u.estatusPatio === 'Cargado').length;
 
     return {
       total,
@@ -345,10 +354,19 @@ export const FleetProvider = ({ children }) => {
       disponiblesPatio,
       cargadasPatio
     };
-  }, [units]);
+  }, [displayedUnits]);
 
   // Actualizar o crear unidad
   const saveUnit = async (unitData) => {
+    if (historicalPlanView) {
+      showAlert({
+        title: 'Modo Consulta Histórico',
+        message: 'Estás consultando un plan del historial en modo lectura. Para realizar cambios, vuelve a tu plan de hoy o restáuralo como plan activo.',
+        confirmType: 'warning'
+      });
+      return;
+    }
+
     const now = new Date().toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' });
     
     // Resolver la unidad completa de forma síncrona
@@ -386,6 +404,15 @@ export const FleetProvider = ({ children }) => {
 
   // Eliminar unidad
   const deleteUnit = async (id) => {
+    if (historicalPlanView) {
+      showAlert({
+        title: 'Modo Consulta Histórico',
+        message: 'Estás consultando un plan del historial en modo lectura. Para realizar cambios, vuelve a tu plan de hoy o restáuralo como plan activo.',
+        confirmType: 'warning'
+      });
+      return;
+    }
+
     setUnits(prev => prev.filter(u => u.id !== id));
     if (isSupabaseConfigured()) {
       try {
@@ -398,6 +425,15 @@ export const FleetProvider = ({ children }) => {
 
   // Cambio rápido de estatus por área
   const updateStatus = async (unitId, area, newStatus) => {
+    if (historicalPlanView) {
+      showAlert({
+        title: 'Modo Consulta Histórico',
+        message: 'Estás consultando un plan del historial en modo lectura. Para realizar cambios, vuelve a tu plan de hoy o restáuralo como plan activo.',
+        confirmType: 'warning'
+      });
+      return;
+    }
+
     const now = new Date().toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' });
     
     const targetUnit = units.find(u => u.id === unitId);
@@ -551,11 +587,55 @@ export const FleetProvider = ({ children }) => {
     return newPlan;
   };
 
-  // Cargar / Restaurar un plan histórico al tablero activo
-  const loadSavedPlan = async (planId) => {
+  // 1. Ver un plan histórico en MODO CONSULTA (sin borrar ni reemplazar el plan activo de hoy)
+  const viewHistoricalPlan = (planId) => {
+    const plan = savedPlans.find(p => p.id === planId);
+    if (!plan || !Array.isArray(plan.unidades)) return false;
+    setHistoricalPlanView(plan);
+    setIsHistoryModalOpen(false);
+    return true;
+  };
+
+  // 2. Salir del modo consulta histórica y regresar al plan de hoy intacto
+  const exitHistoricalPlanView = () => {
+    setHistoricalPlanView(null);
+  };
+
+  // 3. Restaurar un plan histórico como el activo (con RESPALDO AUTOMÁTICO garantizado de tu plan actual)
+  const restorePlanAsActive = async (planId) => {
     const plan = savedPlans.find(p => p.id === planId);
     if (!plan || !Array.isArray(plan.unidades)) return false;
 
+    // Respaldo automático del plan actual si contiene unidades para que NADA se pierda
+    if (units.length > 0) {
+      const todayDate = new Date().toISOString().split('T')[0];
+      const timeStr = new Date().toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' });
+      const backupPlan = {
+        id: `backup-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+        fecha: todayDate,
+        nombre: `Respaldo Automático (Previo a cargar ${plan.nombre}) - ${timeStr}`,
+        totalViajes: units.length,
+        totalCompletados: units.filter(u => u.estatusPlaneacion === 'COMPLETADO' || u.estatusSupervisor === 'Completado').length,
+        unidades: JSON.parse(JSON.stringify(units)),
+        createdAt: new Date().toISOString()
+      };
+
+      setSavedPlans(prev => {
+        const updated = [backupPlan, ...prev];
+        localStorage.setItem(HISTORIAL_KEY, JSON.stringify(updated));
+        return updated;
+      });
+
+      if (isSupabaseConfigured()) {
+        try {
+          await savePlanHistoricoDb(backupPlan);
+        } catch (e) {
+          console.warn('Error al guardar respaldo automático en Supabase:', e);
+        }
+      }
+    }
+
+    // Restaurar unidades en el plan activo
     const restoredUnits = plan.unidades.map(cleanUnitDestino);
     setUnits(restoredUnits);
     localStorage.setItem(STORAGE_KEY, JSON.stringify(restoredUnits));
@@ -579,8 +659,22 @@ export const FleetProvider = ({ children }) => {
       bc.close();
     }
 
+    // Salir del modo consulta
+    setHistoricalPlanView(null);
+    setIsHistoryModalOpen(false);
+
+    showAlert({
+      title: 'Plan Restaurado con Éxito',
+      message: `Se ha cargado "${plan.nombre}". Para tu tranquilidad, se generó automáticamente un respaldo de tu plan anterior en el Historial.`,
+      confirmType: 'success',
+      confirmText: 'Aceptar'
+    });
+
     return true;
   };
+
+  // Mantener loadSavedPlan apuntando a restorePlanAsActive para retrocompatibilidad
+  const loadSavedPlan = restorePlanAsActive;
 
   // Eliminar un plan histórico
   const deleteSavedPlan = async (planId) => {
@@ -601,7 +695,13 @@ export const FleetProvider = ({ children }) => {
 
   return (
     <FleetContext.Provider value={{
-      units,
+      units: displayedUnits,
+      activeUnits: units,
+      isViewingHistorical: Boolean(historicalPlanView),
+      historicalPlanView,
+      viewHistoricalPlan,
+      exitHistoricalPlanView,
+      restorePlanAsActive,
       kpis,
       activeArea,
       setActiveArea,

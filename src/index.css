@@ -2123,3 +2123,132 @@ body {
   }
 }
 
+/* ==========================================================================
+   Banner Superior de Modo Consulta Histórica
+   ========================================================================== */
+.historical-banner-bar {
+  background: linear-gradient(90deg, #091a33 0%, #0d2242 50%, #091a33 100%);
+  border-bottom: 2px solid #0284c7;
+  box-shadow: 0 4px 18px rgba(2, 132, 199, 0.25);
+  padding: 0.65rem 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.25rem;
+  z-index: 90;
+  position: sticky;
+  top: 58px;
+  animation: slideDownBanner 0.25s ease-out;
+}
+
+@keyframes slideDownBanner {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.historical-banner-left {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.historical-badge-pulse {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: rgba(14, 165, 233, 0.2);
+  border: 1px solid rgba(14, 165, 233, 0.45);
+  color: #38bdf8;
+  padding: 0.25rem 0.65rem;
+  border-radius: var(--radius-full);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.historical-banner-info {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.historical-plan-name {
+  color: #fff;
+  font-weight: 700;
+  font-size: 0.92rem;
+}
+
+.historical-plan-meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+  font-family: var(--font-mono);
+}
+
+.historical-protection-notice {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  color: #34d399;
+  font-size: 0.76rem;
+  font-weight: 600;
+  background: rgba(16, 185, 129, 0.1);
+  padding: 0.15rem 0.5rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid rgba(16, 185, 129, 0.25);
+}
+
+.historical-banner-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-shrink: 0;
+}
+
+.btn-exit-historical {
+  background: linear-gradient(135deg, #059669, #047857) !important;
+  border-color: #10b981 !important;
+  font-size: 0.82rem;
+  padding: 0.45rem 0.95rem;
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
+}
+
+.btn-exit-historical:hover {
+  filter: brightness(1.1);
+}
+
+.btn-restore-historical {
+  font-size: 0.82rem;
+  padding: 0.45rem 0.85rem;
+  border-color: rgba(168, 85, 247, 0.4) !important;
+  color: #c084fc !important;
+  background: rgba(168, 85, 247, 0.12) !important;
+}
+
+.btn-restore-historical:hover {
+  background: rgba(168, 85, 247, 0.22) !important;
+}
+
+@media (max-width: 900px) {
+  .historical-banner-bar {
+    flex-direction: column;
+    align-items: stretch;
+    padding: 0.75rem 1rem;
+    gap: 0.75rem;
+  }
+  .historical-banner-actions {
+    justify-content: flex-end;
+  }
+}
+
