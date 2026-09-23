@@ -8,7 +8,8 @@ import {
   Edit3, 
   Trash2,
   AlertCircle,
-  PlusCircle
+  PlusCircle,
+  UserCheck
 } from 'lucide-react';
 import { useFleet } from '../context/FleetContext';
 
@@ -167,44 +168,127 @@ export const PatioView = () => {
                     Sin unidades en este estatus
                   </div>
                 ) : (
-                  col.items.map(unit => (
-                    <div key={unit.id} className="unit-card">
-                      <div className="unit-card-header">
-                        <span className="eco-pill">ECO {unit.economico}</span>
-                        <span style={{ 
-                          fontSize: '0.75rem', 
-                          background: 'rgba(255,255,255,0.08)', 
-                          padding: '0.15rem 0.5rem',
-                          borderRadius: '4px',
-                          color: 'var(--text-secondary)'
-                        }}>
-                          {unit.tipo}
-                        </span>
-                      </div>
+                  col.items.map(unit => {
+                    const hasOperator = Boolean(
+                      unit.operador && 
+                      unit.operador.trim() !== '' && 
+                      unit.operador.toUpperCase() !== 'POR ASIGNAR' && 
+                      unit.operador.toUpperCase() !== 'SIN OPERADOR'
+                    );
+                    const hasViaje = Boolean(unit.noViaje && String(unit.noViaje).trim() !== '');
 
-                      <div className="unit-card-body">
-                        {unit.placas && (
-                          <div>
-                            <strong style={{ color: '#fff' }}>Placas: </strong>
-                            <span style={{ color: 'var(--text-secondary)' }}>{unit.placas}</span>
+                    return (
+                      <div key={unit.id} className={`unit-card ${hasOperator ? 'unit-card-assigned' : ''}`}>
+                        <div className="unit-card-header">
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', flexWrap: 'wrap' }}>
+                            <span className="eco-pill">ECO {unit.economico}</span>
+                            {hasViaje && (
+                              <span style={{ 
+                                fontSize: '0.7rem', 
+                                fontWeight: 800, 
+                                background: 'rgba(6, 182, 212, 0.18)', 
+                                color: '#22d3ee', 
+                                border: '1px solid rgba(6, 182, 212, 0.4)', 
+                                padding: '0.12rem 0.45rem', 
+                                borderRadius: '4px',
+                                fontFamily: 'var(--font-mono)'
+                              }}>
+                                VIAJE #{unit.noViaje}
+                              </span>
+                            )}
                           </div>
-                        )}
-                        <div>
-                          <strong style={{ color: '#fff' }}>Capacidad: </strong>
-                          <span style={{ color: 'var(--accent-cyan)' }}>{unit.capUnidad || 18} m³</span>
+                          
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                            {hasOperator && (
+                              <span style={{ 
+                                fontSize: '0.65rem', 
+                                fontWeight: 800, 
+                                background: 'rgba(16, 185, 129, 0.18)', 
+                                color: '#34d399', 
+                                border: '1px solid rgba(16, 185, 129, 0.4)', 
+                                padding: '0.12rem 0.45rem', 
+                                borderRadius: '4px',
+                                textTransform: 'uppercase',
+                                letterSpacing: '0.04em'
+                              }}>
+                                ASIGNADA
+                              </span>
+                            )}
+                            <span style={{ 
+                              fontSize: '0.75rem', 
+                              background: 'rgba(255,255,255,0.08)', 
+                              padding: '0.15rem 0.5rem',
+                              borderRadius: '4px',
+                              color: 'var(--text-secondary)'
+                            }}>
+                              {unit.tipo}
+                            </span>
+                          </div>
                         </div>
-                        {unit.cortina && unit.cortina !== 'Sin asignar' && (
+
+                        <div className="unit-card-body">
+                          {unit.placas && (
+                            <div>
+                              <strong style={{ color: '#fff' }}>Placas: </strong>
+                              <span style={{ color: 'var(--text-secondary)' }}>{unit.placas}</span>
+                            </div>
+                          )}
                           <div>
-                            <strong style={{ color: '#fff' }}>Cajón / Rampa: </strong>
-                            <span style={{ color: '#34d399', fontWeight: 600 }}>{unit.cortina}</span>
+                            <strong style={{ color: '#fff' }}>Capacidad: </strong>
+                            <span style={{ color: 'var(--accent-cyan)' }}>{unit.capUnidad || 18} m³</span>
                           </div>
-                        )}
-                        {unit.observaciones && (
-                          <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '0.3rem', fontStyle: 'italic' }}>
-                            "{unit.observaciones}"
-                          </div>
-                        )}
-                      </div>
+                          {unit.cortina && unit.cortina !== 'Sin asignar' && (
+                            <div>
+                              <strong style={{ color: '#fff' }}>Cajón / Rampa: </strong>
+                              <span style={{ color: '#34d399', fontWeight: 600 }}>{unit.cortina}</span>
+                            </div>
+                          )}
+
+                          {/* Operador Asignado */}
+                          {hasOperator && (
+                            <div style={{
+                              marginTop: '0.45rem',
+                              padding: '0.45rem 0.65rem',
+                              background: 'rgba(6, 182, 212, 0.1)',
+                              border: '1px solid rgba(6, 182, 212, 0.3)',
+                              borderRadius: '6px',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '0.5rem'
+                            }}>
+                              <UserCheck size={16} color="var(--accent-cyan)" style={{ flexShrink: 0 }} />
+                              <div style={{ overflow: 'hidden', flex: 1 }}>
+                                <div style={{ 
+                                  fontSize: '0.64rem', 
+                                  color: 'var(--accent-cyan)', 
+                                  fontWeight: 800, 
+                                  textTransform: 'uppercase',
+                                  letterSpacing: '0.04em',
+                                  lineHeight: 1
+                                }}>
+                                  Operador Asignado
+                                </div>
+                                <div style={{ 
+                                  fontSize: '0.82rem', 
+                                  color: '#fff', 
+                                  fontWeight: 700, 
+                                  whiteSpace: 'nowrap', 
+                                  textOverflow: 'ellipsis', 
+                                  overflow: 'hidden',
+                                  marginTop: '0.15rem'
+                                }}>
+                                  {unit.operador}
+                                </div>
+                              </div>
+                            </div>
+                          )}
+
+                          {unit.observaciones && (
+                            <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '0.3rem', fontStyle: 'italic' }}>
+                              "{unit.observaciones}"
+                            </div>
+                          )}
+                        </div>
 
                       <div className="unit-card-footer">
                         {/* Patio: solo mover a Taller o liberar de Taller */}
@@ -268,8 +352,9 @@ export const PatioView = () => {
                         </div>
                       </div>
                     </div>
-                  ))
-                )}
+                  );
+                })
+              )}
               </div>
             </div>
           );
