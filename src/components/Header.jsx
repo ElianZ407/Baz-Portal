@@ -116,7 +116,8 @@ export const Header = () => {
           title="1. Patio (En CD: Cargado, Taller, Disponible, Colocado p/ carga)"
         >
           <Layers size={16} />
-          <span>1. Patio (En CD)</span>
+          <span className="tab-full-text">1. Patio (En CD)</span>
+          <span className="tab-short-text">Patio</span>
         </button>
 
         <button 
@@ -125,7 +126,8 @@ export const Header = () => {
           title="2. Planeación: Unidades en Cortina, Asignación de Folios y Turnos"
         >
           <CalendarClock size={16} />
-          <span>2. Planeación</span>
+          <span className="tab-full-text">2. Planeación</span>
+          <span className="tab-short-text">Planeación</span>
         </button>
 
         <button 
@@ -134,7 +136,8 @@ export const Header = () => {
           title="3. Supervisor: En Ruta, Retorno, Espera Descarga, Descargando"
         >
           <Radio size={16} />
-          <span>3. Supervisor (Ruta)</span>
+          <span className="tab-full-text">3. Supervisor (Ruta)</span>
+          <span className="tab-short-text">Supervisor</span>
         </button>
 
         <button 
@@ -143,7 +146,8 @@ export const Header = () => {
           title="Pizarra de Control para Proyección en Pantalla / TV"
         >
           <Tv size={16} />
-          <span>Tablero TV en Vivo</span>
+          <span className="tab-full-text">Tablero TV en Vivo</span>
+          <span className="tab-short-text">Tablero TV</span>
           <span className="badge-counter">{units.length}</span>
         </button>
       </nav>
@@ -153,26 +157,24 @@ export const Header = () => {
         <div className="live-clock" title="Hora de sistema sincronizada">
           <span className="clock-dot"></span>
           <Clock size={14} />
-          <span>{dateString.toUpperCase()} | {timeString}</span>
+          <span className="clock-full-text">{dateString.toUpperCase()} | {timeString}</span>
+          <span className="clock-short-text">{timeString}</span>
         </div>
 
         {activeArea === 'planeacion' && (
           <button 
-            className="btn btn-primary"
+            className="btn btn-primary btn-header-action"
             onClick={handleOpenNewUnit}
             title="Registrar nuevo viaje en planeación"
           >
             <PlusCircle size={16} />
-            <span>Nuevo Viaje</span>
+            <span className="btn-label-text">Nuevo Viaje</span>
           </button>
         )}
 
         <button 
-          className="btn btn-secondary" 
+          className="btn btn-secondary btn-header-action" 
           style={{ 
-            padding: '0.45rem 0.85rem', 
-            fontSize: '0.82rem', 
-            gap: '0.45rem', 
             borderColor: 'rgba(6, 182, 212, 0.4)', 
             background: 'rgba(6, 182, 212, 0.12)',
             color: '#22d3ee'
@@ -181,15 +183,12 @@ export const Header = () => {
           title="Guardar / Archivar el plan del día y opcionalmente comenzar nuevo día"
         >
           <Save size={15} color="#22d3ee" />
-          <span style={{ fontWeight: 700 }}>Guardar Día</span>
+          <span className="btn-label-text" style={{ fontWeight: 700 }}>Guardar Día</span>
         </button>
 
         <button 
-          className="btn btn-secondary" 
+          className="btn btn-secondary btn-header-action" 
           style={{ 
-            padding: '0.45rem 0.85rem', 
-            fontSize: '0.82rem', 
-            gap: '0.45rem', 
             borderColor: 'rgba(168, 85, 247, 0.4)', 
             background: 'rgba(168, 85, 247, 0.12)',
             color: '#c084fc',
@@ -200,17 +199,9 @@ export const Header = () => {
           title="Consultar historial de planes guardados, exportar sus Excel o restaurarlos"
         >
           <History size={15} color="#c084fc" />
-          <span style={{ fontWeight: 700 }}>Historial</span>
+          <span className="btn-label-text" style={{ fontWeight: 700 }}>Historial</span>
           {savedPlans && savedPlans.length > 0 && (
-            <span style={{
-              background: '#a855f7',
-              color: '#fff',
-              borderRadius: '10px',
-              padding: '0.05rem 0.4rem',
-              fontSize: '0.65rem',
-              fontWeight: 800,
-              marginLeft: '0.1rem'
-            }}>
+            <span className="history-badge">
               {savedPlans.length}
             </span>
           )}
@@ -218,11 +209,8 @@ export const Header = () => {
 
         {activeArea !== 'planeacion' && (
           <button 
-            className="btn btn-secondary" 
+            className="btn btn-secondary btn-header-action" 
             style={{ 
-              padding: '0.45rem 0.85rem', 
-              fontSize: '0.82rem', 
-              gap: '0.45rem', 
               borderColor: 'rgba(34, 197, 94, 0.45)', 
               background: 'rgba(34, 197, 94, 0.12)',
               color: '#4ade80'
@@ -231,13 +219,13 @@ export const Header = () => {
             title={getExportButtonTitle()}
           >
             <FileSpreadsheet size={15} color="#4ade80" />
-            <span style={{ fontWeight: 700 }}>{getExportButtonLabel()}</span>
+            <span className="btn-label-text" style={{ fontWeight: 700 }}>{getExportButtonLabel()}</span>
           </button>
         )}
 
         <button 
-          className="btn btn-secondary" 
-          style={{ padding: '0.45rem 0.85rem', fontSize: '0.82rem', gap: '0.4rem', border: '1px solid rgba(6, 182, 212, 0.35)' }}
+          className="btn btn-secondary btn-header-action" 
+          style={{ border: '1px solid rgba(6, 182, 212, 0.35)' }}
           onClick={() => {
             const btn = document.querySelector('.floating-help-btn');
             if (btn) btn.click();
@@ -245,7 +233,7 @@ export const Header = () => {
           title="Manual de Usuario y Flujo Operativo"
         >
           <HelpCircle size={15} color="var(--accent-cyan)" />
-          <span>Ayuda</span>
+          <span className="btn-label-text">Ayuda</span>
         </button>
 
         <button 

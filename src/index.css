@@ -66,6 +66,11 @@
   box-sizing: border-box;
 }
 
+html, body {
+  overflow-x: hidden;
+  max-width: 100vw;
+}
+
 body {
   font-family: var(--font-sans);
   background-color: var(--bg-primary);
@@ -80,6 +85,8 @@ body {
   display: flex;
   flex-direction: column;
   min-height: 100vh;
+  width: 100%;
+  overflow-x: hidden;
 }
 
 .main-content {
@@ -184,6 +191,7 @@ body {
   border-radius: var(--radius-md);
   border: 1px solid var(--border-color);
   gap: 0.25rem;
+  flex-shrink: 0;
 }
 
 .nav-tab {
@@ -200,6 +208,15 @@ body {
   cursor: pointer;
   transition: all 0.15s ease;
   font-family: var(--font-sans);
+  white-space: nowrap;
+}
+
+.tab-full-text {
+  display: inline;
+}
+
+.tab-short-text {
+  display: none;
 }
 
 .nav-tab:hover {
@@ -232,7 +249,28 @@ body {
 .header-actions {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: 0.65rem;
+  flex-shrink: 0;
+}
+
+.btn-header-action {
+  padding: 0.45rem 0.85rem;
+  font-size: 0.82rem;
+  gap: 0.45rem;
+}
+
+.btn-label-text {
+  display: inline;
+}
+
+.history-badge {
+  background: #a855f7;
+  color: #fff;
+  border-radius: 10px;
+  padding: 0.05rem 0.4rem;
+  font-size: 0.65rem;
+  font-weight: 800;
+  margin-left: 0.1rem;
 }
 
 .live-clock {
@@ -246,6 +284,15 @@ body {
   font-family: var(--font-mono);
   font-size: 0.8rem;
   color: #cbd5e1;
+  white-space: nowrap;
+}
+
+.clock-full-text {
+  display: inline;
+}
+
+.clock-short-text {
+  display: none;
 }
 
 .clock-dot {
@@ -305,16 +352,16 @@ body {
    ========================================================================== */
 .kpi-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  gap: 1.25rem;
-  margin-bottom: 1.75rem;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.5rem;
 }
 
 .kpi-card {
   background: var(--bg-card);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-lg);
-  padding: 1.25rem 1.5rem;
+  padding: 1.1rem 1.35rem;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -349,7 +396,7 @@ body {
 .kpi-card.alerta::before { background: linear-gradient(90deg, #ef4444, #f87171); }
 
 .kpi-info h3 {
-  font-size: 0.78rem;
+  font-size: 0.75rem;
   text-transform: uppercase;
   letter-spacing: 0.05em;
   color: var(--text-secondary);
@@ -358,7 +405,7 @@ body {
 }
 
 .kpi-value {
-  font-size: 2.25rem;
+  font-size: clamp(1.6rem, 2.5vw, 2.25rem);
   font-weight: 800;
   line-height: 1;
   color: #fff;
@@ -997,23 +1044,26 @@ body {
   border: 1px solid var(--border-color);
   border-left: 4px solid var(--accent-cyan);
   border-radius: var(--radius-lg);
-  padding: 1.25rem 1.75rem;
-  margin-bottom: 1.5rem;
+  padding: 1.1rem 1.5rem;
+  margin-bottom: 1.25rem;
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 1rem;
 }
 
 .tv-title-area h1 {
-  font-size: 1.6rem;
+  font-size: clamp(1.15rem, 2.2vw, 1.6rem);
   font-weight: 800;
   letter-spacing: -0.01em;
   color: #fff;
+  line-height: 1.2;
 }
 
 .tv-title-area p {
   color: var(--accent-cyan);
-  font-size: 0.9rem;
+  font-size: clamp(0.75rem, 1.2vw, 0.9rem);
   font-weight: 600;
   margin-top: 0.2rem;
 }
@@ -1161,23 +1211,319 @@ body {
   transform: scale(0.93);
 }
 
-/* Responsive */
-@media (max-width: 1200px) {
+/* ==========================================================================
+   Columnas Fijas (Sticky) para Lectura Cómoda en Tablas con Scroll Horizontal
+   ========================================================================== */
+.table-wrapper {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  max-width: 100%;
+}
+
+.data-table th:first-child,
+.data-table td:first-child {
+  position: sticky;
+  left: 0;
+  z-index: 2;
+  background: #090e1c;
+}
+
+.data-table thead th:first-child {
+  z-index: 4;
+  background: #0b253a;
+}
+
+.data-table th:nth-child(2),
+.data-table td:nth-child(2) {
+  position: sticky;
+  left: 62px;
+  z-index: 2;
+  background: #090e1c;
+  box-shadow: 3px 0 8px rgba(0, 0, 0, 0.45);
+}
+
+.data-table thead th:nth-child(2) {
+  z-index: 4;
+  background: #0b253a;
+}
+
+.data-table tr:hover td:first-child,
+.data-table tr:hover td:nth-child(2) {
+  background: #101c33;
+}
+
+/* ==========================================================================
+   SISTEMA RESPONSIVE MULTI-DISPOSITIVO (Laptops 100% Zoom, Tablets, Móviles)
+   ========================================================================== */
+
+/* 1. Laptops compactas y monitores medianos (1280px - 1440px al 100% zoom) */
+@media (max-width: 1440px) {
+  .top-header {
+    padding: 0.65rem 1.25rem;
+    gap: 0.85rem;
+  }
+  .brand-text h1 {
+    font-size: 1.1rem;
+  }
+  .brand-subtitle {
+    font-size: 0.7rem;
+  }
+  .nav-tab {
+    padding: 0.45rem 0.85rem;
+    font-size: 0.8rem;
+    gap: 0.35rem;
+  }
+  .btn-header-action {
+    padding: 0.4rem 0.7rem;
+    font-size: 0.78rem;
+  }
+}
+
+/* 2. Laptops estándar y tablets horizontales (1025px - 1280px) */
+@media (max-width: 1280px) {
+  .top-header {
+    gap: 0.65rem;
+    padding: 0.55rem 1rem;
+  }
+  .brand-subtitle {
+    display: none;
+  }
+  .tab-full-text {
+    display: none;
+  }
+  .tab-short-text {
+    display: inline;
+  }
+  .clock-full-text {
+    display: none;
+  }
+  .clock-short-text {
+    display: inline;
+  }
+  /* Ocultar etiquetas de botones secundarios para no colapsar la barra */
+  .btn-header-action:not(.btn-primary) .btn-label-text {
+    display: none;
+  }
+  .btn-header-action {
+    padding: 0.45rem 0.65rem;
+  }
   .kpi-grid {
     grid-template-columns: repeat(2, 1fr);
   }
 }
 
+/* 3. Tablets verticales y pantallas intermedias (769px - 1024px) */
 @media (max-width: 1024px) {
   .top-header {
     flex-direction: column;
     align-items: stretch;
+    gap: 0.65rem;
+    padding: 0.65rem 1rem;
   }
-  .nav-areas {
+
+  .top-header > .brand-section {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  /* Distribución en 2 filas limpias */
+  .top-header {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    grid-template-rows: auto auto;
+    grid-template-areas: 
+      "brand actions"
+      "nav nav";
+  }
+
+  .top-header > .brand-section {
+    grid-area: brand;
+  }
+
+  .top-header > .header-actions {
+    grid-area: actions;
+    justify-content: flex-end;
+  }
+
+  .top-header > .nav-areas {
+    grid-area: nav;
     overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    width: 100%;
+    scrollbar-width: none;
   }
+  .top-header > .nav-areas::-webkit-scrollbar {
+    display: none;
+  }
+
+  .nav-tab {
+    flex: 1;
+    justify-content: center;
+    padding: 0.5rem 0.75rem;
+  }
+
   .main-content {
+    padding: 1rem 0.75rem;
+  }
+
+  .tv-header-banner {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.75rem;
+  }
+}
+
+/* 4. Teléfonos móviles y pantallas táctiles pequeñas (< 768px) */
+@media (max-width: 768px) {
+  .top-header {
+    padding: 0.5rem 0.65rem;
+    gap: 0.5rem;
+  }
+
+  .brand-logo-img {
+    height: 30px;
+    max-width: 110px;
+  }
+
+  .brand-text h1 {
+    font-size: 0.95rem;
+  }
+
+  .brand-badge {
+    font-size: 0.58rem;
+    padding: 0.1rem 0.35rem;
+  }
+
+  .live-clock {
+    padding: 0.35rem 0.5rem;
+    font-size: 0.72rem;
+  }
+
+  .header-actions {
+    gap: 0.35rem;
+  }
+
+  .btn-header-action {
+    padding: 0.4rem 0.55rem;
+    font-size: 0.75rem;
+  }
+
+  .btn-primary .btn-label-text {
+    display: none;
+  }
+
+  .nav-areas {
+    padding: 0.2rem;
+    gap: 0.2rem;
+  }
+
+  .nav-tab {
+    padding: 0.45rem 0.55rem;
+    font-size: 0.72rem;
+    gap: 0.25rem;
+  }
+
+  .kpi-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.5rem;
+  }
+
+  .kpi-card {
+    padding: 0.85rem;
+  }
+
+  .kpi-value {
+    font-size: 1.6rem;
+  }
+
+  .kpi-icon-wrapper {
+    width: 38px;
+    height: 38px;
+  }
+
+  .controls-bar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.75rem;
+    padding: 0.75rem;
+  }
+
+  .search-input-group {
+    min-width: 100%;
+    max-width: 100%;
+  }
+
+  .filter-pills {
+    width: 100%;
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    padding-bottom: 0.25rem;
+  }
+
+  .table-header-title {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.75rem;
+    padding: 0.85rem 1rem;
+  }
+
+  .table-header-title h2 {
+    font-size: 0.95rem;
+  }
+
+  /* Modales en teléfonos móviles */
+  .modal-overlay {
+    padding: 0.5rem;
+  }
+
+  .modal-content {
+    max-width: 100vw;
+    width: 100%;
+    max-height: 94vh;
+    border-radius: var(--radius-md);
+  }
+
+  .modal-header {
+    padding: 0.85rem 1rem;
+  }
+
+  .modal-body {
     padding: 1rem;
+  }
+
+  .form-grid {
+    grid-template-columns: 1fr !important;
+    gap: 0.75rem;
+  }
+
+  .form-group.full-width {
+    grid-column: span 1 !important;
+  }
+
+  .modal-footer {
+    padding: 0.75rem 1rem;
+    flex-direction: column-reverse;
+    gap: 0.5rem;
+  }
+
+  .modal-footer .btn {
+    width: 100%;
+  }
+
+  /* Vista Patio en Móvil */
+  .patio-grid,
+  .supervisor-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* 5. Teléfonos ultracompactos (< 480px) */
+@media (max-width: 480px) {
+  .kpi-grid {
+    grid-template-columns: 1fr;
+  }
+  .live-clock {
+    display: none; /* en pantallas diminutas se priorizan los botones de acción */
   }
 }
 
