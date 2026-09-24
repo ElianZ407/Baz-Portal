@@ -1,18 +1,55 @@
-import React, { useState, useEffect } from 'react';
-import { X, Save, Truck, Layers, FileSpreadsheet, AlertTriangle, CheckCircle2, MapPin, Wrench, Trash2, Plus, Package } from 'lucide-react';
+import React, { useState } from 'react';
+import { X, Save, Truck, Layers, FileSpreadsheet, AlertTriangle, Wrench, Trash2, Plus, Package } from 'lucide-react';
 import { useFleet } from '../context/FleetContext';
-import { LINEAS_TRANSPORTE, TURNOS, BLOQUES, SUCURSALES_MAESTRAS, FLOTA_TOTAL, OPERADORES_ACTIVOS } from '../constants/fleetConstants';
+import { LINEAS_TRANSPORTE, BLOQUES, SUCURSALES_MAESTRAS, FLOTA_TOTAL } from '../constants/fleetConstants';
 import { buscarSucursal, validarRestriccionesViaje, buscarUnidadPorEco, buscarIdOperadorPorNombre, buscarOperadorPorEco, checkTieneViajeYOperador } from '../utils/fleetUtils';
 import { SucursalSelector } from './SucursalSelector';
 import { UnidadSelector } from './UnidadSelector';
 import { OperadorSelector } from './OperadorSelector';
 import { CustomSelect } from './CustomSelect';
 
-export const UnitModal = () => {
-  const { isModalOpen, setIsModalOpen, selectedUnit, saveUnit, deleteUnit, showConfirm, showAlert, activeArea, catalogoFlota, catalogoSucursales } = useFleet();
-  const isPatioMode = activeArea === 'patio';
+const getDefaultFormData = (selectedUnit) => {
+  if (selectedUnit) {
+    const resolvedId = selectedUnit.idOperador || 
+      (selectedUnit.operador ? buscarIdOperadorPorNombre(selectedUnit.operador) : (selectedUnit.economico ? buscarOperadorPorEco(selectedUnit.economico)?.idOperador : '')) || '';
+    
+    const secDestinos = Array.isArray(selectedUnit.destinosSecundarios)
+      ? selectedUnit.destinosSecundarios
+      : (typeof selectedUnit.destinosSecundarios === 'string' && selectedUnit.destinosSecundarios.startsWith('[')
+          ? JSON.parse(selectedUnit.destinosSecundarios)
+          : []);
 
-  const [formData, setFormData] = useState({
+    return {
+      ...selectedUnit,
+      noViaje: selectedUnit.noViaje || '',
+      bloque: Number(selectedUnit.bloque) || 1,
+      capUnidad: Number(selectedUnit.capUnidad) || 18,
+      linea: selectedUnit.linea || 'LTI - VHS',
+      tipo: selectedUnit.tipo || 'Camioneta',
+      operador: selectedUnit.operador || '',
+      idOperador: selectedUnit.idOperador || resolvedId || '',
+      turno: selectedUnit.turno || 'M1',
+      cortina: selectedUnit.cortina || '',
+      numCarga: selectedUnit.numCarga || '',
+      numSucursal: selectedUnit.numSucursal || '',
+      sucursalOrigen: selectedUnit.sucursalOrigen || 'CEDIS VILLAHERMOSA',
+      destino: (selectedUnit.destino || '').replace(/\s*\(Retorno\)/gi, '').trim(),
+      destinosSecundarios: secDestinos,
+      closter: selectedUnit.closter || '',
+      fl: selectedUnit.fl || 'LOCAL',
+      capMax: selectedUnit.capMax || '',
+      fecha: selectedUnit.fecha || new Date().toISOString().split('T')[0],
+      horaSalida: selectedUnit.horaSalida || '',
+      tiempoEstimadoHrs: Number(selectedUnit.tiempoEstimadoHrs) || 0,
+      eta: selectedUnit.eta || '',
+      estatusPatio: selectedUnit.estatusPatio || 'Disponible',
+      estatusPlaneacion: selectedUnit.estatusPlaneacion || 'PENDIENTE',
+      estatusSupervisor: selectedUnit.estatusSupervisor || 'Pendiente',
+      observaciones: selectedUnit.observaciones || ''
+    };
+  }
+
+  return {
     noViaje: '',
     economico: '',
     bloque: 1,
@@ -23,8 +60,8 @@ export const UnitModal = () => {
     operador: '',
     idOperador: '',
     turno: 'M1',
-    cortina: '51',
-    numCarga: 'CS-0039-101',
+    cortina: '',
+    numCarga: '',
     numSucursal: '',
     sucursalOrigen: 'CEDIS VILLAHERMOSA',
     destino: '',
@@ -33,86 +70,21 @@ export const UnitModal = () => {
     fl: 'LOCAL',
     capMax: '',
     fecha: new Date().toISOString().split('T')[0],
-    horaSalida: '08:00 AM',
-    tiempoEstimadoHrs: 3.0,
-    eta: '11:00 AM',
+    horaSalida: '',
+    tiempoEstimadoHrs: 0,
+    eta: '',
     estatusPatio: 'Disponible',
     estatusPlaneacion: 'PENDIENTE',
     estatusSupervisor: 'Pendiente',
     observaciones: ''
-  });
+  };
+};
 
-  useEffect(() => {
-    if (selectedUnit) {
-      const resolvedId = selectedUnit.idOperador || 
-        (selectedUnit.operador ? buscarIdOperadorPorNombre(selectedUnit.operador) : (selectedUnit.economico ? buscarOperadorPorEco(selectedUnit.economico)?.idOperador : '')) || '';
-      
-      const secDestinos = Array.isArray(selectedUnit.destinosSecundarios)
-        ? selectedUnit.destinosSecundarios
-        : (typeof selectedUnit.destinosSecundarios === 'string' && selectedUnit.destinosSecundarios.startsWith('[')
-            ? JSON.parse(selectedUnit.destinosSecundarios)
-            : []);
+const UnitModalForm = () => {
+  const { setIsModalOpen, selectedUnit, saveUnit, deleteUnit, showConfirm, showAlert, activeArea, catalogoFlota, catalogoSucursales } = useFleet();
+  const isPatioMode = activeArea === 'patio';
 
-      setFormData({
-        ...selectedUnit,
-        noViaje: selectedUnit.noViaje || '',
-        bloque: Number(selectedUnit.bloque) || 1,
-        capUnidad: Number(selectedUnit.capUnidad) || 18,
-        linea: selectedUnit.linea || 'LTI - VHS',
-        tipo: selectedUnit.tipo || 'Camioneta',
-        operador: selectedUnit.operador || '',
-        idOperador: selectedUnit.idOperador || '',
-        turno: selectedUnit.turno || 'M1',
-        cortina: selectedUnit.cortina || '',
-        numCarga: selectedUnit.numCarga || '',
-        numSucursal: selectedUnit.numSucursal || '',
-        sucursalOrigen: selectedUnit.sucursalOrigen || 'CEDIS VILLAHERMOSA',
-        destino: (selectedUnit.destino || '').replace(/\s*\(Retorno\)/gi, '').trim(),
-        destinosSecundarios: secDestinos,
-        closter: selectedUnit.closter || '',
-        fl: selectedUnit.fl || 'LOCAL',
-        capMax: selectedUnit.capMax || '',
-        fecha: selectedUnit.fecha || new Date().toISOString().split('T')[0],
-        horaSalida: selectedUnit.horaSalida || '',
-        tiempoEstimadoHrs: Number(selectedUnit.tiempoEstimadoHrs) || 0,
-        eta: selectedUnit.eta || '',
-        estatusPatio: selectedUnit.estatusPatio || 'Disponible',
-        estatusPlaneacion: selectedUnit.estatusPlaneacion || 'PENDIENTE',
-        estatusSupervisor: selectedUnit.estatusSupervisor || 'Pendiente',
-        observaciones: selectedUnit.observaciones || ''
-      });
-    } else {
-      setFormData({
-        noViaje: '',
-        economico: '',
-        bloque: 1,
-        placas: '',
-        capUnidad: 50,
-        linea: 'LTI - VHS',
-        tipo: 'Sencillo',
-        operador: '',
-        idOperador: '',
-        turno: 'M1',
-        cortina: '',
-        numCarga: '',
-        numSucursal: '',
-        sucursalOrigen: 'CEDIS VILLAHERMOSA',
-        destino: '',
-        destinosSecundarios: [],
-        closter: '',
-        fl: 'LOCAL',
-        capMax: '',
-        fecha: new Date().toISOString().split('T')[0],
-        horaSalida: '',
-        tiempoEstimadoHrs: 0,
-        eta: '',
-        estatusPatio: 'Disponible',
-        estatusPlaneacion: 'PENDIENTE',
-        estatusSupervisor: 'Pendiente',
-        observaciones: ''
-      });
-    }
-  }, [selectedUnit, isModalOpen]);
+  const [formData, setFormData] = useState(() => getDefaultFormData(selectedUnit));
 
   // Selección inteligente de sucursal desde el selector custom
   const handleSelectSucursal = (sucursal) => {
@@ -324,8 +296,6 @@ export const UnitModal = () => {
     saveUnit(payload);
     setIsModalOpen(false);
   };
-
-  if (!isModalOpen) return null;
 
   return (
     <div className="modal-overlay" onClick={() => setIsModalOpen(false)}>
@@ -1054,4 +1024,10 @@ export const UnitModal = () => {
       </div>
     </div>
   );
+};
+
+export const UnitModal = () => {
+  const { isModalOpen, selectedUnit } = useFleet();
+  if (!isModalOpen) return null;
+  return <UnitModalForm key={selectedUnit?.id || 'new-unit'} />;
 };

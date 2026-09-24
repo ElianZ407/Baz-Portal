@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  Truck, 
   Layers, 
   CalendarClock, 
   Radio, 
@@ -14,7 +13,6 @@ import {
   History
 } from 'lucide-react';
 import { useFleet } from '../context/FleetContext';
-import { exportOfficialExcel, exportByModule } from '../utils/exportOfficialExcel';
 
 export const Header = () => {
   const { 

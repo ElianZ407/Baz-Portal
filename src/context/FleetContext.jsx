@@ -33,7 +33,7 @@ const cleanUnitDestino = (unit) => {
     if (typeof res.destinosSecundarios === 'string' && res.destinosSecundarios.trim().startsWith('[')) {
       try {
         res.destinosSecundarios = JSON.parse(res.destinosSecundarios);
-      } catch (e) {
+      } catch {
         res.destinosSecundarios = [];
       }
     } else if (res.observaciones && typeof res.observaciones === 'string' && res.observaciones.includes('__PARADAS__:')) {
@@ -45,7 +45,7 @@ const cleanUnitDestino = (unit) => {
         } else {
           res.destinosSecundarios = [];
         }
-      } catch (e) {
+      } catch {
         res.destinosSecundarios = [];
       }
     } else {
@@ -253,14 +253,16 @@ export const FleetProvider = ({ children }) => {
   // Sincronización Inicial y Suscripción Realtime con Supabase (Multi-Dispositivo)
   useEffect(() => {
     if (!isSupabaseConfigured() || !supabase) {
-      setIsCloudConnected(false);
       return;
     }
 
     // Cargar catálogos remotos, datos remotos y planes históricos al inicio
-    reloadCatalogos();
-    reloadCloudData();
-    reloadHistoricalPlans();
+    const initData = async () => {
+      await reloadCatalogos();
+      await reloadCloudData();
+      await reloadHistoricalPlans();
+    };
+    initData();
 
     // Suscribirse a cambios en tiempo real en la tabla viajes_diarios
     const channelId = `realtime_viajes_${CLIENT_ID}_${Date.now()}`;
@@ -588,7 +590,7 @@ export const FleetProvider = ({ children }) => {
     if (broadcastRef.current) {
       try {
         broadcastRef.current.postMessage({ type: 'SYNC_UNITS', units: nextUnits, senderId: CLIENT_ID });
-      } catch (e) {}
+      } catch {}
     }
 
     // Sincronizar actualización en Supabase

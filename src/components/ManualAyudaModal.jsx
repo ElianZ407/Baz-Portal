@@ -1,6 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { 
-  HelpCircle, 
   BookOpen, 
   X, 
   ArrowRight, 
@@ -9,14 +8,10 @@ import {
   Radio, 
   Tv, 
   CheckCircle2, 
-  AlertTriangle, 
-  Clock, 
   ShieldCheck, 
   Layers, 
   Maximize,
   RefreshCw,
-  Search,
-  ExternalLink,
   Flame,
   RotateCcw
 } from 'lucide-react';
@@ -26,15 +21,14 @@ export const ManualAyudaModal = ({ isOpenExternal, onCloseExternal }) => {
   const [activeTab, setActiveTab] = useState('flujo'); // 'flujo' | 'areas' | 'faq'
 
   const isOpen = isOpenExternal !== undefined ? isOpenExternal : isOpenInternal;
-  const setIsOpen = onCloseExternal !== undefined ? onCloseExternal : setIsOpenInternal;
 
-  const handleClose = () => {
+  const handleClose = useCallback(() => {
     if (onCloseExternal) {
       onCloseExternal();
     } else {
       setIsOpenInternal(false);
     }
-  };
+  }, [onCloseExternal]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -47,7 +41,7 @@ export const ManualAyudaModal = ({ isOpenExternal, onCloseExternal }) => {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen]);
+  }, [isOpen, handleClose]);
 
   return (
     <>

@@ -4,12 +4,10 @@ import {
   Wrench, 
   PackageCheck, 
   ArrowRightCircle, 
-  Truck, 
   Edit3, 
-  Trash2,
-  AlertCircle,
-  PlusCircle,
-  UserCheck
+  Trash2, 
+  PlusCircle, 
+  UserCheck 
 } from 'lucide-react';
 import { useFleet } from '../context/FleetContext';
 

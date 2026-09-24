@@ -1,5 +1,3 @@
-import ExcelJS from 'exceljs/dist/exceljs.min.js';
-
 /**
  * Exportador Oficial de BAZ Entregas — Formato Idéntico a Plantilla Operativa
  * Replica exactamente:
@@ -11,6 +9,8 @@ import ExcelJS from 'exceljs/dist/exceljs.min.js';
  */
 
 export const exportOfficialExcel = async (units = [], selectedDate = null) => {
+  const ExcelJSModule = await import('exceljs/dist/exceljs.min.js');
+  const ExcelJS = ExcelJSModule.default || ExcelJSModule;
   const workbook = new ExcelJS.Workbook();
   workbook.creator = 'BAZ Entregas CD Villahermosa';
   workbook.created = new Date();
@@ -33,7 +33,6 @@ export const exportOfficialExcel = async (units = [], selectedDate = null) => {
   const COLOR_HEADER_TEAL = 'FF1F6877';
   const COLOR_HEADER_BLACK = 'FF000000';
   const COLOR_YELLOW_SOFT = 'FFFFFF99'; // Amarillo pastel idéntico a imagen
-  const COLOR_YELLOW_LIGHT = 'FFFFF2CC';
   const COLOR_ORANGE_ROW = 'FFFFC000'; // Naranja idéntico a imagen
   const COLOR_WHITE = 'FFFFFFFF';
   const COLOR_TEXT_BLACK = 'FF000000';
@@ -157,7 +156,6 @@ export const exportOfficialExcel = async (units = [], selectedDate = null) => {
 
     // Horarios formateados
     const horaSalida = unit.horaSalida || '';
-    const eta = unit.eta || '';
     const planColocacion = unit.horaColocacion || '06:00';
     const colocacionReal = unit.horaColocacionReal || '05:50';
     const planFinCarga = unit.horaFinCarga || '07:30';

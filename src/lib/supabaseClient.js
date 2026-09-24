@@ -93,7 +93,7 @@ export const mapDbToUnit = (row) => {
         destinosSecundarios = JSON.parse(match[1]);
         obs = obs.replace(/__PARADAS__:\[.*?\](?:\n|$)/gs, '').trim();
       }
-    } catch (e) {
+    } catch {
       destinosSecundarios = [];
     }
   }

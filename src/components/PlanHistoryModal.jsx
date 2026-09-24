@@ -5,16 +5,11 @@ import {
   Search, 
   Calendar, 
   FileSpreadsheet, 
-  UploadCloud, 
   Trash2, 
-  CheckCircle2, 
-  Truck, 
   Clock, 
-  Bookmark,
-  ArrowRight,
-  AlertTriangle,
-  Eye,
-  RotateCcw
+  Bookmark, 
+  Eye, 
+  RotateCcw 
 } from 'lucide-react';
 import { useFleet } from '../context/FleetContext';
 import { exportOfficialExcel } from '../utils/exportOfficialExcel';
@@ -24,13 +19,12 @@ export const PlanHistoryModal = () => {
     savedPlans, 
     isHistoryModalOpen, 
     setIsHistoryModalOpen, 
-    viewHistoricalPlan,
-    restorePlanAsActive,
-    loadSavedPlan, 
-    deleteSavedPlan,
-    setIsSavePlanModalOpen,
-    showConfirm,
-    showAlert
+    viewHistoricalPlan, 
+    restorePlanAsActive, 
+    deleteSavedPlan, 
+    setIsSavePlanModalOpen, 
+    showConfirm, 
+    showAlert 
   } = useFleet();
 
   const [searchTerm, setSearchTerm] = useState('');

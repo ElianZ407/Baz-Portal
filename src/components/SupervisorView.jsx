@@ -8,9 +8,8 @@ import {
   CheckCircle2, 
   AlertTriangle, 
   MapPin, 
-  Edit3,
-  Trash2,
-  MessageSquare
+  Edit3, 
+  Trash2 
 } from 'lucide-react';
 import { useFleet } from '../context/FleetContext';
 

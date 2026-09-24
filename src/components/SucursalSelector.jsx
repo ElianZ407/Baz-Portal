@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Search, ChevronDown, Check, X, MapPin, AlertTriangle } from 'lucide-react';
+import { Search, ChevronDown, Check, X, AlertTriangle } from 'lucide-react';
 import { SUCURSALES_MAESTRAS } from '../constants/fleetConstants';
 import { useFleet } from '../context/FleetContext';
 

@@ -2,12 +2,10 @@ import React, { useEffect } from 'react';
 import { 
   AlertTriangle, 
   Trash2, 
-  RotateCcw, 
   X, 
-  Truck,
-  MapPin,
-  UserCheck,
-  CheckCircle2
+  MapPin, 
+  UserCheck, 
+  CheckCircle2 
 } from 'lucide-react';
 import { useFleet } from '../context/FleetContext';
 

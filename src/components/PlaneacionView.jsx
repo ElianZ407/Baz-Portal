@@ -4,26 +4,22 @@ import {
   Send, 
   Edit3, 
   DoorOpen, 
-  Truck, 
-  MapPin, 
-  Hash, 
   Layers, 
   Search, 
   CheckCircle2, 
-  FileSpreadsheet,
-  AlertTriangle,
-  Compass,
-  ArrowRight,
-  Wrench,
-  Trash2,
-  Clock,
-  ArrowDownCircle,
-  RotateCcw,
-  Package
+  FileSpreadsheet, 
+  AlertTriangle, 
+  ArrowRight, 
+  Wrench, 
+  Trash2, 
+  Clock, 
+  ArrowDownCircle, 
+  RotateCcw, 
+  Package 
 } from 'lucide-react';
 import { useFleet } from '../context/FleetContext';
 import { BLOQUES } from '../constants/fleetConstants';
-import { validarRestriccionesViaje, buscarSucursal, checkTieneViajeYOperador } from '../utils/fleetUtils';
+import { validarRestriccionesViaje, checkTieneViajeYOperador } from '../utils/fleetUtils';
 import { exportOfficialExcel } from '../utils/exportOfficialExcel';
 
 // Configuración de colores e iconos para los estados de Supervisor reflejados en Planeación
@@ -147,9 +143,6 @@ export const PlaneacionView = () => {
   const pendienteCount = planeacionBaseUnits.filter(u => u.estatusPatio !== 'Taller' && (u.estatusPlaneacion || 'PENDIENTE') === 'PENDIENTE' && !SUPERVISOR_ACTIVE_STATUSES.includes(u.estatusSupervisor)).length;
   const tallerCount = planeacionBaseUnits.filter(u => u.estatusPatio === 'Taller' || u.estatus === 'TALLER').length;
   const disponiblesPatioCount = planeacionBaseUnits.filter(u => u.estatusPatio === 'Disponible').length;
-
-  const viajesLocales = planeacionBaseUnits.filter(u => (u.fl || 'LOCAL') === 'LOCAL');
-  const viajesForaneos = planeacionBaseUnits.filter(u => u.fl === 'FORANEO');
 
   const handleEdit = (unit) => {
     setSelectedUnit(unit);

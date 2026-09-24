@@ -2,12 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { 
   Tv, 
   MapPin, 
-  Search,
-  CheckCircle2,
-  AlertTriangle,
-  Clock,
-  Layers,
-  FileSpreadsheet
+  Search 
 } from 'lucide-react';
 import { useFleet } from '../context/FleetContext';
 import { KpiBar } from './KpiBar';

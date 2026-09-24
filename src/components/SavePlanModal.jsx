@@ -2,13 +2,9 @@ import React, { useState } from 'react';
 import { 
   X, 
   BookmarkCheck, 
-  Calendar, 
-  Sparkles, 
   CheckCircle2, 
-  Truck, 
-  RefreshCw,
-  Save,
-  AlertCircle
+  Save, 
+  AlertCircle 
 } from 'lucide-react';
 import { useFleet } from '../context/FleetContext';
 
@@ -17,9 +13,8 @@ export const SavePlanModal = () => {
     units, 
     isSavePlanModalOpen, 
     setIsSavePlanModalOpen, 
-    saveCurrentPlan,
-    setIsHistoryModalOpen,
-    showAlert
+    saveCurrentPlan, 
+    showAlert 
   } = useFleet();
 
   const todayStr = new Date().toISOString().split('T')[0];
