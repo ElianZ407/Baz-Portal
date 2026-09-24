@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useMemo, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { 
   supabase, 
   isSupabaseConfigured, 
@@ -64,8 +64,9 @@ const cleanUnitDestino = (unit) => {
       if (foundEco?.idOperador) res.idOperador = foundEco.idOperador;
     }
   }
-  // Si la unidad está cargada en planeación pero quedó como 'No Disponible' o vacía, corregir a 'Cargado'
-  if (res.estatusPlaneacion === 'CARGADO' && (res.estatusSupervisor === 'No Disponible' || !res.estatusSupervisor || res.estatusSupervisor === 'Pendiente')) {
+  // Preservar siempre los estados activos de tránsito del Supervisor
+  const TRANSIT_STATUSES_LIST = ['En Ruta', 'Espera Descarga', 'Descargando', 'Retorno', 'Retrasado', 'Completado', 'Cargado'];
+  if (res.estatusPlaneacion === 'CARGADO' && (!res.estatusSupervisor || !TRANSIT_STATUSES_LIST.includes(res.estatusSupervisor))) {
     res.estatusSupervisor = 'Cargado';
   }
   return res;
@@ -97,6 +98,9 @@ export const FleetProvider = ({ children }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [confirmModal, setConfirmModal] = useState(null);
   const [currentTime, setCurrentTime] = useState(new Date());
+
+  // Referencia persistente de BroadcastChannel multi-pestaña
+  const broadcastRef = useRef(null);
 
   // Estados de conectividad Cloud / Supabase
   const [isCloudConnected, setIsCloudConnected] = useState(isSupabaseConfigured());
@@ -246,40 +250,41 @@ export const FleetProvider = ({ children }) => {
     }
   }, []);
 
-  // Sincronización Inicial y Suscripción Realtime con Supabase
+  // Sincronización Inicial y Suscripción Realtime con Supabase (Multi-Dispositivo)
   useEffect(() => {
     if (!isSupabaseConfigured() || !supabase) {
       setIsCloudConnected(false);
       return;
     }
 
-    // Cargar catálogos remotos, datos remotos y planes históricos
+    // Cargar catálogos remotos, datos remotos y planes históricos al inicio
     reloadCatalogos();
     reloadCloudData();
     reloadHistoricalPlans();
 
     // Suscribirse a cambios en tiempo real en la tabla viajes_diarios
+    const channelId = `realtime_viajes_${CLIENT_ID}_${Date.now()}`;
     const channel = supabase
-      .channel('realtime:public:viajes_diarios')
+      .channel(channelId)
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'viajes_diarios' },
         (payload) => {
           if (payload.eventType === 'INSERT') {
-            const newUnit = mapDbToUnit(payload.new);
+            const newUnit = cleanUnitDestino(mapDbToUnit(payload.new));
             setUnits(prev => {
-              if (prev.some(u => u.id === newUnit.id)) {
-                return prev.map(u => u.id === newUnit.id ? newUnit : u);
+              if (prev.some(u => String(u.id) === String(newUnit.id))) {
+                return prev.map(u => String(u.id) === String(newUnit.id) ? newUnit : u);
               }
               return [newUnit, ...prev];
             });
           } else if (payload.eventType === 'UPDATE') {
-            const updatedUnit = mapDbToUnit(payload.new);
-            setUnits(prev => prev.map(u => u.id === updatedUnit.id ? updatedUnit : u));
+            const updatedUnit = cleanUnitDestino(mapDbToUnit(payload.new));
+            setUnits(prev => prev.map(u => String(u.id) === String(updatedUnit.id) ? updatedUnit : u));
           } else if (payload.eventType === 'DELETE') {
             const deletedId = payload.old?.id;
             if (deletedId) {
-              setUnits(prev => prev.filter(u => u.id !== deletedId));
+              setUnits(prev => prev.filter(u => String(u.id) !== String(deletedId)));
             }
           }
         }
@@ -287,29 +292,51 @@ export const FleetProvider = ({ children }) => {
       .subscribe((status) => {
         if (status === 'SUBSCRIBED') {
           setIsCloudConnected(true);
-        } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+        } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
           console.warn('Estado del canal Realtime Supabase:', status);
+          setIsCloudConnected(false);
+          // Si el canal se desconecta o se duerme, forzar refresco
+          reloadCloudData();
         }
       });
 
+    // Polling inteligente de respaldo cada 7 segundos para garantizar sincronía total entre computadoras
+    const pollInterval = setInterval(() => {
+      if (typeof document !== 'undefined' && !document.hidden) {
+        reloadCloudData();
+      }
+    }, 7000);
+
+    // Re-sincronizar inmediatamente al volver a enfocar la ventana o cambiar de monitor
+    const handleVisibilityOrFocus = () => {
+      if (typeof document !== 'undefined' && !document.hidden) {
+        reloadCloudData();
+      }
+    };
+
+    window.addEventListener('focus', handleVisibilityOrFocus);
+    document.addEventListener('visibilitychange', handleVisibilityOrFocus);
+
     return () => {
+      clearInterval(pollInterval);
+      window.removeEventListener('focus', handleVisibilityOrFocus);
+      document.removeEventListener('visibilitychange', handleVisibilityOrFocus);
       supabase.removeChannel(channel);
     };
-  }, [reloadCloudData]);
+  }, [reloadCloudData, reloadCatalogos, reloadHistoricalPlans]);
 
-  // Sincronización local multi-pestaña como respaldo (BroadcastChannel y Storage Event)
+  // Sincronización multi-pestaña inmediata en la misma computadora (BroadcastChannel persistente y Storage Event)
   useEffect(() => {
-    let channel;
     try {
-      channel = new BroadcastChannel('baz_fleet_realtime_sync');
-      channel.onmessage = (event) => {
+      broadcastRef.current = new BroadcastChannel('baz_fleet_realtime_sync');
+      broadcastRef.current.onmessage = (event) => {
         if (
           event.data && 
           event.data.type === 'SYNC_UNITS' && 
           event.data.senderId !== CLIENT_ID && 
           Array.isArray(event.data.units)
         ) {
-          setUnits(event.data.units);
+          setUnits(event.data.units.map(cleanUnitDestino));
         }
       };
     } catch (e) {
@@ -320,7 +347,9 @@ export const FleetProvider = ({ children }) => {
       if (e.key === STORAGE_KEY && e.newValue) {
         try {
           const remoteUnits = JSON.parse(e.newValue);
-          setUnits(remoteUnits);
+          if (Array.isArray(remoteUnits)) {
+            setUnits(remoteUnits.map(cleanUnitDestino));
+          }
         } catch (err) {
           console.error('Error al sincronizar localStorage remoto:', err);
         }
@@ -330,7 +359,9 @@ export const FleetProvider = ({ children }) => {
     window.addEventListener('storage', handleStorageChange);
 
     return () => {
-      if (channel) channel.close();
+      if (broadcastRef.current) {
+        broadcastRef.current.close();
+      }
       window.removeEventListener('storage', handleStorageChange);
     };
   }, []);
@@ -339,10 +370,8 @@ export const FleetProvider = ({ children }) => {
   useEffect(() => {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(units));
-      if (typeof BroadcastChannel !== 'undefined') {
-        const bc = new BroadcastChannel('baz_fleet_realtime_sync');
-        bc.postMessage({ type: 'SYNC_UNITS', units, senderId: CLIENT_ID });
-        bc.close();
+      if (broadcastRef.current) {
+        broadcastRef.current.postMessage({ type: 'SYNC_UNITS', units, senderId: CLIENT_ID });
       }
     } catch (e) {
       console.error('Error guardando en localStorage', e);
@@ -462,7 +491,7 @@ export const FleetProvider = ({ children }) => {
 
     const now = new Date().toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' });
     
-    const targetUnit = units.find(u => u.id === unitId);
+    const targetUnit = units.find(u => String(u.id) === String(unitId));
     if (!targetUnit) return;
 
     // Validación oficial: Si se intenta colocar o poner en caseta/cargado, DEBE tener No. de Viaje, Operador y Destino
@@ -506,7 +535,6 @@ export const FleetProvider = ({ children }) => {
       } else if (newStatus === 'CARGADO') {
         updated.area = 'supervisor';
         updated.estatusPatio = 'Cargado';
-        // Si el supervisor aún no inicia ruta o estaba en No Disponible/Pendiente, queda como Cargado
         if (['No Disponible', 'Pendiente', 'Disponible', ''].includes(updated.estatusSupervisor) || !updated.estatusSupervisor) {
           updated.estatusSupervisor = 'Cargado';
         }
@@ -517,29 +545,43 @@ export const FleetProvider = ({ children }) => {
       }
     } else if (area === 'supervisor') {
       updated.estatusSupervisor = newStatus;
+      updated.area = 'supervisor';
+
       if (newStatus === 'Completado') {
-        // Ciclo completo: el viaje termina, se bloquea en planeación como COMPLETADO
         updated.estatusPatio = 'Disponible';
         updated.estatusPlaneacion = 'COMPLETADO';
         updated.area = 'patio';
       } else if (newStatus === 'Retorno') {
-        // En camino de regreso a CEDIS — ya no está CARGADO en Planeación
-        updated.destino = 'CEDIS VILLAHERMOSA';
-        updated.estatusPlaneacion = 'PENDIENTE';
+        updated.estatusPlaneacion = 'RETORNO';
         updated.estatusPatio = 'Disponible';
-      } else if (['En Ruta', 'Espera Descarga', 'Descargando', 'Retrasado'].includes(newStatus)) {
-        // Si estaba en PENDIENTE por retorno o desincronizado, mantener consistencia
-        if (updated.estatusPlaneacion === 'PENDIENTE' || !updated.estatusPlaneacion) {
-          updated.estatusPlaneacion = 'CARGADO';
-        }
-        if (updated.estatusPatio === 'Disponible') {
-          updated.estatusPatio = 'Cargado';
-        }
+      } else if (newStatus === 'En Ruta') {
+        // En Ruta hacia el destino o siguiente parada multiparada
+        updated.estatusPlaneacion = 'CARGADO';
+        updated.estatusPatio = 'En Ruta';
+      } else if (newStatus === 'Espera Descarga') {
+        // Llegó a sucursal y espera rampa
+        updated.estatusPlaneacion = 'CARGADO';
+        updated.estatusPatio = 'En Sucursal';
+      } else if (newStatus === 'Descargando') {
+        // Proceso activo de descarga en rampa de la sucursal
+        updated.estatusPlaneacion = 'CARGADO';
+        updated.estatusPatio = 'Descargando';
+      } else if (newStatus === 'Retrasado') {
+        updated.estatusPlaneacion = 'CARGADO';
       }
     }
 
+    const nextUnits = units.map(u => String(u.id) === String(unitId) ? updated : u);
+
     // Actualizar estado local inmediatamente
-    setUnits(prev => prev.map(u => u.id === unitId ? updated : u));
+    setUnits(nextUnits);
+
+    // Notificar multi-pestaña local instantáneamente
+    if (broadcastRef.current) {
+      try {
+        broadcastRef.current.postMessage({ type: 'SYNC_UNITS', units: nextUnits, senderId: CLIENT_ID });
+      } catch (e) {}
+    }
 
     // Sincronizar actualización en Supabase
     if (isSupabaseConfigured()) {

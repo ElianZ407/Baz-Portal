@@ -62,11 +62,7 @@ export const TvDashboardView = () => {
       return unit.estatusSupervisor === 'En Ruta';
     }
     if (filterStatus === 'EN_SUCURSAL') {
-      return (
-        ['Espera Descarga', 'Descargando'].includes(unit.estatusSupervisor) ||
-        unit.estatusPlaneacion === 'En Cortina' ||
-        unit.estatusPatio === 'Colocado p/ Carga'
-      );
+      return ['Espera Descarga', 'Descargando'].includes(unit.estatusSupervisor);
     }
     if (filterStatus === 'RETRASADAS') {
       return unit.estatusSupervisor === 'Retrasado';
@@ -75,38 +71,46 @@ export const TvDashboardView = () => {
     return true;
   });
 
-  const getStatusBadgeClass = (status) => {
-    switch (status) {
-      case 'En Ruta':
-      case 'EN TRÁNSITO':
-        return 'status-en-ruta';
-      case 'EN CASETA':
-        return 'status-encaseta';
-      case 'COLOCADO':
-        return 'status-colocado';
-      case 'PROGRAMADO':
-      case 'Programado':
-      case 'Pendiente':
-      case 'PENDIENTE':
-        return 'status-programado';
-      case 'Espera Descarga':
-      case 'EN SUCURSAL':
-      case 'En Cortina':
-        return 'status-espera-descarga';
-      case 'Descargando':
-      case 'Cargado':
-        return 'status-descargando';
-      case 'Retorno':
-        return 'status-retorno';
-      case 'Retrasado':
-      case 'RETRASADO':
-        return 'status-retrasado';
-      case 'Completado':
-      case 'COMPLETADO':
-        return 'status-completado';
-      default:
-        return 'status-disponible';
+  const getUnitOperationalStatus = (unit) => {
+    if (!unit) return { text: 'PROGRAMADO', badgeClass: 'status-programado' };
+
+    const isTaller = unit.estatusPatio === 'Taller' || unit.estatus === 'TALLER';
+    if (isTaller) {
+      return { text: 'TALLER', badgeClass: 'status-retrasado' };
     }
+
+    const estatusSup = unit.estatusSupervisor;
+    const estatusPlan = unit.estatusPlaneacion;
+
+    // 1. Estados de tránsito activo del Supervisor (máxima jerarquía operativa)
+    if (estatusSup === 'En Ruta') {
+      return { text: 'EN RUTA (TRÁNSITO)', badgeClass: 'status-en-ruta' };
+    }
+    if (estatusSup === 'Espera Descarga') {
+      return { text: 'EN SUCURSAL (ESPERA)', badgeClass: 'status-espera-descarga' };
+    }
+    if (estatusSup === 'Descargando') {
+      return { text: 'DESCARGANDO', badgeClass: 'status-descargando' };
+    }
+    if (estatusSup === 'Retorno') {
+      return { text: 'EN RETORNO', badgeClass: 'status-retorno' };
+    }
+    if (estatusSup === 'Retrasado') {
+      return { text: 'RETRASADO / ALERTA', badgeClass: 'status-retrasado' };
+    }
+    if (estatusSup === 'Completado' || estatusPlan === 'COMPLETADO') {
+      return { text: 'COMPLETADO', badgeClass: 'status-completado' };
+    }
+
+    // 2. Estados de patio / planeación
+    if (estatusPlan === 'CARGADO' || estatusPlan === 'EN CASETA' || estatusSup === 'Cargado' || unit.estatusPatio === 'Cargado') {
+      return { text: 'EN CASETA (SALIDA)', badgeClass: 'status-encaseta' };
+    }
+    if (estatusPlan === 'COLOCADO' || unit.estatusPatio === 'Colocado p/ Carga') {
+      return { text: 'COLOCADO EN CORTINA', badgeClass: 'status-colocado' };
+    }
+
+    return { text: 'PROGRAMADO', badgeClass: 'status-programado' };
   };
 
   return (
@@ -361,23 +365,14 @@ export const TvDashboardView = () => {
 
                       {/* ESTATUS */}
                       <td style={{ textAlign: 'center' }}>
-                        <span className={`status-badge ${
-                          unit.estatusPlaneacion === 'EN CASETA' ? 'status-encaseta' :
-                          unit.estatusPlaneacion === 'COLOCADO' ? 'status-colocado' :
-                          unit.estatusPlaneacion === 'PENDIENTE' ? 'status-programado' :
-                          getStatusBadgeClass(unit.estatusSupervisor)
-                        }`}>
-                          {unit.estatusPlaneacion === 'EN CASETA' ? 'EN CASETA (SALIDA)' :
-                           unit.estatusSupervisor === 'En Ruta' ? 'EN RUTA (TRÁNSITO)' :
-                           unit.estatusSupervisor === 'Espera Descarga' ? 'EN SUCURSAL (ESPERA)' :
-                           unit.estatusSupervisor === 'Descargando' ? 'DESCARGANDO' :
-                           unit.estatusSupervisor === 'Retorno' ? 'EN RETORNO' :
-                           unit.estatusSupervisor === 'Retrasado' ? 'RETRASADO / ALERTA' :
-                           unit.estatusSupervisor === 'Completado' ? 'COMPLETADO' :
-                           unit.estatusPlaneacion === 'COLOCADO' ? 'COLOCADO EN CORTINA' :
-                           unit.estatusPlaneacion === 'PENDIENTE' ? 'PROGRAMADO' :
-                           unit.estatusPatio.toUpperCase()}
-                        </span>
+                        {(() => {
+                          const opStatus = getUnitOperationalStatus(unit);
+                          return (
+                            <span className={`status-badge ${opStatus.badgeClass}`}>
+                              {opStatus.text}
+                            </span>
+                          );
+                        })()}
                       </td>
                     </tr>
                   );

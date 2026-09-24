@@ -1031,7 +1031,11 @@ export const PlaneacionView = () => {
                               background: 'rgba(255, 255, 255, 0.04)',
                               border: '1px dashed rgba(255, 255, 255, 0.1)'
                             }}>
-                              {isCargado ? 'CARGADO' : isColocado ? 'COLOCADO' : estatusPlan}
+                              {supConfig ? (
+                                <span style={{ color: supConfig.color, fontWeight: 700 }}>
+                                  {supConfig.label}
+                                </span>
+                              ) : isCargado ? 'CARGADO' : isColocado ? 'COLOCADO' : estatusPlan}
                             </span>
                           </td>
 

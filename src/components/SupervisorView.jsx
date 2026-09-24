@@ -306,21 +306,35 @@ export const SupervisorView = () => {
                     <td>
                       {(() => {
                         const effStatus = getEffectiveSupervisorStatus(unit);
+                        const labelMap = {
+                          'En Ruta': 'EN RUTA',
+                          'Espera Descarga': 'EN SUCURSAL',
+                          'Descargando': 'DESCARGANDO',
+                          'Retorno': 'RETORNO',
+                          'Retrasado': 'ALERTA / RETRASADO',
+                          'Completado': 'COMPLETADO',
+                          'Cargado': 'CARGADO (CASETA)'
+                        };
                         return (
                           <span className={`status-badge ${getStatusBadgeClass(effStatus)}`}>
-                            {effStatus === 'Cargado' ? 'CARGADO' : effStatus}
+                            {labelMap[effStatus] || effStatus}
                           </span>
                         );
                       })()}
                     </td>
                     <td>
-                      {/* Botones de flujo del Supervisor según pizarra */}
-                      <div style={{ display: 'flex', gap: '0.35rem', flexWrap: 'wrap' }}>
-                        {getEffectiveSupervisorStatus(unit) !== 'En Ruta' && (
+                      {/* Botones de flujo del Supervisor según pizarra operativa */}
+                      <div style={{ display: 'flex', gap: '0.35rem', flexWrap: 'wrap', alignItems: 'center' }}>
+                        {unit.estatusSupervisor !== 'En Ruta' && (
                           <button 
                             className="btn-move"
+                            style={{
+                              borderColor: 'rgba(52, 211, 153, 0.4)',
+                              color: '#34d399',
+                              fontWeight: 700
+                            }}
                             onClick={() => updateStatus(unit.id, 'supervisor', 'En Ruta')}
-                            title="Poner En Ruta"
+                            title="Cambiar a En Ruta (Tránsito hacia sucursal o siguiente entrega)"
                           >
                             Ruta
                           </button>
@@ -328,8 +342,13 @@ export const SupervisorView = () => {
                         {unit.estatusSupervisor !== 'Espera Descarga' && (
                           <button 
                             className="btn-move"
+                            style={{
+                              borderColor: 'rgba(251, 191, 36, 0.4)',
+                              color: '#fbbf24',
+                              fontWeight: 700
+                            }}
                             onClick={() => updateStatus(unit.id, 'supervisor', 'Espera Descarga')}
-                            title="Llegó y espera rampa/descarga"
+                            title="Llegó a la sucursal y espera rampa/descarga"
                           >
                             En Sucursal
                           </button>
@@ -337,8 +356,13 @@ export const SupervisorView = () => {
                         {unit.estatusSupervisor !== 'Descargando' && (
                           <button 
                             className="btn-move"
+                            style={{
+                              borderColor: 'rgba(56, 189, 248, 0.4)',
+                              color: '#38bdf8',
+                              fontWeight: 700
+                            }}
                             onClick={() => updateStatus(unit.id, 'supervisor', 'Descargando')}
-                            title="Proceso de descarga en rampa"
+                            title="En proceso de descarga activa en rampa"
                           >
                             Descargando
                           </button>
@@ -346,8 +370,13 @@ export const SupervisorView = () => {
                         {unit.estatusSupervisor !== 'Retorno' && (
                           <button 
                             className="btn-move"
+                            style={{
+                              borderColor: 'rgba(192, 132, 252, 0.4)',
+                              color: '#c084fc',
+                              fontWeight: 700
+                            }}
                             onClick={() => updateStatus(unit.id, 'supervisor', 'Retorno')}
-                            title="Retorno a CEDIS"
+                            title="Retorno a CEDIS Villahermosa tras terminar entregas"
                           >
                             Retorno
                           </button>
@@ -367,7 +396,7 @@ export const SupervisorView = () => {
                             className="btn-move"
                             style={{ borderColor: 'rgba(16, 185, 129, 0.4)', color: '#6ee7b7' }}
                             onClick={() => updateStatus(unit.id, 'supervisor', 'Completado')}
-                            title="Ciclo completado"
+                            title="Ciclo completado y cerrado"
                           >
                             Fin
                           </button>
