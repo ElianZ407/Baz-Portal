@@ -103,14 +103,10 @@ export const PlaneacionView = () => {
   const [filterEstatus, setFilterEstatus] = useState('ALL'); // 'ALL' | 'PENDIENTE' | 'COLOCADO' | 'CARGADO' | 'TALLER'
 
   // Filtrado de unidades en planeación:
-  // Aparecen TODAS las unidades que están en patio (Disponible, Colocado p/ Carga, Cargado) y las que están en taller.
+  // En Planeación aparecen TODOS los viajes y unidades del plan del día (pendientes, colocados, cargados, en ruta, en sucursal, etc.)
   const SUPERVISOR_ACTIVE_STATUSES = ['En Ruta', 'Espera Descarga', 'Descargando', 'Retorno', 'Retrasado', 'Completado'];
 
-  const planeacionBaseUnits = units.filter(u => {
-    const isTaller = u.estatusPatio === 'Taller' || u.estatus === 'TALLER';
-    const isPatio = ['Disponible', 'Colocado p/ Carga', 'Cargado'].includes(u.estatusPatio) || !u.estatusPatio;
-    return isPatio || isTaller;
-  });
+  const planeacionBaseUnits = units;
 
   const planeacionUnits = planeacionBaseUnits.filter(u => {
     const q = searchQuery.toLowerCase().trim();
@@ -124,6 +120,7 @@ export const PlaneacionView = () => {
       (u.closter && u.closter.toLowerCase().includes(q));
 
     const isTaller = u.estatusPatio === 'Taller' || u.estatus === 'TALLER';
+    const isSupervisorActive = SUPERVISOR_ACTIVE_STATUSES.includes(u.estatusSupervisor);
     const matchesBloque = filterBloque === 'ALL' || String(u.bloque) === filterBloque;
     const matchesFL = filterFL === 'ALL' || (u.fl || 'LOCAL') === filterFL;
     
@@ -132,6 +129,12 @@ export const PlaneacionView = () => {
       matchesEstatus = true;
     } else if (filterEstatus === 'TALLER') {
       matchesEstatus = isTaller;
+    } else if (filterEstatus === 'CARGADO') {
+      matchesEstatus = !isTaller && ((u.estatusPlaneacion || 'PENDIENTE') === 'CARGADO' || isSupervisorActive);
+    } else if (filterEstatus === 'COLOCADO') {
+      matchesEstatus = !isTaller && (u.estatusPlaneacion || 'PENDIENTE') === 'COLOCADO' && !isSupervisorActive;
+    } else if (filterEstatus === 'PENDIENTE') {
+      matchesEstatus = !isTaller && (u.estatusPlaneacion || 'PENDIENTE') === 'PENDIENTE' && !isSupervisorActive;
     } else {
       matchesEstatus = !isTaller && (u.estatusPlaneacion || 'PENDIENTE') === filterEstatus;
     }
@@ -139,9 +142,9 @@ export const PlaneacionView = () => {
     return matchesSearch && matchesBloque && matchesFL && matchesEstatus;
   });
 
-  const cargadoCount = planeacionBaseUnits.filter(u => u.estatusPatio !== 'Taller' && u.estatusPlaneacion === 'CARGADO').length;
-  const colocadoCount = planeacionBaseUnits.filter(u => u.estatusPatio !== 'Taller' && u.estatusPlaneacion === 'COLOCADO').length;
-  const pendienteCount = planeacionBaseUnits.filter(u => u.estatusPatio !== 'Taller' && (u.estatusPlaneacion || 'PENDIENTE') === 'PENDIENTE').length;
+  const cargadoCount = planeacionBaseUnits.filter(u => u.estatusPatio !== 'Taller' && ((u.estatusPlaneacion || 'PENDIENTE') === 'CARGADO' || SUPERVISOR_ACTIVE_STATUSES.includes(u.estatusSupervisor))).length;
+  const colocadoCount = planeacionBaseUnits.filter(u => u.estatusPatio !== 'Taller' && u.estatusPlaneacion === 'COLOCADO' && !SUPERVISOR_ACTIVE_STATUSES.includes(u.estatusSupervisor)).length;
+  const pendienteCount = planeacionBaseUnits.filter(u => u.estatusPatio !== 'Taller' && (u.estatusPlaneacion || 'PENDIENTE') === 'PENDIENTE' && !SUPERVISOR_ACTIVE_STATUSES.includes(u.estatusSupervisor)).length;
   const tallerCount = planeacionBaseUnits.filter(u => u.estatusPatio === 'Taller' || u.estatus === 'TALLER').length;
   const disponiblesPatioCount = planeacionBaseUnits.filter(u => u.estatusPatio === 'Disponible').length;
 

@@ -1098,6 +1098,7 @@ body {
   grid-template-columns: repeat(auto-fit, minmax(290px, 1fr));
   gap: 1.25rem;
   margin-top: 1rem;
+  align-items: start;
 }
 
 .kanban-column {
@@ -1106,17 +1107,20 @@ body {
   border-radius: var(--radius-lg);
   display: flex;
   flex-direction: column;
-  height: calc(100vh - 250px);
-  min-height: 500px;
+  height: calc(100vh - 225px);
+  min-height: 480px;
+  overflow: hidden;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
 }
 
 .kanban-column-header {
-  padding: 1rem 1.25rem;
+  padding: 0.9rem 1.15rem;
   border-bottom: 1px solid var(--border-color);
   background: var(--bg-card-header);
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex-shrink: 0;
 }
 
 .kanban-column-header h3 {
@@ -1129,12 +1133,16 @@ body {
 }
 
 .kanban-cards-wrapper {
-  padding: 1rem;
+  padding: 1rem 1rem 2.5rem 1rem;
   overflow-y: auto;
+  overflow-x: hidden;
   flex: 1;
+  min-height: 0;
   display: flex;
   flex-direction: column;
   gap: 0.85rem;
+  box-sizing: border-box;
+  scrollbar-gutter: stable;
 }
 
 @keyframes cardEnter {
@@ -1149,6 +1157,7 @@ body {
 }
 
 .unit-card {
+  flex-shrink: 0;
   background: #0d1629;
   border: 1px solid var(--border-color);
   border-radius: var(--radius-md);
@@ -1159,6 +1168,7 @@ body {
               border-color 0.15s cubic-bezier(0.4, 0, 0.2, 1), 
               box-shadow 0.15s cubic-bezier(0.4, 0, 0.2, 1);
   will-change: background-color, border-color, box-shadow;
+  box-sizing: border-box;
 }
 
 .unit-card:hover {

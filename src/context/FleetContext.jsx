@@ -425,9 +425,17 @@ export const FleetProvider = ({ children }) => {
     const now = new Date().toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' });
     
     // Resolver la unidad completa de forma síncrona
-    const existingUnit = units.find(u => u.id === unitData.id);
+    let existingUnit = units.find(u => u.id === unitData.id);
+    if (!existingUnit && unitData.economico) {
+      // Si no trae ID (ej. creado desde 'Nuevo Viaje') pero el ECO ya existe en la lista de hoy
+      // sin un viaje activo asignado, actualizar esa unidad en vez de duplicarla
+      existingUnit = units.find(u => 
+        String(u.economico) === String(unitData.economico) &&
+        (!u.noViaje || (u.estatusPlaneacion || 'PENDIENTE') === 'PENDIENTE')
+      );
+    }
     const fullUnitRaw = existingUnit
-      ? { ...existingUnit, ...unitData, actualizadoEn: now }
+      ? { ...existingUnit, ...unitData, id: existingUnit.id, actualizadoEn: now }
       : {
           ...unitData,
           id: unitData.id || (
