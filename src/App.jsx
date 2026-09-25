@@ -11,6 +11,7 @@ import { ManualAyudaModal } from './components/ManualAyudaModal';
 import { SavePlanModal } from './components/SavePlanModal';
 import { PlanHistoryModal } from './components/PlanHistoryModal';
 import { HistoricalBanner } from './components/HistoricalBanner';
+import { ImportarPlaneacionModal } from './components/ImportarPlaneacionModal';
 
 const AppContent = () => {
   const { activeArea } = useFleet();
@@ -45,6 +46,7 @@ const AppContent = () => {
       <ManualAyudaModal />
       <SavePlanModal />
       <PlanHistoryModal />
+      <ImportarPlaneacionModal />
     </div>
   );
 };

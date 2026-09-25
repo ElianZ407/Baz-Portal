@@ -15,7 +15,8 @@ import {
   Clock, 
   ArrowDownCircle, 
   RotateCcw, 
-  Package 
+  Package,
+  UploadCloud 
 } from 'lucide-react';
 import { useFleet } from '../context/FleetContext';
 import { BLOQUES } from '../constants/fleetConstants';
@@ -92,7 +93,8 @@ export const PlaneacionView = () => {
     showAlert,
     catalogoSucursales,
     searchQuery, 
-    setSearchQuery 
+    setSearchQuery,
+    setIsImportModalOpen 
   } = useFleet();
 
   const [filterBloque, setFilterBloque] = useState('ALL');
@@ -263,6 +265,28 @@ export const PlaneacionView = () => {
               {tallerCount}
             </div>
           </div>
+
+          <button 
+            className="btn btn-primary"
+            style={{
+              background: 'linear-gradient(135deg, #0284c7, #0369a1)',
+              borderColor: '#0284c7',
+              color: '#fff',
+              fontWeight: 700,
+              boxShadow: '0 4px 12px rgba(2, 132, 199, 0.35)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              padding: '0.55rem 1rem',
+              borderRadius: 'var(--radius-md)',
+              fontSize: '0.84rem'
+            }}
+            onClick={() => setIsImportModalOpen(true)}
+            title="Subir archivo de planeación (Excel o CSV) para cargar los viajes automáticamente sin escribirlos a mano"
+          >
+            <UploadCloud size={17} />
+            <span>Subir Planeación</span>
+          </button>
 
           <button 
             className="btn btn-primary"

@@ -10,7 +10,8 @@ import {
   HelpCircle, 
   FileSpreadsheet,
   Save,
-  History
+  History,
+  UploadCloud
 } from 'lucide-react';
 import { useFleet } from '../context/FleetContext';
 
@@ -23,7 +24,8 @@ export const Header = () => {
     units,
     savedPlans,
     setIsSavePlanModalOpen,
-    setIsHistoryModalOpen
+    setIsHistoryModalOpen,
+    setIsImportModalOpen
   } = useFleet();
 
   const handleExportExcel = () => {
@@ -160,14 +162,30 @@ export const Header = () => {
         </div>
 
         {activeArea === 'planeacion' && (
-          <button 
-            className="btn btn-primary btn-header-action"
-            onClick={handleOpenNewUnit}
-            title="Registrar nuevo viaje en planeación"
-          >
-            <PlusCircle size={16} />
-            <span className="btn-label-text">Nuevo Viaje</span>
-          </button>
+          <>
+            <button 
+              className="btn btn-secondary btn-header-action"
+              style={{
+                borderColor: 'rgba(56, 189, 248, 0.45)',
+                background: 'rgba(56, 189, 248, 0.12)',
+                color: '#38bdf8'
+              }}
+              onClick={() => setIsImportModalOpen(true)}
+              title="Subir archivo de planeación Excel o CSV"
+            >
+              <UploadCloud size={15} color="#38bdf8" />
+              <span className="btn-label-text" style={{ fontWeight: 700 }}>Subir Excel</span>
+            </button>
+
+            <button 
+              className="btn btn-primary btn-header-action"
+              onClick={handleOpenNewUnit}
+              title="Registrar nuevo viaje en planeación"
+            >
+              <PlusCircle size={16} />
+              <span className="btn-label-text">Nuevo Viaje</span>
+            </button>
+          </>
         )}
 
         <button 

@@ -11,7 +11,9 @@ import {
   deletePlanHistoricoDb,
   fetchUnidadesDb,
   fetchFlotaMaestraDb,
-  fetchSucursalesDb
+  fetchSucursalesDb,
+  bulkUpsertViajesDb,
+  clearViajesDb
 } from '../lib/supabaseClient';
 import { FLOTA_TOTAL, SUCURSALES_MAESTRAS } from '../constants/fleetConstants';
 import { buscarIdOperadorPorNombre, buscarOperadorPorEco, checkTieneViajeYOperador } from '../utils/fleetUtils';
@@ -52,6 +54,18 @@ const cleanUnitDestino = (unit) => {
     } else {
       res.destinosSecundarios = [];
     }
+  }
+
+  // Desempaquetar metadatos adicionales si están en observaciones
+  if (res.observaciones && typeof res.observaciones === 'string' && res.observaciones.includes('__META__:')) {
+    try {
+      const match = res.observaciones.match(/__META__:(\{.*?\})(?:$|\n)/s);
+      if (match && match[1]) {
+        const meta = JSON.parse(match[1]);
+        res = { ...meta, ...res };
+        res.observaciones = res.observaciones.replace(/__META__:\{.*?\}(?:\n|$)/gs, '').trim();
+      }
+    } catch {}
   }
 
   // Si falta idOperador, auto-completar desde el catálogo por nombre o por eco
@@ -126,6 +140,7 @@ export const FleetProvider = ({ children }) => {
   });
   const [isSavePlanModalOpen, setIsSavePlanModalOpen] = useState(false);
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [historicalPlanView, setHistoricalPlanView] = useState(null); // null o el objeto plan que se está consultando
 
   const showConfirm = (config) => {
@@ -786,6 +801,83 @@ export const FleetProvider = ({ children }) => {
     return newPlan;
   };
 
+  // Importación masiva de planeación (desde archivo Excel o CSV)
+  const importViajesPlaneacion = async (importedUnits, mode = 'replace') => {
+    if (historicalPlanView) {
+      showAlert({
+        title: 'Modo Consulta Histórico',
+        message: 'Estás consultando un plan del historial en modo lectura. Para importar viajes, vuelve a tu plan de hoy.',
+        confirmType: 'warning'
+      });
+      return false;
+    }
+
+    const cleanedImported = importedUnits.map(cleanUnitDestino);
+
+    let finalUnits = [];
+    if (mode === 'replace') {
+      finalUnits = cleanedImported;
+    } else {
+      // mode === 'merge': actualizar existentes o agregar nuevos
+      const mergedMap = new Map();
+      units.forEach(u => mergedMap.set(String(u.id), u));
+      units.forEach(u => {
+        if (u.economico) mergedMap.set(`eco-${u.economico}`, u);
+      });
+
+      cleanedImported.forEach(u => {
+        const ecoKey = u.economico ? `eco-${u.economico}` : null;
+        if (ecoKey && mergedMap.has(ecoKey)) {
+          const prev = mergedMap.get(ecoKey);
+          const updated = { ...prev, ...u, id: prev.id };
+          mergedMap.set(String(prev.id), updated);
+          mergedMap.set(ecoKey, updated);
+        } else if (mergedMap.has(String(u.id))) {
+          mergedMap.set(String(u.id), { ...mergedMap.get(String(u.id)), ...u });
+        } else {
+          mergedMap.set(String(u.id), u);
+        }
+      });
+
+      const seenIds = new Set();
+      finalUnits = [];
+      mergedMap.forEach((val) => {
+        if (val && val.id && !seenIds.has(String(val.id))) {
+          seenIds.add(String(val.id));
+          finalUnits.push(val);
+        }
+      });
+    }
+
+    // Actualizar estado local inmediatamente
+    setUnits(finalUnits);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(finalUnits));
+
+    // Notificar multi-pestaña local
+    if (broadcastRef.current) {
+      try {
+        broadcastRef.current.postMessage({ type: 'SYNC_UNITS', units: finalUnits, senderId: CLIENT_ID });
+      } catch {}
+    }
+
+    // Sincronizar en la nube con Supabase
+    if (isSupabaseConfigured()) {
+      try {
+        setIsCloudLoading(true);
+        if (mode === 'replace') {
+          await clearViajesDb();
+        }
+        await bulkUpsertViajesDb(finalUnits);
+      } catch (err) {
+        console.error('Error al sincronizar importación masiva en Supabase:', err);
+      } finally {
+        setIsCloudLoading(false);
+      }
+    }
+
+    return true;
+  };
+
   // 1. Ver un plan histórico en MODO CONSULTA (sin borrar ni reemplazar el plan activo de hoy)
   const viewHistoricalPlan = (planId) => {
     const plan = savedPlans.find(p => p.id === planId);
@@ -937,7 +1029,11 @@ export const FleetProvider = ({ children }) => {
       // Catálogos dinámicos
       catalogoFlota,
       catalogoSucursales,
-      reloadCatalogos
+      reloadCatalogos,
+      // Importación Masiva de Planeación
+      isImportModalOpen,
+      setIsImportModalOpen,
+      importViajesPlaneacion
     }}>
       {children}
     </FleetContext.Provider>

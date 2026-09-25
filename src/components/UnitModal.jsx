@@ -42,6 +42,17 @@ const getDefaultFormData = (selectedUnit) => {
       horaSalida: selectedUnit.horaSalida || '',
       tiempoEstimadoHrs: Number(selectedUnit.tiempoEstimadoHrs) || 0,
       eta: selectedUnit.eta || '',
+      horaColocacion: selectedUnit.horaColocacion || '06:00',
+      horaColocacionReal: selectedUnit.horaColocacionReal || '',
+      horaFinCarga: selectedUnit.horaFinCarga || '07:30',
+      horaCaseta: selectedUnit.horaCaseta || '',
+      folioEnvio: selectedUnit.folioEnvio || '',
+      sellos: selectedUnit.sellos || '',
+      valeEstructura: selectedUnit.valeEstructura || '0',
+      motosEstructuras: selectedUnit.motosEstructuras !== undefined ? Number(selectedUnit.motosEstructuras) : 0,
+      motosCarton: selectedUnit.motosCarton !== undefined ? Number(selectedUnit.motosCarton) : 0,
+      remolque: selectedUnit.remolque || '0',
+      mtrs: selectedUnit.mtrs !== undefined ? Number(selectedUnit.mtrs) : (Number(selectedUnit.capUnidad) || 18),
       estatusPatio: selectedUnit.estatusPatio || 'Disponible',
       estatusPlaneacion: selectedUnit.estatusPlaneacion || 'PENDIENTE',
       estatusSupervisor: selectedUnit.estatusSupervisor || 'Pendiente',
@@ -73,6 +84,17 @@ const getDefaultFormData = (selectedUnit) => {
     horaSalida: '',
     tiempoEstimadoHrs: 0,
     eta: '',
+    horaColocacion: '06:00',
+    horaColocacionReal: '',
+    horaFinCarga: '07:30',
+    horaCaseta: '',
+    folioEnvio: '',
+    sellos: '',
+    valeEstructura: '0',
+    motosEstructuras: 0,
+    motosCarton: 0,
+    remolque: '0',
+    mtrs: 50,
     estatusPatio: 'Disponible',
     estatusPlaneacion: 'PENDIENTE',
     estatusSupervisor: 'Pendiente',
@@ -954,6 +976,153 @@ const UnitModalForm = () => {
                       <span>Requiere No. de Viaje, Operador y Destino para poder colocar o poner en caseta.</span>
                     </div>
                   )}
+                </div>
+
+                {/* Sección Oficial de Embarques BAZ (Plantilla Oficial) */}
+                <div className="form-group full-width" style={{
+                  background: 'rgba(255, 255, 255, 0.02)',
+                  border: '1px solid rgba(255, 255, 255, 0.08)',
+                  borderRadius: '8px',
+                  padding: '1rem',
+                  marginTop: '0.5rem',
+                  marginBottom: '0.5rem'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', marginBottom: '0.85rem' }}>
+                    <FileSpreadsheet size={16} color="var(--accent-cyan)" />
+                    <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#fff' }}>
+                      Datos de Embarque Oficial (Sellos, Folio, Horarios y Carga)
+                    </span>
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.85rem' }}>
+                    <div>
+                      <label style={{ fontSize: '0.74rem', color: 'var(--text-secondary)' }}>Folio Envío</label>
+                      <input 
+                        type="text"
+                        name="folioEnvio"
+                        className="form-control"
+                        placeholder="Ej. 151688"
+                        value={formData.folioEnvio || ''}
+                        onChange={handleChange}
+                        style={{ fontSize: '0.82rem', padding: '0.4rem 0.6rem' }}
+                      />
+                    </div>
+
+                    <div>
+                      <label style={{ fontSize: '0.74rem', color: 'var(--text-secondary)' }}>Sellos de Seguridad</label>
+                      <input 
+                        type="text"
+                        name="sellos"
+                        className="form-control"
+                        placeholder="Ej. 1295824-1295825"
+                        value={formData.sellos || ''}
+                        onChange={handleChange}
+                        style={{ fontSize: '0.82rem', padding: '0.4rem 0.6rem' }}
+                      />
+                    </div>
+
+                    <div>
+                      <label style={{ fontSize: '0.74rem', color: 'var(--text-secondary)' }}>Plan Colocación</label>
+                      <input 
+                        type="text"
+                        name="horaColocacion"
+                        className="form-control"
+                        placeholder="06:00"
+                        value={formData.horaColocacion || ''}
+                        onChange={handleChange}
+                        style={{ fontSize: '0.82rem', padding: '0.4rem 0.6rem' }}
+                      />
+                    </div>
+
+                    <div>
+                      <label style={{ fontSize: '0.74rem', color: 'var(--text-secondary)' }}>Colocación Real</label>
+                      <input 
+                        type="text"
+                        name="horaColocacionReal"
+                        className="form-control"
+                        placeholder="04:22"
+                        value={formData.horaColocacionReal || ''}
+                        onChange={handleChange}
+                        style={{ fontSize: '0.82rem', padding: '0.4rem 0.6rem' }}
+                      />
+                    </div>
+
+                    <div>
+                      <label style={{ fontSize: '0.74rem', color: 'var(--text-secondary)' }}>Plan Fin Carga</label>
+                      <input 
+                        type="text"
+                        name="horaFinCarga"
+                        className="form-control"
+                        placeholder="06:55"
+                        value={formData.horaFinCarga || ''}
+                        onChange={handleChange}
+                        style={{ fontSize: '0.82rem', padding: '0.4rem 0.6rem' }}
+                      />
+                    </div>
+
+                    <div>
+                      <label style={{ fontSize: '0.74rem', color: 'var(--text-secondary)' }}>Entregado en Caseta</label>
+                      <input 
+                        type="text"
+                        name="horaCaseta"
+                        className="form-control"
+                        placeholder="07:23"
+                        value={formData.horaCaseta || ''}
+                        onChange={handleChange}
+                        style={{ fontSize: '0.82rem', padding: '0.4rem 0.6rem' }}
+                      />
+                    </div>
+
+                    <div>
+                      <label style={{ fontSize: '0.74rem', color: 'var(--text-secondary)' }}>No. Vale Estructuras</label>
+                      <input 
+                        type="text"
+                        name="valeEstructura"
+                        className="form-control"
+                        placeholder="0 o Folio Vale"
+                        value={formData.valeEstructura || ''}
+                        onChange={handleChange}
+                        style={{ fontSize: '0.82rem', padding: '0.4rem 0.6rem' }}
+                      />
+                    </div>
+
+                    <div>
+                      <label style={{ fontSize: '0.74rem', color: 'var(--text-secondary)' }}>Motos Estructuras</label>
+                      <input 
+                        type="number"
+                        name="motosEstructuras"
+                        className="form-control"
+                        value={formData.motosEstructuras ?? 0}
+                        onChange={handleChange}
+                        style={{ fontSize: '0.82rem', padding: '0.4rem 0.6rem' }}
+                      />
+                    </div>
+
+                    <div>
+                      <label style={{ fontSize: '0.74rem', color: 'var(--text-secondary)' }}>Motos Cartón</label>
+                      <input 
+                        type="number"
+                        name="motosCarton"
+                        className="form-control"
+                        value={formData.motosCarton ?? 0}
+                        onChange={handleChange}
+                        style={{ fontSize: '0.82rem', padding: '0.4rem 0.6rem' }}
+                      />
+                    </div>
+
+                    <div>
+                      <label style={{ fontSize: '0.74rem', color: 'var(--text-secondary)' }}>Metros (MTRS)</label>
+                      <input 
+                        type="number"
+                        name="mtrs"
+                        className="form-control"
+                        placeholder="Capacidad o MTRS"
+                        value={formData.mtrs ?? ''}
+                        onChange={handleChange}
+                        style={{ fontSize: '0.82rem', padding: '0.4rem 0.6rem' }}
+                      />
+                    </div>
+                  </div>
                 </div>
 
                 {/* Observaciones */}

@@ -86,6 +86,18 @@ export const clearSupabaseCredentials = () => {
 export const mapDbToUnit = (row) => {
   let destinosSecundarios = [];
   let obs = row.observaciones || '';
+  let meta = {};
+
+  if (obs.includes('__META__:')) {
+    try {
+      const match = obs.match(/__META__:(\{.*?\})(?:$|\n)/s);
+      if (match && match[1]) {
+        meta = JSON.parse(match[1]);
+        obs = obs.replace(/__META__:\{.*?\}(?:\n|$)/gs, '').trim();
+      }
+    } catch {}
+  }
+
   if (obs.includes('__PARADAS__:')) {
     try {
       const match = obs.match(/__PARADAS__:(\[.*?\])(?:$|\n)/s);
@@ -99,6 +111,7 @@ export const mapDbToUnit = (row) => {
   }
 
   return {
+    ...meta,
     id: row.id,
     noViaje: row.no_viaje || '',
     economico: row.economico || '',
@@ -127,7 +140,18 @@ export const mapDbToUnit = (row) => {
     estatusPlaneacion: row.estatus_planeacion || 'PENDIENTE',
     estatusSupervisor: row.estatus_supervisor || 'Pendiente',
     observaciones: obs,
-    actualizadoEn: row.actualizado_en || ''
+    actualizadoEn: row.actualizado_en || '',
+    horaColocacion: meta.horaColocacion || '06:00',
+    horaColocacionReal: meta.horaColocacionReal || '',
+    horaFinCarga: meta.horaFinCarga || '07:30',
+    horaCaseta: meta.horaCaseta || '',
+    folioEnvio: meta.folioEnvio || '',
+    sellos: meta.sellos || '',
+    valeEstructura: meta.valeEstructura || '0',
+    motosEstructuras: Number(meta.motosEstructuras) || 0,
+    motosCarton: Number(meta.motosCarton) || 0,
+    remolque: meta.remolque || '0',
+    mtrs: Number(meta.mtrs) || 0
   };
 };
 
@@ -138,6 +162,25 @@ export const mapUnitToDb = (unit) => {
     obs = obs 
       ? `${obs}\n__PARADAS__:${JSON.stringify(unit.destinosSecundarios)}` 
       : `__PARADAS__:${JSON.stringify(unit.destinosSecundarios)}`;
+  }
+
+  // Serializar campos adicionales de planeación oficial para preservación total
+  const meta = {};
+  if (unit.horaColocacion) meta.horaColocacion = unit.horaColocacion;
+  if (unit.horaColocacionReal) meta.horaColocacionReal = unit.horaColocacionReal;
+  if (unit.horaFinCarga) meta.horaFinCarga = unit.horaFinCarga;
+  if (unit.horaCaseta) meta.horaCaseta = unit.horaCaseta;
+  if (unit.folioEnvio) meta.folioEnvio = unit.folioEnvio;
+  if (unit.sellos) meta.sellos = unit.sellos;
+  if (unit.valeEstructura) meta.valeEstructura = unit.valeEstructura;
+  if (unit.motosEstructuras !== undefined) meta.motosEstructuras = unit.motosEstructuras;
+  if (unit.motosCarton !== undefined) meta.motosCarton = unit.motosCarton;
+  if (unit.remolque) meta.remolque = unit.remolque;
+  if (unit.mtrs !== undefined) meta.mtrs = unit.mtrs;
+
+  if (Object.keys(meta).length > 0) {
+    obs = obs.replace(/__META__:\{.*?\}(?:\n|$)/gs, '').trim();
+    obs = obs ? `${obs}\n__META__:${JSON.stringify(meta)}` : `__META__:${JSON.stringify(meta)}`;
   }
 
   return {
@@ -201,6 +244,40 @@ export const upsertViajeDb = async (unit) => {
     throw error;
   }
   return data;
+};
+
+// Guardado en lote (bulk) para importaciones de Excel
+export const bulkUpsertViajesDb = async (units) => {
+  if (!supabase || !Array.isArray(units) || units.length === 0) return null;
+  const dbRows = units.map(mapUnitToDb);
+
+  // Procesar en chunks de 50 para evitar exceder límites de request
+  const CHUNK_SIZE = 50;
+  for (let i = 0; i < dbRows.length; i += CHUNK_SIZE) {
+    const chunk = dbRows.slice(i, i + CHUNK_SIZE);
+    const { error } = await supabase
+      .from('viajes_diarios')
+      .upsert(chunk, { onConflict: 'id' });
+    if (error) {
+      console.error('Error en bulkUpsertViajesDb chunk:', error);
+      throw error;
+    }
+  }
+  return true;
+};
+
+// Vaciar viajes activos en Supabase (para reemplazo limpio)
+export const clearViajesDb = async () => {
+  if (!supabase) return null;
+  const { error } = await supabase
+    .from('viajes_diarios')
+    .delete()
+    .neq('id', '___non_existent___');
+  if (error) {
+    console.error('Error al vaciar viajes_diarios:', error);
+    throw error;
+  }
+  return true;
 };
 
 export const deleteViajeDb = async (id) => {
