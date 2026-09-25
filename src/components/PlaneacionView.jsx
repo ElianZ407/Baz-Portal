@@ -402,7 +402,7 @@ export const PlaneacionView = () => {
         <div className="table-header-title">
           <h2>
             <CalendarClock size={20} color="var(--accent-cyan)" />
-            Matriz de Embarques y Despacho ({planeacionUnits.filter(u => u.noViaje).length} Viajes Filtrados)
+            Matriz de Embarques y Despacho ({planeacionUnits.length} Registros)
           </h2>
           <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
             Estatus Oficial: COLOCADO, CARGADO, PENDIENTE (Sincronizado en tiempo real)
@@ -413,18 +413,12 @@ export const PlaneacionView = () => {
           <table className="data-table" style={{ fontSize: '0.83rem' }}>
             <thead>
               <tr style={{ background: '#0b253a' }}>
-                <th style={{ textAlign: 'center', width: '65px' }}>NO. VIAJE</th>
                 <th>ECO UNIDAD</th>
-                <th style={{ textAlign: 'center' }}>BLOQUE</th>
-                <th>PLACAS</th>
                 <th style={{ textAlign: 'center' }}>CAP.</th>
-                <th>LÍNEA</th>
                 <th>OPERADOR</th>
                 <th># CARGA</th>
-                <th style={{ textAlign: 'center' }}># SUC</th>
                 <th>SUCURSAL / DESTINO</th>
                 <th>CLÓSTER & TIPO</th>
-                <th style={{ textAlign: 'center' }}>CORTINA</th>
                 <th style={{ textAlign: 'center', minWidth: '120px' }}>ESTATUS</th>
                 <th style={{ textAlign: 'center' }}>ACCIONES</th>
               </tr>
@@ -432,7 +426,7 @@ export const PlaneacionView = () => {
             <tbody>
               {planeacionUnits.length === 0 ? (
                 <tr>
-                  <td colSpan="14" style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-muted)' }}>
+                  <td colSpan="8" style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-muted)' }}>
                     No se encontraron registros de planeación con los filtros aplicados.
                   </td>
                 </tr>
@@ -502,20 +496,6 @@ export const PlaneacionView = () => {
                         opacity: isEnTaller ? 0.85 : 1
                       }}
                     >
-                      {/* NO. VIAJE */}
-                      <td style={{ textAlign: 'center', fontFamily: 'var(--font-mono)', fontWeight: 700, fontSize: '0.95rem' }}>
-                        {unit.noViaje ? (
-                          <span style={{ 
-                            background: 'rgba(255, 255, 255, 0.08)', 
-                            padding: '0.2rem 0.55rem', 
-                            borderRadius: '4px',
-                            color: '#fff'
-                          }}>
-                            {unit.noViaje}
-                          </span>
-                        ) : '—'}
-                      </td>
-
                       {/* ECO UNIDAD */}
                       <td>
                         {unit.economico ? (
@@ -539,33 +519,9 @@ export const PlaneacionView = () => {
                         )}
                       </td>
 
-                      {/* BLOQUE */}
-                      <td style={{ textAlign: 'center', fontFamily: 'var(--font-mono)', fontWeight: 600 }}>
-                        {unit.bloque ? (
-                          <span style={{ 
-                            background: 'rgba(6, 182, 212, 0.15)', 
-                            color: 'var(--accent-cyan)', 
-                            padding: '0.15rem 0.45rem', 
-                            borderRadius: '4px' 
-                          }}>
-                            B-{unit.bloque}
-                          </span>
-                        ) : '—'}
-                      </td>
-
-                      {/* PLACAS */}
-                      <td style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-                        {unit.placas || '—'}
-                      </td>
-
                       {/* CAP UNIDAD */}
                       <td style={{ textAlign: 'center', fontFamily: 'var(--font-mono)', fontWeight: 700, color: '#fff' }}>
                         {unit.capUnidad ? `${unit.capUnidad}` : '—'}
-                      </td>
-
-                      {/* LINEA */}
-                      <td style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
-                        {unit.linea || 'LTI - VHS'}
                       </td>
 
                       {/* OPERADOR */}
@@ -605,11 +561,6 @@ export const PlaneacionView = () => {
                         }}>
                           {unit.numCarga || '—'}
                         </span>
-                      </td>
-
-                      {/* # SUC */}
-                      <td style={{ textAlign: 'center', fontFamily: 'var(--font-mono)', fontSize: '0.82rem', color: 'var(--accent-cyan)', fontWeight: 700 }}>
-                        {unit.numSucursal || '—'}
                       </td>
 
                       {/* SUCURSAL / DESTINO */}
@@ -660,21 +611,6 @@ export const PlaneacionView = () => {
                             {unit.closter || 'HUB-VHSA'}
                           </span>
                         </div>
-                      </td>
-
-                      {/* CORTINAS */}
-                      <td style={{ textAlign: 'center' }}>
-                        <strong style={{ 
-                          fontFamily: 'var(--font-mono)', 
-                          fontSize: '0.95rem', 
-                          color: 'var(--accent-cyan)',
-                          background: 'rgba(6, 182, 212, 0.1)',
-                          padding: '0.2rem 0.5rem',
-                          borderRadius: '4px',
-                          border: '1px solid rgba(6, 182, 212, 0.3)'
-                        }}>
-                          {unit.cortina || '—'}
-                        </strong>
                       </td>
 
                       {/* ESTATUS OFICIAL (EXCEL) */}
@@ -906,33 +842,16 @@ export const PlaneacionView = () => {
                             borderBottom: '1px solid rgba(255, 255, 255, 0.05)'
                           }}
                         >
-                          {/* NO. VIAJE */}
-                          <td style={{ textAlign: 'center', color: isVtex ? '#facc15' : 'var(--accent-cyan)', fontSize: '0.85rem' }}>
-                            <span title={`Entrega #${pIdx + 2} del Viaje #${unit.noViaje || ''}`}>↳</span>
-                          </td>
-
                           {/* ECO UNIDAD */}
-                          <td style={{ fontSize: '0.74rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>
-                            {unit.economico ? `(ECO ${unit.economico})` : '—'}
-                          </td>
-
-                          {/* BLOQUE */}
-                          <td style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.75rem' }}>
-                            —
-                          </td>
-
-                          {/* PLACAS */}
-                          <td style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>
-                            —
+                          <td style={{ fontSize: '0.78rem', color: isVtex ? '#facc15' : 'var(--accent-cyan)' }}>
+                            <span title={`Entrega #${pIdx + 2}`} style={{ marginRight: '0.35rem', fontWeight: 700 }}>↳</span>
+                            <span style={{ fontSize: '0.74rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>
+                              {unit.economico ? `(ECO ${unit.economico})` : '—'}
+                            </span>
                           </td>
 
                           {/* CAP UNIDAD */}
                           <td style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.75rem' }}>
-                            —
-                          </td>
-
-                          {/* LINEA */}
-                          <td style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>
                             —
                           </td>
 
@@ -953,17 +872,6 @@ export const PlaneacionView = () => {
                             }}>
                               {parada.numCarga || unit.numCarga || '—'}
                             </span>
-                          </td>
-
-                          {/* # SUC */}
-                          <td style={{ 
-                            textAlign: 'center', 
-                            fontFamily: 'var(--font-mono)', 
-                            fontSize: '0.82rem', 
-                            color: isVtex ? '#facc15' : 'var(--accent-cyan)', 
-                            fontWeight: 700 
-                          }}>
-                            {parada.numSucursal || '—'}
                           </td>
 
                           {/* SUCURSAL / DESTINO */}
@@ -1009,11 +917,6 @@ export const PlaneacionView = () => {
                             <span className="badge-closter" style={{ fontSize: '0.7rem', opacity: 0.85 }}>
                               {parada.closter || unit.closter || 'HUB-VHSA'}
                             </span>
-                          </td>
-
-                          {/* CORTINAS */}
-                          <td style={{ textAlign: 'center', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-                            {parada.cortina || unit.cortina || '—'}
                           </td>
 
                           {/* ESTATUS */}
