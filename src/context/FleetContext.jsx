@@ -9,6 +9,7 @@ import {
   fetchPlanesHistoricosDb,
   savePlanHistoricoDb,
   deletePlanHistoricoDb,
+  fetchUnidadesDb,
   fetchFlotaMaestraDb,
   fetchSucursalesDb
 } from '../lib/supabaseClient';
@@ -214,10 +215,13 @@ export const FleetProvider = ({ children }) => {
   const reloadCatalogos = useCallback(async () => {
     if (!isSupabaseConfigured()) return;
     try {
-      const [flotaRemote, sucursalesRemote] = await Promise.all([
-        fetchFlotaMaestraDb(),
+      let [flotaRemote, sucursalesRemote] = await Promise.all([
+        fetchUnidadesDb(),
         fetchSucursalesDb()
       ]);
+      if (!flotaRemote || !Array.isArray(flotaRemote) || flotaRemote.length === 0) {
+        flotaRemote = await fetchFlotaMaestraDb();
+      }
       if (flotaRemote && Array.isArray(flotaRemote) && flotaRemote.length > 0) {
         const formattedFlota = flotaRemote.map(f => ({
           eco: String(f.eco),
@@ -388,7 +392,7 @@ export const FleetProvider = ({ children }) => {
     return units;
   }, [historicalPlanView, units]);
 
-  // KPIs en tiempo real basados exactamente en las unidades en pantalla
+  // KPIs en tiempo real basados en la flota completa y unidades en pantalla
   const kpis = useMemo(() => {
     const total = displayedUnits.length;
     const enTransito = displayedUnits.filter(u => u.estatusSupervisor === 'En Ruta').length;
@@ -398,8 +402,28 @@ export const FleetProvider = ({ children }) => {
       u.estatusPatio === 'Colocado p/ Carga'
     ).length;
     const retrasadas = displayedUnits.filter(u => u.estatusSupervisor === 'Retrasado').length;
-    const enTaller = displayedUnits.filter(u => u.estatusPatio === 'Taller').length;
-    const disponiblesPatio = displayedUnits.filter(u => u.estatusPatio === 'Disponible').length;
+    const enTaller = displayedUnits.filter(u => u.estatusPatio === 'Taller' || u.estatus === 'TALLER').length;
+
+    const totalFlotaCount = catalogoFlota && catalogoFlota.length > 0 ? catalogoFlota.length : (FLOTA_TOTAL.length || 56);
+    const ocupadasSet = new Set(
+      displayedUnits
+        .filter(u => u.economico && (
+          u.estatusPatio === 'Taller' || 
+          u.estatus === 'TALLER' ||
+          u.estatusSupervisor === 'En Ruta' || 
+          u.estatusPatio === 'Colocado p/ Carga' || 
+          u.estatusPatio === 'Cargado' || 
+          u.estatusPatio === 'En Sucursal' || 
+          u.estatusPatio === 'Descargando'
+        ))
+        .map(u => String(u.economico))
+    );
+    (catalogoFlota || []).forEach(f => {
+      if (f.estatus === 'TALLER' || (f.estatus || '').toLowerCase().includes('taller')) {
+        ocupadasSet.add(String(f.eco));
+      }
+    });
+    const disponiblesPatio = Math.max(0, totalFlotaCount - ocupadasSet.size);
     const cargadasPatio = displayedUnits.filter(u => u.estatusPatio === 'Cargado').length;
 
     return {
@@ -411,7 +435,7 @@ export const FleetProvider = ({ children }) => {
       disponiblesPatio,
       cargadasPatio
     };
-  }, [displayedUnits]);
+  }, [displayedUnits, catalogoFlota]);
 
   // Actualizar o crear unidad
   const saveUnit = async (unitData) => {
@@ -436,15 +460,15 @@ export const FleetProvider = ({ children }) => {
         (!u.noViaje || (u.estatusPlaneacion || 'PENDIENTE') === 'PENDIENTE')
       );
     }
+    const cleanId = (unitData.id && !String(unitData.id).startsWith('fleet-'))
+      ? unitData.id
+      : (typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `baz-unit-${Date.now()}-${Math.random().toString(36).substring(2)}`);
+
     const fullUnitRaw = existingUnit
       ? { ...existingUnit, ...unitData, id: existingUnit.id, actualizadoEn: now }
       : {
           ...unitData,
-          id: unitData.id || (
-            typeof crypto !== 'undefined' && crypto.randomUUID
-              ? crypto.randomUUID()
-              : `baz-unit-${Date.now()}-${Math.random().toString(36).substring(2)}`
-          ),
+          id: cleanId,
           actualizadoEn: now
         };
     const fullUnit = cleanUnitDestino(fullUnitRaw);
@@ -501,7 +525,36 @@ export const FleetProvider = ({ children }) => {
 
     const now = new Date().toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' });
     
-    const targetUnit = units.find(u => String(u.id) === String(unitId));
+    let targetUnit = units.find(u => String(u.id) === String(unitId));
+    if (!targetUnit && String(unitId).startsWith('fleet-')) {
+      const cleanEco = String(unitId).replace('fleet-', '');
+      const master = (catalogoFlota || []).find(f => String(f.eco) === cleanEco);
+      if (master) {
+        targetUnit = {
+          id: (typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID() : `baz-${Date.now()}-${Math.random().toString(36).substring(2)}`,
+          economico: String(master.eco),
+          placas: master.placas || '',
+          tipo: master.tipo || 'Camioneta',
+          capUnidad: Number(master.capUnidad || 18),
+          linea: master.linea || 'LTI - VHS',
+          operador: master.operador || '',
+          idOperador: master.idOperador || '',
+          turno: 'M1',
+          cortina: '',
+          numCarga: '',
+          numSucursal: '',
+          sucursalOrigen: 'CEDIS VILLAHERMOSA',
+          destino: '',
+          destinosSecundarios: [],
+          closter: 'HUB-VHSA',
+          fl: 'LOCAL',
+          estatusPatio: 'Disponible',
+          estatusPlaneacion: 'PENDIENTE',
+          estatusSupervisor: 'Pendiente',
+          bloque: 1
+        };
+      }
+    }
     if (!targetUnit) return;
 
     // Validación oficial: Si se intenta colocar o poner en caseta/cargado, DEBE tener No. de Viaje, Operador y Destino
@@ -581,7 +634,10 @@ export const FleetProvider = ({ children }) => {
       }
     }
 
-    const nextUnits = units.map(u => String(u.id) === String(unitId) ? updated : u);
+    const exists = units.some(u => String(u.id) === String(targetUnit.id));
+    const nextUnits = exists 
+      ? units.map(u => String(u.id) === String(targetUnit.id) ? updated : u)
+      : [updated, ...units];
 
     // Actualizar estado local inmediatamente
     setUnits(nextUnits);

@@ -10,10 +10,12 @@ import {
   UserCheck 
 } from 'lucide-react';
 import { useFleet } from '../context/FleetContext';
+import { FLOTA_TOTAL } from '../constants/fleetConstants';
 
 export const PatioView = () => {
   const { 
     units, 
+    catalogoFlota,
     updateStatus, 
     setSelectedUnit, 
     setIsModalOpen, 
@@ -68,8 +70,62 @@ export const PatioView = () => {
     });
   };
 
+  // Catálogo completo de la flota vehicular
+  const flotaList = catalogoFlota && Array.isArray(catalogoFlota) && catalogoFlota.length > 0
+    ? catalogoFlota
+    : FLOTA_TOTAL;
+
+  // Unidades activas mapeadas por número económico
+  const activeUnitsMap = new Map();
+  (units || []).forEach(u => {
+    if (u.economico) {
+      activeUnitsMap.set(String(u.economico), u);
+    }
+  });
+
+  // Consolidar toda la flota para Patio:
+  // Toda unidad de la flota que no tenga viaje activo ni taller está DISPONIBLE en patio
+  const fullPatioUnits = flotaList.map(f => {
+    const ecoKey = String(f.eco);
+    const active = activeUnitsMap.get(ecoKey);
+    if (active) {
+      return active;
+    }
+    const isCatalogTaller = f.estatus === 'TALLER' || (f.estatus || '').toLowerCase().includes('taller');
+    return {
+      id: `fleet-${ecoKey}`,
+      economico: ecoKey,
+      placas: f.placas || '',
+      tipo: f.tipo || 'Camioneta',
+      capUnidad: Number(f.capUnidad || 18),
+      linea: f.linea || 'LTI - VHS',
+      operador: f.operador || '',
+      idOperador: f.idOperador || '',
+      turno: 'M1',
+      cortina: '',
+      numCarga: '',
+      numSucursal: '',
+      sucursalOrigen: 'CEDIS VILLAHERMOSA',
+      destino: '',
+      destinosSecundarios: [],
+      closter: 'HUB-VHSA',
+      fl: 'LOCAL',
+      estatusPatio: isCatalogTaller ? 'Taller' : 'Disponible',
+      estatusPlaneacion: 'PENDIENTE',
+      estatusSupervisor: isCatalogTaller ? 'No Disponible' : 'Pendiente',
+      observaciones: f.observaciones || ''
+    };
+  });
+
+  // Agregar cualquier unidad registrada en 'units' que no esté en el catálogo
+  (units || []).forEach(u => {
+    if (!u.economico || !flotaList.some(f => String(f.eco) === String(u.economico))) {
+      fullPatioUnits.push(u);
+    }
+  });
+
   // Filtrado de unidades en Patio o que impactan el CD
-  const allPatioUnits = units.filter(u => {
+  const allPatioUnits = fullPatioUnits.filter(u => {
     const q = searchQuery.toLowerCase().trim();
     const matchesSearch = !q ||
       (u.economico && u.economico.toLowerCase().includes(q)) ||

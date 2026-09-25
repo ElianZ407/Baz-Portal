@@ -44,32 +44,39 @@ export const UnidadSelector = ({ value, onSelect, mode }) => {
   };
 
   const patioUnitsMap = new Map();
-  (units || [])
-    .filter(u => {
-      const isPatio = ['Disponible', 'Colocado p/ Carga', 'Cargado', 'Taller'].includes(u.estatusPatio) || !u.estatusPatio;
-      const isTaller = u.estatusPatio === 'Taller' || u.estatus === 'TALLER';
-      return isPatio || isTaller;
-    })
-    .forEach(u => {
-      if (!u.economico) return;
-      const ecoKey = String(u.economico);
-      if (!patioUnitsMap.has(ecoKey)) {
-        const master = flotaList.find(f => String(f.eco) === ecoKey);
-        patioUnitsMap.set(ecoKey, {
-          eco: ecoKey,
-          placas: u.placas || master?.placas || '',
-          tipo: u.tipo || master?.tipo || 'Camioneta',
-          capUnidad: Number(u.capUnidad || master?.capUnidad || 18),
-          linea: u.linea || master?.linea || 'LTI - VHS',
-          estatusPatio: u.estatusPatio || 'Disponible',
-          estatus: (u.estatusPatio === 'Taller' || u.estatus === 'TALLER') ? 'TALLER' : 'ACTIVO'
-        });
-      }
+
+  // 1. Agregar todas las unidades del catálogo de flota (por defecto Disponibles en patio)
+  flotaList.forEach(f => {
+    const ecoKey = String(f.eco);
+    const isCatalogTaller = f.estatus === 'TALLER' || (f.estatus || '').toLowerCase().includes('taller');
+    patioUnitsMap.set(ecoKey, {
+      eco: ecoKey,
+      placas: f.placas || '',
+      tipo: f.tipo || 'Camioneta',
+      capUnidad: Number(f.capUnidad || 18),
+      linea: f.linea || 'LTI - VHS',
+      operador: f.operador || '',
+      idOperador: f.idOperador || '',
+      estatusPatio: isCatalogTaller ? 'Taller' : 'Disponible',
+      estatus: isCatalogTaller ? 'TALLER' : 'ACTIVO'
     });
+  });
 
-  const patioUnits = Array.from(patioUnitsMap.values());
+  // 2. Superponer estados en tiempo real de units (patio, taller, etc.)
+  (units || []).forEach(u => {
+    if (!u.economico) return;
+    const ecoKey = String(u.economico);
+    const existing = patioUnitsMap.get(ecoKey);
+    const isTaller = u.estatusPatio === 'Taller' || u.estatus === 'TALLER';
+    if (existing) {
+      if (u.estatusPatio) existing.estatusPatio = u.estatusPatio;
+      if (isTaller) existing.estatus = 'TALLER';
+      if (u.placas) existing.placas = u.placas;
+      if (u.operador) existing.operador = u.operador;
+    }
+  });
 
-  const sourceList = isPlaneacion ? patioUnits : flotaList;
+  const sourceList = Array.from(patioUnitsMap.values());
 
   const filteredUnidades = sourceList.filter(u => {
     const q = search.toLowerCase().trim();

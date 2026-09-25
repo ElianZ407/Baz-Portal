@@ -83,6 +83,7 @@ const getSupervisorStatusConfig = (status) => {
 export const PlaneacionView = () => {
   const { 
     units, 
+    kpis,
     updateStatus, 
     setSelectedUnit, 
     setIsModalOpen, 
@@ -142,7 +143,7 @@ export const PlaneacionView = () => {
   const colocadoCount = planeacionBaseUnits.filter(u => u.estatusPatio !== 'Taller' && u.estatusPlaneacion === 'COLOCADO' && !SUPERVISOR_ACTIVE_STATUSES.includes(u.estatusSupervisor)).length;
   const pendienteCount = planeacionBaseUnits.filter(u => u.estatusPatio !== 'Taller' && (u.estatusPlaneacion || 'PENDIENTE') === 'PENDIENTE' && !SUPERVISOR_ACTIVE_STATUSES.includes(u.estatusSupervisor)).length;
   const tallerCount = planeacionBaseUnits.filter(u => u.estatusPatio === 'Taller' || u.estatus === 'TALLER').length;
-  const disponiblesPatioCount = planeacionBaseUnits.filter(u => u.estatusPatio === 'Disponible').length;
+  const disponiblesPatioCount = kpis?.disponiblesPatio ?? planeacionBaseUnits.filter(u => u.estatusPatio === 'Disponible').length;
 
   const handleEdit = (unit) => {
     setSelectedUnit(unit);
