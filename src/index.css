@@ -352,7 +352,7 @@ body {
    ========================================================================== */
 .kpi-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  grid-template-columns: repeat(5, 1fr);
   gap: 1rem;
   margin-bottom: 1.5rem;
 }
@@ -390,10 +390,11 @@ body {
   height: 3px;
 }
 
-.kpi-card.total::before { background: linear-gradient(90deg, #3b82f6, #06b6d4); }
-.kpi-card.transito::before { background: linear-gradient(90deg, #10b981, #34d399); }
+.kpi-card.disponible::before { background: linear-gradient(90deg, #10b981, #34d399); }
+.kpi-card.transito::before { background: linear-gradient(90deg, #3b82f6, #06b6d4); }
+.kpi-card.taller::before { background: linear-gradient(90deg, #ef4444, #f87171); }
 .kpi-card.rampa::before { background: linear-gradient(90deg, #f59e0b, #fbbf24); }
-.kpi-card.alerta::before { background: linear-gradient(90deg, #ef4444, #f87171); }
+.kpi-card.manana::before { background: linear-gradient(90deg, #8b5cf6, #a78bfa); }
 
 .kpi-info h3 {
   font-size: 0.75rem;
@@ -412,7 +413,7 @@ body {
   letter-spacing: -0.02em;
 }
 
-.kpi-card.alerta .kpi-value {
+.kpi-card.taller .kpi-value {
   color: #f87171;
 }
 
@@ -425,10 +426,11 @@ body {
   justify-content: center;
 }
 
-.kpi-card.total .kpi-icon-wrapper { color: #38bdf8; background: rgba(56, 189, 248, 0.12); }
-.kpi-card.transito .kpi-icon-wrapper { color: #34d399; background: rgba(52, 211, 153, 0.12); }
+.kpi-card.disponible .kpi-icon-wrapper { color: #34d399; background: rgba(52, 211, 153, 0.12); }
+.kpi-card.transito .kpi-icon-wrapper { color: #38bdf8; background: rgba(56, 189, 248, 0.12); }
+.kpi-card.taller .kpi-icon-wrapper { color: #f87171; background: rgba(248, 113, 113, 0.15); }
 .kpi-card.rampa .kpi-icon-wrapper { color: #fbbf24; background: rgba(251, 191, 36, 0.12); }
-.kpi-card.alerta .kpi-icon-wrapper { color: #f87171; background: rgba(248, 113, 113, 0.15); }
+.kpi-card.manana .kpi-icon-wrapper { color: #a78bfa; background: rgba(167, 139, 250, 0.12); }
 
 /* ==========================================================================
    Barra de Filtros y Búsqueda

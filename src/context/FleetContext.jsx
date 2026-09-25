@@ -398,8 +398,7 @@ export const FleetProvider = ({ children }) => {
     const enTransito = displayedUnits.filter(u => u.estatusSupervisor === 'En Ruta').length;
     const enSucursalRampa = displayedUnits.filter(u => 
       ['Espera Descarga', 'Descargando'].includes(u.estatusSupervisor) ||
-      u.estatusPlaneacion === 'En Cortina' ||
-      u.estatusPatio === 'Colocado p/ Carga'
+      u.estatusPatio === 'En Sucursal'
     ).length;
     const retrasadas = displayedUnits.filter(u => u.estatusSupervisor === 'Retrasado').length;
     const enTaller = displayedUnits.filter(u => u.estatusPatio === 'Taller' || u.estatus === 'TALLER').length;
@@ -426,6 +425,71 @@ export const FleetProvider = ({ children }) => {
     const disponiblesPatio = Math.max(0, totalFlotaCount - ocupadasSet.size);
     const cargadasPatio = displayedUnits.filter(u => u.estatusPatio === 'Cargado').length;
 
+    // ==========================================
+    // DISPONIBLES PARA MAÑANA (Estimación Inteligente)
+    // ==========================================
+    // Reglas:
+    // 1. Unidades actualmente Disponibles en Patio => disponibles mañana (excepto taller)
+    // 2. Unidades LOCAL en ruta/sucursal => regresan hoy, disponibles mañana
+    // 3. Unidades FORÁNEO:
+    //    - Si hora salida <= 10:00 => regresan hoy (ida y vuelta ~8-10 hrs)
+    //    - Si hora salida > 10:00 => probablemente NO regresan hoy
+    //    - Si están en Retorno => ya vienen de regreso, disponibles mañana
+    //    - Si están Completado => ya en patio, disponibles mañana
+    // 4. Unidades en Taller => NO disponibles mañana (salvo que sean liberadas)
+
+    const tallerEcos = new Set();
+    (catalogoFlota || []).forEach(f => {
+      if (f.estatus === 'TALLER' || (f.estatus || '').toLowerCase().includes('taller')) {
+        tallerEcos.add(String(f.eco));
+      }
+    });
+    displayedUnits.forEach(u => {
+      if (u.economico && (u.estatusPatio === 'Taller' || u.estatus === 'TALLER')) {
+        tallerEcos.add(String(u.economico));
+      }
+    });
+
+    // Contar unidades que NO estarán disponibles mañana
+    const noDisponiblesMananaSet = new Set([...tallerEcos]);
+
+    displayedUnits.forEach(u => {
+      if (!u.economico) return;
+      const eco = String(u.economico);
+      if (tallerEcos.has(eco)) return; // Ya contada como taller
+
+      const isForaneo = (u.fl || 'LOCAL').toUpperCase() === 'FORANEO';
+      const supervisor = u.estatusSupervisor || '';
+      const isEnRuta = supervisor === 'En Ruta';
+      const isEnSucursal = ['Espera Descarga', 'Descargando'].includes(supervisor);
+      const isRetorno = supervisor === 'Retorno' || u.estatusPlaneacion === 'RETORNO';
+      const isCompletado = supervisor === 'Completado' || u.estatusPlaneacion === 'COMPLETADO';
+
+      if (isCompletado || isRetorno) {
+        // Ya viene de regreso o ya llegó => disponible mañana
+        return;
+      }
+
+      if (isForaneo && (isEnRuta || isEnSucursal)) {
+        // Foráneo en ruta o en sucursal: evaluar hora de salida
+        const horaSalida = u.horaSalida || '';
+        let horaNum = 6; // default temprano
+        if (horaSalida) {
+          const parts = horaSalida.split(':');
+          horaNum = parseInt(parts[0], 10) || 6;
+        }
+        const tiempoViaje = Number(u.tiempoEstimadoHrs) || 0;
+        // Si salió tarde y el viaje es largo, no regresa hoy
+        if (horaNum >= 10 || (horaNum + tiempoViaje * 2) >= 22) {
+          noDisponiblesMananaSet.add(eco);
+        }
+        // Si salió temprano y viaje < 5hrs ida, regresa hoy => disponible mañana
+      }
+      // LOCAL en ruta/sucursal => siempre regresan hoy
+    });
+
+    const disponiblesManana = Math.max(0, totalFlotaCount - noDisponiblesMananaSet.size);
+
     return {
       total,
       enTransito,
@@ -433,7 +497,8 @@ export const FleetProvider = ({ children }) => {
       retrasadas,
       enTaller,
       disponiblesPatio,
-      cargadasPatio
+      cargadasPatio,
+      disponiblesManana
     };
   }, [displayedUnits, catalogoFlota]);
 

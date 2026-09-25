@@ -1,5 +1,5 @@
 import React from 'react';
-import { Truck, Navigation, Warehouse, AlertTriangle } from 'lucide-react';
+import { CheckCircle2, Navigation, Wrench, Warehouse, Sunrise } from 'lucide-react';
 import { useFleet } from '../context/FleetContext';
 
 export const KpiBar = () => {
@@ -7,31 +7,31 @@ export const KpiBar = () => {
 
   return (
     <section className="kpi-grid">
-      {/* 1. Total Unidades */}
+      {/* 1. Disponibles en Patio */}
       <div 
-        className={`kpi-card total ${filterStatus === 'ALL' ? 'active-filter' : ''}`}
+        className={`kpi-card disponible ${filterStatus === 'ALL' ? 'active-filter' : ''}`}
         onClick={() => setFilterStatus('ALL')}
         style={{ cursor: 'pointer' }}
-        title="Ver todas las unidades registradas"
+        title="Unidades disponibles actualmente en patio listas para asignar"
       >
         <div className="kpi-info">
-          <h3>Unidades Registradas</h3>
-          <div className="kpi-value">{kpis.total}</div>
+          <h3>Disponibles</h3>
+          <div className="kpi-value">{kpis.disponiblesPatio}</div>
         </div>
         <div className="kpi-icon-wrapper">
-          <Truck size={28} />
+          <CheckCircle2 size={28} />
         </div>
       </div>
 
-      {/* 2. En Tránsito */}
+      {/* 2. En Ruta */}
       <div 
         className={`kpi-card transito ${filterStatus === 'EN_TRANSITO' ? 'active-filter' : ''}`}
         onClick={() => setFilterStatus(filterStatus === 'EN_TRANSITO' ? 'ALL' : 'EN_TRANSITO')}
         style={{ cursor: 'pointer' }}
-        title="Filtrar unidades actualmente en tránsito"
+        title="Unidades actualmente en tránsito hacia su destino"
       >
         <div className="kpi-info">
-          <h3>En Tránsito</h3>
+          <h3>En Ruta</h3>
           <div className="kpi-value">{kpis.enTransito}</div>
         </div>
         <div className="kpi-icon-wrapper">
@@ -39,15 +39,31 @@ export const KpiBar = () => {
         </div>
       </div>
 
-      {/* 3. En Sucursal / Rampa */}
+      {/* 3. En Taller */}
+      <div 
+        className={`kpi-card taller ${filterStatus === 'EN_TALLER' ? 'active-filter' : ''}`}
+        onClick={() => setFilterStatus(filterStatus === 'EN_TALLER' ? 'ALL' : 'EN_TALLER')}
+        style={{ cursor: 'pointer' }}
+        title="Unidades en taller mecánico fuera de servicio"
+      >
+        <div className="kpi-info">
+          <h3>En Taller</h3>
+          <div className="kpi-value">{kpis.enTaller}</div>
+        </div>
+        <div className="kpi-icon-wrapper">
+          <Wrench size={28} />
+        </div>
+      </div>
+
+      {/* 4. En Sucursal */}
       <div 
         className={`kpi-card rampa ${filterStatus === 'EN_SUCURSAL' ? 'active-filter' : ''}`}
         onClick={() => setFilterStatus(filterStatus === 'EN_SUCURSAL' ? 'ALL' : 'EN_SUCURSAL')}
         style={{ cursor: 'pointer' }}
-        title="Filtrar unidades en cortinas, andenes o espera de descarga"
+        title="Unidades que están en sucursal descargando o esperando descarga"
       >
         <div className="kpi-info">
-          <h3>En Sucursal / Rampa</h3>
+          <h3>En Sucursal</h3>
           <div className="kpi-value">{kpis.enSucursalRampa}</div>
         </div>
         <div className="kpi-icon-wrapper">
@@ -55,19 +71,19 @@ export const KpiBar = () => {
         </div>
       </div>
 
-      {/* 4. Retrasadas / Alerta */}
+      {/* 5. Disponibles para Mañana */}
       <div 
-        className={`kpi-card alerta ${filterStatus === 'RETRASADAS' ? 'active-filter' : ''}`}
-        onClick={() => setFilterStatus(filterStatus === 'RETRASADAS' ? 'ALL' : 'RETRASADAS')}
+        className={`kpi-card manana ${filterStatus === 'DISP_MANANA' ? 'active-filter' : ''}`}
+        onClick={() => setFilterStatus(filterStatus === 'DISP_MANANA' ? 'ALL' : 'DISP_MANANA')}
         style={{ cursor: 'pointer' }}
-        title="Filtrar unidades que presentan retraso o alerta crítica"
+        title="Estimación de unidades disponibles para mañana, considerando hora de salida, destino (local/foráneo) y retorno"
       >
         <div className="kpi-info">
-          <h3>Retrasadas / Alerta</h3>
-          <div className="kpi-value">{kpis.retrasadas}</div>
+          <h3>Disponibles Mañana</h3>
+          <div className="kpi-value">{kpis.disponiblesManana}</div>
         </div>
         <div className="kpi-icon-wrapper">
-          <AlertTriangle size={28} />
+          <Sunrise size={28} />
         </div>
       </div>
     </section>
