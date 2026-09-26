@@ -2,7 +2,7 @@
  * Utilidades para Importar Archivos de Planeación (Excel .xlsx/.xls y CSV)
  * BAZ Entregas CD Villahermosa
  *
- * Lee archivos con las 24 columnas operativas:
+ * Lee archivos completos con las 24 columnas operativas:
  * NO. VIAJE | ECO UNIDAD | BLOQUES | PLACAS | CAP UNIDAD | LINEA | OPERADOR | FECHA |
  * # CARGA | # SUC | SUCURSAL | CORTINA | ESTATUS | PLAN DE COLOCACIÓN | COLOCACION |
  * PLAN FIN DE CARGA | ENTREGADO EN CASETA | FOLIO ENVIO | SELLOS |
@@ -11,65 +11,216 @@
 
 import { buscarSucursal, buscarUnidadPorEco, buscarIdOperadorPorNombre } from './fleetUtils';
 
-// Normaliza nombres de encabezados quitando acentos, puntuación y espacios
+// Normaliza nombres de encabezados quitando acentos, puntuación, saltos de línea y espacios no separables
 export const normalizeHeaderKey = (rawHeader) => {
   if (!rawHeader) return '';
   return String(rawHeader)
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '') // Quitar tildes
     .toLowerCase()
-    .replace(/[#._\-/:,]/g, ' ')
+    .replace(/[\r\n\t\v\f]/g, ' ')   // Convertir saltos de línea a espacios
+    .replace(/[\u00a0\u1680\u2000-\u200a\u2028\u2029\u202f\u205f\u3000]/g, ' ') // Espacios especiales
+    .replace(/[#._\-/:,№°º]/g, ' ') // Quitar signos comunes en encabezados
     .replace(/\s+/g, ' ')
     .trim();
 };
 
-// Diccionario de sinónimos para detectar las 24 columnas
+// Diccionario de sinónimos para detectar las 24 columnas oficiales
 export const COLUMN_DEFINITIONS = {
-  noViaje: ['no viaje', 'viaje', 'num viaje', 'numero viaje', 'n viaje', 'no de viaje', 'viaje no'],
-  economico: ['eco unidad', 'eco', 'economico', 'no eco', 'num eco', 'unidad', 'tracto', 'camion'],
-  bloque: ['bloques', 'bloque', 'blq', 'bloq'],
-  placas: ['placas', 'placa', 'matricula'],
-  capUnidad: ['cap unidad', 'capacidad', 'cap', 'capacidad unidad', 'tamano'],
-  linea: ['linea', 'linea transporte', 'linea fletera', 'fletera', 'empresa'],
-  operador: ['operador', 'chofer', 'conductor', 'nombre operador'],
-  fecha: ['fecha', 'dia', 'date', 'fecha viaje'],
-  numCarga: ['carga', 'num carga', 'no carga', 'numero carga', 'cve carga', 'embarque'],
-  numSucursal: ['suc', 'num suc', 'no suc', 'numero suc', 'tienda', 'num tienda', 'id sucursal'],
-  destino: ['sucursal', 'destino', 'nombre sucursal', 'nombre tienda', 'destino sucursal'],
-  cortina: ['cortina', 'cortinas', 'anden', 'rampa', 'puerta'],
-  estatus: ['estatus', 'estado', 'status', 'estatus planeacion'],
-  horaColocacion: ['plan de colocacion', 'plan colocacion', 'colocacion programada', 'h colocacion', 'hora colocacion'],
-  horaColocacionReal: ['colocacion', 'colocacion real', 'hora colocacion real', 'colocado a las'],
-  horaFinCarga: ['plan fin de carga', 'plan fin carga', 'fin carga', 'fin de carga', 'hora fin carga'],
-  horaCaseta: ['entregado en caseta', 'entrega caseta', 'caseta', 'hora caseta', 'salida caseta'],
-  folioEnvio: ['folio envio', 'folio envio', 'folio', 'folio embarque', 'remision'],
-  sellos: ['sellos', 'sello', 'sellos seguridad', 'candados'],
-  valeEstructura: ['no vale de estructuras', 'vale estructuras', 'vale estructura', 'no vale estructuras', 'num vale estructuras'],
-  motosEstructuras: ['motos estructuras', 'motos estructura', 'estructuras', 'motos est'],
-  motosCarton: ['motos carton', 'motos en carton', 'carton', 'motos cart'],
-  remolque: ['remolque', 'no remolque', 'caja', 'placas remolque'],
-  mtrs: ['mtrs', 'metros', 'mts', 'metros lineales', 'volumen']
+  // 1. Número de Viaje
+  noViaje: [
+    'no viaje', 'viaje', 'num viaje', 'numero viaje', 'n viaje', 
+    'no de viaje', 'viaje no', 'id viaje', 'folio viaje'
+  ],
+  // 2. Económico / Unidad
+  economico: [
+    'eco unidad', 'eco', 'economico', 'no eco', 'num eco', 
+    'unidad', 'tracto', 'camion', 'vehiculo'
+  ],
+  // 3. Bloques
+  bloque: [
+    'bloques', 'bloque', 'blq', 'bloq', 'bloq no'
+  ],
+  // 4. Placas
+  placas: [
+    'placas', 'placa', 'matricula'
+  ],
+  // 5. Capacidad
+  capUnidad: [
+    'cap unidad', 'capacidad unidad', 'capacidad', 'cap', 'tamano unidad'
+  ],
+  // 6. Línea Fletera
+  linea: [
+    'linea', 'linea transporte', 'linea fletera', 'fletera', 'empresa transporte'
+  ],
+  // 7. Operador
+  operador: [
+    'operador', 'chofer', 'conductor', 'nombre operador', 'operador unidad'
+  ],
+  // 8. Fecha
+  fecha: [
+    'fecha', 'dia', 'date', 'fecha viaje', 'fecha embarque'
+  ],
+  // 9. # Carga (Debe ser específico para no colisionar con fin de carga)
+  numCarga: [
+    'carga', 'num carga', 'no carga', 'numero carga', 'cve carga', 'embarque', 'id carga'
+  ],
+  // 10. # Sucursal (Número de Tienda)
+  numSucursal: [
+    'suc', 'num suc', 'no suc', 'numero suc', 'tienda', 'num tienda', 'no tienda', 'id sucursal'
+  ],
+  // 11. Sucursal / Destino (Nombre completo de la tienda)
+  destino: [
+    'sucursal', 'destino', 'nombre sucursal', 'nombre tienda', 'destino sucursal', 'tienda destino'
+  ],
+  // 12. Cortina
+  cortina: [
+    'cortina', 'cortinas', 'anden', 'andenes', 'rampa', 'puerta'
+  ],
+  // 13. Estatus
+  estatus: [
+    'estatus', 'estado', 'status', 'estatus planeacion', 'estatus embarque'
+  ],
+  // 14. Plan de Colocación
+  horaColocacion: [
+    'plan de colocacion', 'plan colocacion', 'colocacion programada', 'h colocacion', 'hora colocacion'
+  ],
+  // 15. Colocación Real
+  horaColocacionReal: [
+    'colocacion', 'colocacion real', 'hora colocacion real', 'colocado a las'
+  ],
+  // 16. Plan Fin de Carga
+  horaFinCarga: [
+    'plan fin de carga', 'plan fin carga', 'fin carga', 'fin de carga', 'hora fin carga'
+  ],
+  // 17. Entregado en Caseta
+  horaCaseta: [
+    'entregado en caseta', 'entrega caseta', 'caseta', 'hora caseta', 'salida caseta', 'hora salida caseta'
+  ],
+  // 18. Folio Envío
+  folioEnvio: [
+    'folio envio', 'folio envio', 'folio', 'folio embarque', 'remision', 'remision envio'
+  ],
+  // 19. Sellos
+  sellos: [
+    'sellos', 'sello', 'sellos seguridad', 'candados', 'sellos caseta'
+  ],
+  // 20. Vale de Estructuras
+  valeEstructura: [
+    'no vale de estructuras', 'no vale de estructura', 'vale de estructuras', 
+    'vale estructuras', 'vale estructura', 'no vale estructuras', 'num vale estructuras'
+  ],
+  // 21. Motos Estructuras
+  motosEstructuras: [
+    'motos estructuras', 'motos estructura', 'estructuras', 'motos est'
+  ],
+  // 22. Motos Cartón
+  motosCarton: [
+    'motos carton', 'motos en carton', 'carton', 'motos cart'
+  ],
+  // 23. Remolque
+  remolque: [
+    'remolque', 'no remolque', 'caja', 'placas remolque', 'num remolque'
+  ],
+  // 24. Metros (MTRS)
+  mtrs: [
+    'mtrs', 'metros', 'mts', 'metros lineales', 'volumen'
+  ]
 };
 
-// Determina el campo canónico para un encabezado dado
+// Determina el campo canónico para un encabezado dado con prioridad exacta para evitar colisiones
 export const matchColumnKey = (rawHeader) => {
   const norm = normalizeHeaderKey(rawHeader);
   if (!norm) return null;
 
+  // Paso 1: Coincidencia EXACTA (Garantiza que 'sucursal' vaya a 'destino' y no a 'numSucursal')
   for (const [canonicalKey, synonyms] of Object.entries(COLUMN_DEFINITIONS)) {
-    if (synonyms.some(syn => norm === syn || norm.includes(syn))) {
+    if (synonyms.includes(norm)) {
       return canonicalKey;
     }
   }
-  return null;
+
+  // Paso 2: Coincidencia por palabra clave más larga / específica
+  let bestMatch = null;
+  let longestMatchLength = 0;
+
+  for (const [canonicalKey, synonyms] of Object.entries(COLUMN_DEFINITIONS)) {
+    for (const syn of synonyms) {
+      // Coincidencia de palabra completa usando límites de palabra
+      const escaped = syn.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const regex = new RegExp(`(^|\\s)${escaped}(\\s|$)`, 'i');
+      if (regex.test(norm) && syn.length > longestMatchLength) {
+        longestMatchLength = syn.length;
+        bestMatch = canonicalKey;
+      }
+    }
+  }
+
+  return bestMatch;
+};
+
+// Extrae el valor limpio de una celda de ExcelJS evitando pérdidas por fórmulas u objetos
+const extractExcelCellValue = (cell) => {
+  if (!cell) return '';
+  let val = cell.value;
+  if (val === null || val === undefined) return '';
+
+  if (val instanceof Date) return val;
+
+  // Si es un objeto de ExcelJS
+  if (typeof val === 'object') {
+    // Si contiene el resultado de una fórmula
+    if (val.result !== undefined && val.result !== null) {
+      if (typeof val.result === 'object' && val.result.error) return '';
+      return val.result;
+    }
+    // Si es texto enriquecido (RichText)
+    if (Array.isArray(val.richText)) {
+      return val.richText.map(t => t.text || '').join('').trim();
+    }
+    // Si es un hipervínculo
+    if (val.text !== undefined) return String(val.text).trim();
+    if (val.hyperlink !== undefined) return String(val.text || val.hyperlink).trim();
+    if (val.error) return '';
+  }
+
+  // Si cell.text tiene un valor formateado legible, puede usarse de respaldo
+  if (cell.text && typeof cell.text === 'string' && cell.text !== '[object Object]') {
+    const trimmed = cell.text.trim();
+    // Si el valor original era número o fecha y cell.text está bien formateado
+    if (typeof val === 'number' && (trimmed.includes(':') || trimmed.includes('/'))) {
+      return trimmed;
+    }
+  }
+
+  return val;
 };
 
 // Formateador de Horas (soporta fracciones de Excel, fechas y strings)
 export const parseTimeValue = (val) => {
   if (val === null || val === undefined || val === '') return '';
 
+  // Si ya es un string con formato tipo "6:00", "06:00", "06:00:00", "6:00 AM", etc.
+  const str = String(val).trim();
+  const timeRegex = /^(\d{1,2}):(\d{2})(?::(\d{2}))?\s*(am|pm)?$/i;
+  const match = str.match(timeRegex);
+  if (match) {
+    let hours = parseInt(match[1], 10);
+    const minutes = match[2];
+    const ampm = match[4]?.toLowerCase();
+    if (ampm === 'pm' && hours < 12) hours += 12;
+    if (ampm === 'am' && hours === 12) hours = 0;
+    return `${String(hours).padStart(2, '0')}:${minutes}`;
+  }
+
   // Si es un objeto Date
   if (val instanceof Date) {
+    // Si el año es 1899 o 1900 (fecha base de tiempo en Excel)
+    if (val.getFullYear() <= 1901) {
+      const utcHours = val.getUTCHours();
+      const utcMinutes = val.getUTCMinutes();
+      return `${String(utcHours).padStart(2, '0')}:${String(utcMinutes).padStart(2, '0')}`;
+    }
     const hh = String(val.getHours()).padStart(2, '0');
     const mm = String(val.getMinutes()).padStart(2, '0');
     return `${hh}:${mm}`;
@@ -77,7 +228,6 @@ export const parseTimeValue = (val) => {
 
   // Si es número (fracción de día en Excel, ej. 0.25 = 06:00)
   if (typeof val === 'number') {
-    // Si es un entero de 0 a 24, asumimos que son horas directas
     if (val >= 0 && val < 1) {
       const totalMinutes = Math.round(val * 24 * 60);
       const hours = Math.floor(totalMinutes / 60) % 24;
@@ -87,19 +237,6 @@ export const parseTimeValue = (val) => {
     if (val >= 1 && val <= 24) {
       return `${String(Math.floor(val)).padStart(2, '0')}:00`;
     }
-  }
-
-  const str = String(val).trim();
-  // Formato tipo "6:00", "06:00", "06:00:00", "6:00 AM", etc.
-  const timeRegex = /(\d{1,2}):(\d{2})(?::(\d{2}))?\s*(am|pm)?/i;
-  const match = str.match(timeRegex);
-  if (match) {
-    let hours = parseInt(match[1], 10);
-    const minutes = match[2];
-    const ampm = match[4]?.toLowerCase();
-    if (ampm === 'pm' && hours < 12) hours += 12;
-    if (ampm === 'am' && hours === 12) hours = 0;
-    return `${String(hours).padStart(2, '0')}:${minutes}`;
   }
 
   return str;
@@ -113,15 +250,16 @@ export const parseDateValue = (val, fallbackDate = '') => {
     return val.toISOString().split('T')[0];
   }
 
-  if (typeof val === 'number' && val > 30000 && val < 60000) {
-    // Número serial de Excel (días desde 1900-01-01)
+  if (typeof val === 'number' && val > 30000 && val < 70000) {
+    // Número serial de Excel (días desde 1899-12-30)
+    const days = Math.floor(val);
     const excelEpoch = new Date(Date.UTC(1899, 11, 30));
-    const jsDate = new Date(excelEpoch.getTime() + val * 86400000);
+    const jsDate = new Date(excelEpoch.getTime() + days * 86400000);
     return jsDate.toISOString().split('T')[0];
   }
 
   const str = String(val).trim();
-  // Casos "9/25/2026" o "25/09/2026" o "2026-09-25"
+  // Formato tipo "9/25/2026" o "25/09/2026" o "2026-09-25"
   if (str.includes('/')) {
     const parts = str.split('/');
     if (parts.length === 3) {
@@ -131,7 +269,7 @@ export const parseDateValue = (val, fallbackDate = '') => {
       if (parseInt(p1, 10) > 12) {
         return `${p3}-${String(p2).padStart(2, '0')}-${String(p1).padStart(2, '0')}`;
       }
-      // Por defecto en Excel en inglés: MM/DD/YYYY
+      // Por defecto en Excel en formato US: MM/DD/YYYY
       return `${p3}-${String(p1).padStart(2, '0')}-${String(p2).padStart(2, '0')}`;
     }
   }
@@ -207,17 +345,19 @@ export const parseEstatusBaz = (rawEstatus) => {
 };
 
 /**
- * Lee un archivo Excel (.xlsx / .xls) o CSV y extrae las unidades/viajes listos para BAZ
+ * Lee un archivo Excel (.xlsx / .xls) o CSV y extrae TODOS los viajes y entregas
  */
 export const parsePlanningFile = async (file, catalogoFlota = [], catalogoSucursales = []) => {
   const fileName = file.name.toLowerCase();
   const isCsv = fileName.endsWith('.csv');
 
   let rows = [];
+  let sheetName = 'Hoja 1';
 
   if (isCsv) {
     const text = await file.text();
     rows = parseCsvToRows(text);
+    sheetName = 'Archivo CSV';
   } else {
     // Excel con ExcelJS
     const ExcelJSModule = await import('exceljs/dist/exceljs.min.js');
@@ -226,43 +366,82 @@ export const parsePlanningFile = async (file, catalogoFlota = [], catalogoSucurs
     const arrayBuffer = await file.arrayBuffer();
     await workbook.xlsx.load(arrayBuffer);
 
-    const worksheet = workbook.worksheets[0];
-    if (!worksheet) {
+    if (!workbook.worksheets || workbook.worksheets.length === 0) {
       throw new Error('El archivo Excel no contiene hojas de cálculo legibles.');
     }
 
-    worksheet.eachRow({ includeEmpty: false }, (row) => {
-      const rowValues = [];
-      row.eachCell({ includeEmpty: true }, (cell, colNumber) => {
-        let val = cell.value;
-        // Si la celda contiene una fórmula o formato enriquecido
-        if (val && typeof val === 'object') {
-          if (val.result !== undefined) val = val.result;
-          else if (val.text !== undefined) val = val.text;
-          else if (val.richText) val = val.richText.map(t => t.text).join('');
+    // 1. Buscar la mejor hoja que contenga encabezados de planeación
+    let targetWorksheet = workbook.worksheets[0];
+    let maxSheetMatches = 0;
+
+    for (const ws of workbook.worksheets) {
+      let sheetMatches = 0;
+      const testRowCount = Math.min(ws.rowCount, 15);
+
+      for (let r = 1; r <= testRowCount; r++) {
+        const row = ws.getRow(r);
+        const colCount = Math.max(ws.columnCount || 0, 30);
+        let rowMatches = 0;
+
+        for (let c = 1; c <= colCount; c++) {
+          const cell = row.getCell(c);
+          const val = extractExcelCellValue(cell);
+          if (val && matchColumnKey(val)) {
+            rowMatches++;
+          }
         }
-        rowValues[colNumber - 1] = val;
-      });
-      rows.push(rowValues);
-    });
+        if (rowMatches > sheetMatches) {
+          sheetMatches = rowMatches;
+        }
+      }
+
+      if (sheetMatches > maxSheetMatches) {
+        maxSheetMatches = sheetMatches;
+        targetWorksheet = ws;
+      }
+    }
+
+    sheetName = targetWorksheet.name || 'EMBARQUES';
+
+    // 2. Extraer TODAS las filas de la hoja seleccionada con acceso absoluto por coordenadas
+    const totalRowsInSheet = targetWorksheet.rowCount;
+    const totalColsInSheet = Math.max(targetWorksheet.columnCount || 0, 35);
+
+    for (let r = 1; r <= totalRowsInSheet; r++) {
+      const row = targetWorksheet.getRow(r);
+      const rowValues = [];
+      let hasAnyValueInRow = false;
+
+      for (let c = 1; c <= totalColsInSheet; c++) {
+        const cell = row.getCell(c);
+        const cellVal = extractExcelCellValue(cell);
+        rowValues[c - 1] = cellVal;
+        if (cellVal !== '' && cellVal !== null && cellVal !== undefined) {
+          hasAnyValueInRow = true;
+        }
+      }
+
+      // Mantener la fila para respetar los índices exactos de fila
+      rows.push(hasAnyValueInRow ? rowValues : []);
+    }
   }
 
   if (rows.length === 0) {
     throw new Error('El archivo seleccionado está vacío.');
   }
 
-  // 1. Detectar Fila de Encabezados (Buscar entre las primeras 15 filas)
+  // 3. Detectar Fila de Encabezados (Buscar en las primeras 25 filas)
   let headerRowIndex = -1;
   let columnMap = {}; // { colIndex: 'canonicalKey' }
   let maxMatches = 0;
   let fileHeaderDate = '';
 
-  for (let r = 0; r < Math.min(rows.length, 15); r++) {
+  for (let r = 0; r < Math.min(rows.length, 25); r++) {
     const candidateRow = rows[r];
-    if (!Array.isArray(candidateRow)) continue;
+    if (!Array.isArray(candidateRow) || candidateRow.length === 0) continue;
 
     // Buscar si hay alguna fecha en las filas anteriores al header (como la fila 1 de BAZ)
-    if (r < 3 && !fileHeaderDate) {
+    if (r < 5 && !fileHeaderDate) {
       for (const cellVal of candidateRow) {
         if (cellVal) {
           const strVal = String(cellVal).trim();
@@ -298,7 +477,7 @@ export const parsePlanningFile = async (file, catalogoFlota = [], catalogoSucurs
     throw new Error('No se encontraron los encabezados oficiales de planeación en el archivo. Verifica que contenga columnas como: NO. VIAJE, ECO UNIDAD, SUCURSAL, CARGA, OPERADOR.');
   }
 
-  // 2. Procesar Filas de Datos
+  // 4. Procesar TODAS las Filas de Datos sin omisiones
   const parsedUnits = [];
   let currentUnit = null;
   const now = new Date().toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' });
@@ -321,18 +500,44 @@ export const parsePlanningFile = async (file, catalogoFlota = [], catalogoSucurs
     const numSucursal = String(rowData.numSucursal || '').trim();
     const numCarga = String(rowData.numCarga || '').trim();
     const cortina = String(rowData.cortina || '').trim();
+    const operador = String(rowData.operador || '').trim();
+    const bloque = rowData.bloque !== '' && rowData.bloque !== undefined ? Number(rowData.bloque) : null;
+    const placas = String(rowData.placas || '').trim();
+    const linea = String(rowData.linea || '').trim();
+    const estatusRaw = String(rowData.estatus || '').trim();
+    const horaColocacion = parseTimeValue(rowData.horaColocacion) || '';
     const mtrs = Number(rowData.mtrs) || 0;
 
     // Fila completamente en blanco -> ignorar
-    const hasAnySignificantData = eco || noViaje || sucursal || numSucursal || numCarga || rowData.operador;
+    const hasAnySignificantData = eco || noViaje || sucursal || numSucursal || numCarga || 
+      operador || cortina || (bloque !== null && !isNaN(bloque)) || placas || linea || estatusRaw;
     if (!hasAnySignificantData) {
       continue;
     }
 
-    // Detectar si es una Parada Secundaria (Múltiple entrega dentro del mismo viaje)
-    // En las plantillas BAZ, si ECO y NO. VIAJE están vacíos pero hay SUCURSAL o # SUC,
-    // pertenece a una segunda entrega del viaje previo.
-    const isSecondaryStop = (!eco && !noViaje) && (sucursal || numSucursal) && currentUnit;
+    // Regla de Oro BAZ: ¿Cuándo una fila es una PARADA SECUNDARIA vs un VIAJE INDEPENDIENTE?
+    // Es una parada secundaria ÚNICAMENTE cuando:
+    // 1. Hay un viaje activo previo (currentUnit).
+    // 2. NO tiene económico, NO tiene viaje, NO tiene operador, NO tiene placas, NO tiene línea.
+    // 3. NO tiene bloque propio o coincide con el bloque del viaje previo.
+    // 4. NO tiene cortina propia o coincide con la del viaje previo.
+    // 5. NO tiene carga propia o coincide con la carga del viaje previo.
+    // 6. NO tiene hora de colocación propia.
+    // 7. Y SÍ tiene sucursal o # sucursal.
+    const hasTripOwnershipMarkers = Boolean(
+      eco || 
+      noViaje || 
+      operador || 
+      placas || 
+      linea ||
+      (numCarga && currentUnit && numCarga !== currentUnit.numCarga) ||
+      (bloque !== null && currentUnit && bloque !== currentUnit.bloque) ||
+      (cortina && currentUnit && cortina !== currentUnit.cortina) ||
+      horaColocacion ||
+      (estatusRaw && estatusRaw.toUpperCase() !== 'PENDIENTE')
+    );
+
+    const isSecondaryStop = currentUnit && !hasTripOwnershipMarkers && (sucursal || numSucursal);
 
     if (isSecondaryStop) {
       const parada = {
@@ -344,7 +549,7 @@ export const parsePlanningFile = async (file, catalogoFlota = [], catalogoSucurs
         mtrs: mtrs
       };
 
-      // Si la sucursal secundaria existe en catálogo, completar closter
+      // Si la sucursal secundaria existe en catálogo, autocompletar clóster
       const sucInfo = buscarSucursal(numSucursal || sucursal, catalogoSucursales);
       if (sucInfo) {
         parada.closter = sucInfo.closter || '';
@@ -356,16 +561,16 @@ export const parsePlanningFile = async (file, catalogoFlota = [], catalogoSucurs
       continue;
     }
 
-    // Si tiene ECO o NO. VIAJE o SUCURSAL -> Crear nueva unidad de viaje
+    // VIAJE NUEVO / INDEPENDIENTE (incluso si aún no tiene ECO asignado, como viajes programados en cortina)
     const unitDate = parseDateValue(rowData.fecha, defaultDate);
-    const estatusObj = parseEstatusBaz(rowData.estatus);
+    const estatusObj = parseEstatusBaz(estatusRaw);
 
     // Auto-completar datos con catálogo de flota
     const fleetMaster = eco ? buscarUnidadPorEco(eco, catalogoFlota) : null;
-    const finalPlacas = String(rowData.placas || fleetMaster?.placas || '').trim();
+    const finalPlacas = placas || fleetMaster?.placas || '';
     const finalCap = Number(rowData.capUnidad || fleetMaster?.capUnidad) || 18;
-    const finalLinea = String(rowData.linea || fleetMaster?.linea || 'LTI - VHS').trim();
-    const finalOperador = String(rowData.operador || fleetMaster?.operador || '').trim();
+    const finalLinea = linea || fleetMaster?.linea || 'LTI - VHS';
+    const finalOperador = operador || fleetMaster?.operador || '';
     const finalIdOperador = finalOperador ? buscarIdOperadorPorNombre(finalOperador, catalogoFlota) : (fleetMaster?.idOperador || '');
 
     // Auto-completar datos con catálogo de sucursales
@@ -382,7 +587,7 @@ export const parsePlanningFile = async (file, catalogoFlota = [], catalogoSucurs
         : `baz-imp-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
       noViaje: noViaje,
       economico: eco,
-      bloque: Number(rowData.bloque) || 1,
+      bloque: (bloque !== null && !isNaN(bloque)) ? bloque : (currentUnit?.bloque || 1),
       placas: finalPlacas,
       capUnidad: finalCap,
       linea: finalLinea,
@@ -403,7 +608,7 @@ export const parsePlanningFile = async (file, catalogoFlota = [], catalogoSucurs
       horaSalida: parseTimeValue(rowData.horaCaseta) || '',
       tiempoEstimadoHrs: 0,
       eta: '',
-      horaColocacion: parseTimeValue(rowData.horaColocacion) || '06:00',
+      horaColocacion: horaColocacion || '06:00',
       horaColocacionReal: parseTimeValue(rowData.horaColocacionReal) || '',
       horaFinCarga: parseTimeValue(rowData.horaFinCarga) || '07:30',
       horaCaseta: parseTimeValue(rowData.horaCaseta) || '',
@@ -426,13 +631,14 @@ export const parsePlanningFile = async (file, catalogoFlota = [], catalogoSucurs
   }
 
   if (parsedUnits.length === 0) {
-    throw new Error('No se detectaron viajes válidos en el archivo. Asegúrate de que las filas tengan al menos el número económico o la sucursal.');
+    throw new Error('No se detectaron viajes válidos en el archivo. Asegúrate de que las filas tengan al menos el número de carga, sucursal o unidad.');
   }
 
   return {
     units: parsedUnits,
     totalViajes: parsedUnits.length,
     fechaDetectada: defaultDate,
+    nombreHoja: sheetName,
     columnasDetectadas: Object.values(columnMap)
   };
 };

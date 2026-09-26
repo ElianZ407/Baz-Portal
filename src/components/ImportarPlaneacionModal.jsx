@@ -11,7 +11,8 @@ import {
   Truck, 
   Users, 
   Check, 
-  AlertTriangle 
+  AlertTriangle,
+  Search 
 } from 'lucide-react';
 import { useFleet } from '../context/FleetContext';
 import { parsePlanningFile, downloadPlanningTemplate } from '../utils/planningImportUtils';
@@ -31,6 +32,7 @@ export const ImportarPlaneacionModal = () => {
   const [errorMessage, setErrorMessage] = useState('');
   const [parsedData, setParsedData] = useState(null);
   const [importMode, setImportMode] = useState('replace'); // 'replace' | 'merge'
+  const [previewSearch, setPreviewSearch] = useState('');
   const fileInputRef = useRef(null);
 
   if (!isImportModalOpen) return null;
@@ -38,6 +40,7 @@ export const ImportarPlaneacionModal = () => {
   const handleClose = () => {
     setParsedData(null);
     setErrorMessage('');
+    setPreviewSearch('');
     setIsProcessing(false);
     setIsImportModalOpen(false);
   };
@@ -127,6 +130,22 @@ export const ImportarPlaneacionModal = () => {
   const totalEnCaseta = parsedData?.units?.filter(u => u.estatusPlaneacion === 'CARGADO' || u.estatusPatio === 'Cargado').length || 0;
   const totalColocados = parsedData?.units?.filter(u => u.estatusPlaneacion === 'COLOCADO').length || 0;
   const totalPendientes = parsedData?.units?.filter(u => (u.estatusPlaneacion || 'PENDIENTE') === 'PENDIENTE').length || 0;
+
+  // Filtrado en vivo de la tabla de previsualización
+  const filteredUnits = (parsedData?.units || []).filter(u => {
+    if (!previewSearch.trim()) return true;
+    const q = previewSearch.toLowerCase().trim();
+    return (
+      String(u.economico || '').toLowerCase().includes(q) ||
+      String(u.noViaje || '').toLowerCase().includes(q) ||
+      String(u.operador || '').toLowerCase().includes(q) ||
+      String(u.destino || '').toLowerCase().includes(q) ||
+      String(u.numCarga || '').toLowerCase().includes(q) ||
+      String(u.cortina || '').toLowerCase().includes(q) ||
+      String(u.numSucursal || '').toLowerCase().includes(q) ||
+      String(u.bloque || '').toLowerCase().includes(q)
+    );
+  });
 
   return (
     <div className="modal-overlay" style={{ zIndex: 1200 }}>
@@ -497,17 +516,66 @@ export const ImportarPlaneacionModal = () => {
               </div>
 
               {/* Tabla de Previsualización */}
-              <div style={{ marginBottom: '0.75rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <span style={{ fontSize: '0.84rem', fontWeight: 700, color: '#fff' }}>
-                  Vista Previa de Viajes Detectados ({parsedData.totalViajes}):
-                </span>
-                <span style={{ fontSize: '0.76rem', color: 'var(--text-muted)' }}>
-                  Archivo: <strong>{parsedData.fileInfo.name}</strong> ({parsedData.fileInfo.sizeKb} KB)
-                </span>
+              <div style={{ 
+                marginBottom: '0.75rem', 
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'space-between',
+                flexWrap: 'wrap',
+                gap: '0.6rem'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                  <span style={{ fontSize: '0.86rem', fontWeight: 800, color: '#fff' }}>
+                    Viajes Leídos ({parsedData.totalViajes}):
+                  </span>
+                  {parsedData.nombreHoja && (
+                    <span style={{
+                      background: 'rgba(6, 182, 212, 0.15)',
+                      color: '#22d3ee',
+                      padding: '0.15rem 0.5rem',
+                      borderRadius: '4px',
+                      fontSize: '0.72rem',
+                      fontWeight: 700,
+                      border: '1px solid rgba(6, 182, 212, 0.3)'
+                    }}>
+                      Hoja: {parsedData.nombreHoja}
+                    </span>
+                  )}
+                  {previewSearch && (
+                    <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
+                      (Mostrando {filteredUnits.length} de {parsedData.totalViajes})
+                    </span>
+                  )}
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                  <div style={{ position: 'relative', width: '220px' }}>
+                    <Search size={13} style={{ position: 'absolute', left: '0.6rem', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
+                    <input
+                      type="text"
+                      placeholder="Buscar en el archivo..."
+                      value={previewSearch}
+                      onChange={(e) => setPreviewSearch(e.target.value)}
+                      style={{
+                        width: '100%',
+                        padding: '0.35rem 0.6rem 0.35rem 1.8rem',
+                        background: '#070c17',
+                        border: '1px solid rgba(255, 255, 255, 0.12)',
+                        borderRadius: '6px',
+                        color: '#fff',
+                        fontSize: '0.76rem'
+                      }}
+                    />
+                  </div>
+
+                  <span style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>
+                    Archivo: <strong>{parsedData.fileInfo.name}</strong> ({parsedData.fileInfo.sizeKb} KB)
+                  </span>
+                </div>
               </div>
 
               <div style={{
-                maxHeight: '260px',
+                maxHeight: '320px',
                 overflowY: 'auto',
                 border: '1px solid rgba(255, 255, 255, 0.08)',
                 borderRadius: '8px',
@@ -515,7 +583,7 @@ export const ImportarPlaneacionModal = () => {
               }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.76rem' }}>
                   <thead>
-                    <tr style={{ background: '#101b30', borderBottom: '1px solid rgba(255, 255, 255, 0.1)', color: '#94a3b8', textAlign: 'left' }}>
+                    <tr style={{ background: '#101b30', borderBottom: '1px solid rgba(255, 255, 255, 0.1)', color: '#94a3b8', textAlign: 'left', position: 'sticky', top: 0, zIndex: 1 }}>
                       <th style={{ padding: '0.5rem 0.6rem' }}>VIAJE</th>
                       <th style={{ padding: '0.5rem 0.6rem' }}>ECO</th>
                       <th style={{ padding: '0.5rem 0.6rem' }}>BLQ</th>
@@ -524,64 +592,84 @@ export const ImportarPlaneacionModal = () => {
                       <th style={{ padding: '0.5rem 0.6rem' }}>CARGA</th>
                       <th style={{ padding: '0.5rem 0.6rem' }}>SUCURSAL / DESTINO</th>
                       <th style={{ padding: '0.5rem 0.6rem' }}>CORTINA</th>
+                      <th style={{ padding: '0.5rem 0.6rem' }}>PLAN COLOC.</th>
+                      <th style={{ padding: '0.5rem 0.6rem' }}>MTRS</th>
                       <th style={{ padding: '0.5rem 0.6rem' }}>ESTATUS</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {parsedData.units.map((u, idx) => (
-                      <tr key={u.id || idx} style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.04)' }}>
-                        <td style={{ padding: '0.45rem 0.6rem', fontFamily: 'var(--font-mono)', fontWeight: 700, color: '#38bdf8' }}>
-                          {u.noViaje || (idx + 1)}
-                        </td>
-                        <td style={{ padding: '0.45rem 0.6rem', fontWeight: 700, color: '#fff' }}>
-                          {u.economico || '—'}
-                        </td>
-                        <td style={{ padding: '0.45rem 0.6rem', color: '#94a3b8' }}>
-                          {u.bloque}
-                        </td>
-                        <td style={{ padding: '0.45rem 0.6rem', color: '#cbd5e1' }}>
-                          {u.capUnidad}
-                        </td>
-                        <td style={{ padding: '0.45rem 0.6rem', color: '#fff', maxWidth: '160px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                          {u.operador || 'Por Asignar'}
-                        </td>
-                        <td style={{ padding: '0.45rem 0.6rem', fontFamily: 'var(--font-mono)', color: '#cbd5e1' }}>
-                          {u.numCarga || '—'}
-                        </td>
-                        <td style={{ padding: '0.45rem 0.6rem', color: '#f1f5f9' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                            <span>{u.destino || 'Sin Destino'}</span>
-                            {u.destinosSecundarios && u.destinosSecundarios.length > 0 && (
-                              <span style={{
-                                background: 'rgba(56, 189, 248, 0.2)',
-                                color: '#38bdf8',
-                                padding: '0.1rem 0.35rem',
-                                borderRadius: '4px',
-                                fontSize: '0.68rem',
-                                fontWeight: 700
-                              }}>
-                                +{u.destinosSecundarios.length}
-                              </span>
-                            )}
-                          </div>
-                        </td>
-                        <td style={{ padding: '0.45rem 0.6rem', color: '#e2e8f0' }}>
-                          {u.cortina || '—'}
-                        </td>
-                        <td style={{ padding: '0.45rem 0.6rem' }}>
-                          <span style={{
-                            padding: '0.15rem 0.45rem',
-                            borderRadius: '4px',
-                            fontSize: '0.68rem',
-                            fontWeight: 700,
-                            background: u.estatusPlaneacion === 'CARGADO' ? 'rgba(234, 179, 8, 0.2)' : u.estatusPlaneacion === 'COLOCADO' ? 'rgba(6, 182, 212, 0.2)' : 'rgba(148, 163, 184, 0.2)',
-                            color: u.estatusPlaneacion === 'CARGADO' ? '#facc15' : u.estatusPlaneacion === 'COLOCADO' ? '#22d3ee' : '#cbd5e1'
-                          }}>
-                            {u.estatusPlaneacion === 'CARGADO' ? 'EN CASETA' : u.estatusPlaneacion}
-                          </span>
+                    {filteredUnits.length === 0 ? (
+                      <tr>
+                        <td colSpan="11" style={{ padding: '1.5rem', textAlign: 'center', color: '#94a3b8' }}>
+                          No se encontraron viajes que coincidan con &quot;{previewSearch}&quot;
                         </td>
                       </tr>
-                    ))}
+                    ) : (
+                      filteredUnits.map((u, idx) => (
+                        <tr key={u.id || idx} style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.04)' }}>
+                          <td style={{ padding: '0.45rem 0.6rem', fontFamily: 'var(--font-mono)', fontWeight: 700, color: '#38bdf8' }}>
+                            {u.noViaje || '—'}
+                          </td>
+                          <td style={{ padding: '0.45rem 0.6rem', fontWeight: 700, color: u.economico ? '#fff' : '#fbbf24' }}>
+                            {u.economico ? u.economico : (
+                              <span style={{ fontSize: '0.68rem', color: '#94a3b8', border: '1px dashed rgba(148, 163, 184, 0.4)', padding: '0.1rem 0.35rem', borderRadius: '3px' }}>
+                                POR ASIGNAR
+                              </span>
+                            )}
+                          </td>
+                          <td style={{ padding: '0.45rem 0.6rem', color: '#94a3b8', fontFamily: 'var(--font-mono)' }}>
+                            {u.bloque}
+                          </td>
+                          <td style={{ padding: '0.45rem 0.6rem', color: '#cbd5e1', fontFamily: 'var(--font-mono)' }}>
+                            {u.capUnidad}
+                          </td>
+                          <td style={{ padding: '0.45rem 0.6rem', color: '#fff', maxWidth: '160px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {u.operador || <span style={{ color: 'var(--text-muted)', fontStyle: 'italic', fontSize: '0.72rem' }}>Por Asignar</span>}
+                          </td>
+                          <td style={{ padding: '0.45rem 0.6rem', fontFamily: 'var(--font-mono)', color: '#cbd5e1' }}>
+                            {u.numCarga || '—'}
+                          </td>
+                          <td style={{ padding: '0.45rem 0.6rem', color: '#f1f5f9' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                              <span style={{ fontWeight: 600 }}>{u.destino || 'Sin Destino'}</span>
+                              {u.destinosSecundarios && u.destinosSecundarios.length > 0 && (
+                                <span style={{
+                                  background: 'rgba(56, 189, 248, 0.2)',
+                                  color: '#38bdf8',
+                                  padding: '0.1rem 0.35rem',
+                                  borderRadius: '4px',
+                                  fontSize: '0.68rem',
+                                  fontWeight: 700
+                                }}>
+                                  +{u.destinosSecundarios.length}
+                                </span>
+                              )}
+                            </div>
+                          </td>
+                          <td style={{ padding: '0.45rem 0.6rem', color: '#e2e8f0', fontFamily: 'var(--font-mono)' }}>
+                            {u.cortina || '—'}
+                          </td>
+                          <td style={{ padding: '0.45rem 0.6rem', color: '#94a3b8', fontFamily: 'var(--font-mono)' }}>
+                            {u.horaColocacion || '—'}
+                          </td>
+                          <td style={{ padding: '0.45rem 0.6rem', color: '#cbd5e1', fontFamily: 'var(--font-mono)' }}>
+                            {u.mtrs || '—'}
+                          </td>
+                          <td style={{ padding: '0.45rem 0.6rem' }}>
+                            <span style={{
+                              padding: '0.15rem 0.45rem',
+                              borderRadius: '4px',
+                              fontSize: '0.68rem',
+                              fontWeight: 700,
+                              background: u.estatusPlaneacion === 'CARGADO' ? 'rgba(234, 179, 8, 0.2)' : u.estatusPlaneacion === 'COLOCADO' ? 'rgba(6, 182, 212, 0.2)' : 'rgba(148, 163, 184, 0.2)',
+                              color: u.estatusPlaneacion === 'CARGADO' ? '#facc15' : u.estatusPlaneacion === 'COLOCADO' ? '#22d3ee' : '#cbd5e1'
+                            }}>
+                              {u.estatusPlaneacion === 'CARGADO' ? 'EN CASETA' : u.estatusPlaneacion}
+                            </span>
+                          </td>
+                        </tr>
+                      ))
+                    )}
                   </tbody>
                 </table>
               </div>
