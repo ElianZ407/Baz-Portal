@@ -31,6 +31,7 @@ export const ImportarPlaneacionModal = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [parsedData, setParsedData] = useState(null);
+  const [currentFile, setCurrentFile] = useState(null);
   const [importMode, setImportMode] = useState('replace'); // 'replace' | 'merge'
   const [previewSearch, setPreviewSearch] = useState('');
   const fileInputRef = useRef(null);
@@ -39,13 +40,14 @@ export const ImportarPlaneacionModal = () => {
 
   const handleClose = () => {
     setParsedData(null);
+    setCurrentFile(null);
     setErrorMessage('');
     setPreviewSearch('');
     setIsProcessing(false);
     setIsImportModalOpen(false);
   };
 
-  const handleFileProcess = async (file) => {
+  const handleFileProcess = async (file, preferredSheet = null) => {
     if (!file) return;
 
     const validExtensions = ['.xlsx', '.xls', '.csv'];
@@ -60,7 +62,9 @@ export const ImportarPlaneacionModal = () => {
     try {
       setIsProcessing(true);
       setErrorMessage('');
-      const result = await parsePlanningFile(file, catalogoFlota, catalogoSucursales);
+      setCurrentFile(file);
+      // Por defecto lee la hoja 26 o la hoja especificada por el usuario
+      const result = await parsePlanningFile(file, catalogoFlota, catalogoSucursales, preferredSheet);
       setParsedData({
         ...result,
         fileInfo: {
@@ -74,6 +78,11 @@ export const ImportarPlaneacionModal = () => {
     } finally {
       setIsProcessing(false);
     }
+  };
+
+  const handleSwitchSheet = async (newSheetIndex) => {
+    if (!currentFile) return;
+    await handleFileProcess(currentFile, newSheetIndex);
   };
 
   const handleDrag = (e) => {
@@ -435,6 +444,85 @@ export const ImportarPlaneacionModal = () => {
                   </div>
                 </div>
               </div>
+
+              {/* Selector de Hoja / Día del Mes (para libros multi-hoja con 26 días) */}
+              {parsedData.hojasDisponibles && parsedData.hojasDisponibles.length > 1 && (
+                <div style={{
+                  background: 'linear-gradient(135deg, rgba(6, 182, 212, 0.12), rgba(16, 185, 129, 0.08))',
+                  border: '1px solid rgba(6, 182, 212, 0.4)',
+                  borderRadius: '10px',
+                  padding: '0.85rem 1.25rem',
+                  marginBottom: '1.25rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  flexWrap: 'wrap',
+                  gap: '0.85rem'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                    <div style={{
+                      width: '36px',
+                      height: '36px',
+                      borderRadius: '8px',
+                      background: 'rgba(6, 182, 212, 0.2)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: '#22d3ee'
+                    }}>
+                      <Layers size={18} />
+                    </div>
+                    <div>
+                      <div style={{ fontWeight: 800, color: '#fff', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+                        <span>Hoja Activa: <strong>{parsedData.nombreHoja}</strong> (Hoja {parsedData.indiceHoja})</span>
+                        {(parsedData.indiceHoja === 26 || parsedData.nombreHoja.includes('26')) && (
+                          <span style={{
+                            background: '#10b981',
+                            color: '#fff',
+                            fontSize: '0.68rem',
+                            fontWeight: 800,
+                            padding: '0.1rem 0.45rem',
+                            borderRadius: '4px'
+                          }}>
+                            DÍA 26 (SELECCIONADA)
+                          </span>
+                        )}
+                      </div>
+                      <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>
+                        El libro contiene {parsedData.hojasDisponibles.length} hojas diarias. Puedes alternar de día aquí:
+                      </div>
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <label style={{ fontSize: '0.78rem', color: '#94a3b8', fontWeight: 700 }}>
+                      Cambiar de Hoja / Día:
+                    </label>
+                    <select
+                      value={parsedData.indiceHoja}
+                      onChange={(e) => handleSwitchSheet(Number(e.target.value))}
+                      disabled={isProcessing}
+                      style={{
+                        background: '#070c17',
+                        border: '1px solid #06b6d4',
+                        color: '#fff',
+                        padding: '0.45rem 0.85rem',
+                        borderRadius: '6px',
+                        fontWeight: 700,
+                        fontSize: '0.82rem',
+                        cursor: 'pointer',
+                        outline: 'none'
+                      }}
+                    >
+                      {parsedData.hojasDisponibles.map(sh => (
+                        <option key={sh.index} value={sh.index}>
+                          Hoja {sh.index}: {sh.name} {sh.index === 26 || sh.name.includes('26') ? '★ (Día 26 - Recomendada)' : ''}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              )}
 
               {/* Selector de Modo de Importación */}
               <div style={{

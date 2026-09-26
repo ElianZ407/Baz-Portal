@@ -347,17 +347,25 @@ export const parseEstatusBaz = (rawEstatus) => {
 /**
  * Lee un archivo Excel (.xlsx / .xls) o CSV y extrae TODOS los viajes y entregas
  */
-export const parsePlanningFile = async (file, catalogoFlota = [], catalogoSucursales = []) => {
+export const parsePlanningFile = async (
+  file, 
+  catalogoFlota = [], 
+  catalogoSucursales = [], 
+  preferredSheet = null
+) => {
   const fileName = file.name.toLowerCase();
   const isCsv = fileName.endsWith('.csv');
 
   let rows = [];
   let sheetName = 'Hoja 1';
+  let targetWorksheetIndex = 1;
+  let allSheets = [];
 
   if (isCsv) {
     const text = await file.text();
     rows = parseCsvToRows(text);
     sheetName = 'Archivo CSV';
+    allSheets = [{ index: 1, name: 'Archivo CSV', rowCount: rows.length }];
   } else {
     // Excel con ExcelJS
     const ExcelJSModule = await import('exceljs/dist/exceljs.min.js');
@@ -370,40 +378,71 @@ export const parsePlanningFile = async (file, catalogoFlota = [], catalogoSucurs
       throw new Error('El archivo Excel no contiene hojas de cálculo legibles.');
     }
 
-    // 1. Buscar la mejor hoja que contenga encabezados de planeación
-    let targetWorksheet = workbook.worksheets[0];
-    let maxSheetMatches = 0;
+    // Listar todas las hojas disponibles en el libro
+    allSheets = workbook.worksheets.map((ws, idx) => ({
+      index: idx + 1,
+      id: ws.id,
+      name: ws.name || `Hoja ${idx + 1}`,
+      rowCount: ws.rowCount
+    }));
 
-    for (const ws of workbook.worksheets) {
-      let sheetMatches = 0;
-      const testRowCount = Math.min(ws.rowCount, 15);
+    // Selección de la Hoja Objetivo (Prioridad Día 26 / Hoja 26 solicitada por el usuario)
+    let targetWorksheet = null;
 
-      for (let r = 1; r <= testRowCount; r++) {
-        const row = ws.getRow(r);
-        const colCount = Math.max(ws.columnCount || 0, 30);
-        let rowMatches = 0;
-
-        for (let c = 1; c <= colCount; c++) {
-          const cell = row.getCell(c);
-          const val = extractExcelCellValue(cell);
-          if (val && matchColumnKey(val)) {
-            rowMatches++;
-          }
+    // 1. Si el usuario seleccionó una hoja específica desde la interfaz
+    if (preferredSheet !== null && preferredSheet !== undefined) {
+      const preferredNum = Number(preferredSheet);
+      if (!isNaN(preferredNum) && preferredNum >= 1 && preferredNum <= workbook.worksheets.length) {
+        targetWorksheet = workbook.worksheets[preferredNum - 1];
+        targetWorksheetIndex = preferredNum;
+      } else if (typeof preferredSheet === 'string') {
+        const foundIdx = workbook.worksheets.findIndex(ws => 
+          ws.name.toLowerCase().trim() === preferredSheet.toLowerCase().trim()
+        );
+        if (foundIdx !== -1) {
+          targetWorksheet = workbook.worksheets[foundIdx];
+          targetWorksheetIndex = foundIdx + 1;
         }
-        if (rowMatches > sheetMatches) {
-          sheetMatches = rowMatches;
-        }
-      }
-
-      if (sheetMatches > maxSheetMatches) {
-        maxSheetMatches = sheetMatches;
-        targetWorksheet = ws;
       }
     }
 
-    sheetName = targetWorksheet.name || 'EMBARQUES';
+    // 2. Si no se especificó hoja, buscar prioritariamente la HOJA 26
+    if (!targetWorksheet) {
+      // A. Buscar hoja que se llame "26" o contenga "26"
+      const idx26ByName = workbook.worksheets.findIndex(ws => {
+        const n = ws.name.trim().toLowerCase();
+        return n === '26' || n === 'hoja 26' || n === 'dia 26' || n === 'día 26' || n.includes('26');
+      });
 
-    // 2. Extraer TODAS las filas de la hoja seleccionada con acceso absoluto por coordenadas
+      if (idx26ByName !== -1) {
+        targetWorksheet = workbook.worksheets[idx26ByName];
+        targetWorksheetIndex = idx26ByName + 1;
+      } else if (workbook.worksheets.length >= 26) {
+        // B. Si hay 26 o más hojas, seleccionar directamente la hoja 26 (posición 26)
+        targetWorksheet = workbook.worksheets[25];
+        targetWorksheetIndex = 26;
+      } else {
+        // C. Buscar hoja correspondiente al día actual del mes
+        const currentDayOfMonth = new Date().getDate();
+        const idxToday = workbook.worksheets.findIndex(ws => {
+          const n = ws.name.trim().toLowerCase();
+          return n === String(currentDayOfMonth) || n.includes(String(currentDayOfMonth));
+        });
+
+        if (idxToday !== -1) {
+          targetWorksheet = workbook.worksheets[idxToday];
+          targetWorksheetIndex = idxToday + 1;
+        } else {
+          // D. Seleccionar la última hoja del libro
+          targetWorksheet = workbook.worksheets[workbook.worksheets.length - 1];
+          targetWorksheetIndex = workbook.worksheets.length;
+        }
+      }
+    }
+
+    sheetName = targetWorksheet.name || `Hoja ${targetWorksheetIndex}`;
+
+    // 3. Extraer TODAS las filas de la hoja seleccionada con coordenadas absolutas
     const totalRowsInSheet = targetWorksheet.rowCount;
     const totalColsInSheet = Math.max(targetWorksheet.columnCount || 0, 35);
 
@@ -639,6 +678,8 @@ export const parsePlanningFile = async (file, catalogoFlota = [], catalogoSucurs
     totalViajes: parsedUnits.length,
     fechaDetectada: defaultDate,
     nombreHoja: sheetName,
+    indiceHoja: targetWorksheetIndex,
+    hojasDisponibles: allSheets,
     columnasDetectadas: Object.values(columnMap)
   };
 };
