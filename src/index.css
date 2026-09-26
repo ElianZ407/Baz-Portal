@@ -2280,3 +2280,176 @@ body {
   padding-bottom: 0.4rem !important;
 }
 
+/* ==========================================================================
+   Fondo Animado: Malla Satelital & Radar Sutil (Centro de Control BAZ)
+   ========================================================================== */
+.satellite-bg-wrapper {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  pointer-events: none;
+  z-index: 0;
+  overflow: hidden;
+  background-color: #060a14;
+}
+
+/* 1. Malla Geométrica Satelital */
+.satellite-grid {
+  position: absolute;
+  inset: -80px;
+  background-image: 
+    linear-gradient(to right, rgba(6, 182, 212, 0.035) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(6, 182, 212, 0.035) 1px, transparent 1px);
+  background-size: 54px 54px;
+  transform: perspective(1000px) rotateX(10deg) scale(1.05);
+  transform-origin: center top;
+  opacity: 0.85;
+}
+
+/* Puntos tenues de coordenadas en intersecciones cada 3 cuadros */
+.satellite-grid::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(circle at 1px 1px, rgba(34, 211, 238, 0.12) 1.5px, transparent 0);
+  background-size: 162px 162px;
+}
+
+/* 2. Barrido de Radar / Scanline Satelital Lento y Tranquilo (22s de ciclo) */
+.satellite-scan-beam {
+  position: absolute;
+  top: -20%;
+  left: 0;
+  width: 100%;
+  height: 260px;
+  background: linear-gradient(
+    180deg,
+    transparent 0%,
+    rgba(6, 182, 212, 0.012) 35%,
+    rgba(6, 182, 212, 0.04) 75%,
+    rgba(34, 211, 238, 0.08) 98%,
+    rgba(56, 189, 248, 0.15) 100%
+  );
+  box-shadow: 0 4px 18px rgba(6, 182, 212, 0.06);
+  animation: satelliteScanMove 22s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  will-change: transform;
+}
+
+@keyframes satelliteScanMove {
+  0% {
+    transform: translateY(-100%);
+    opacity: 0;
+  }
+  12% {
+    opacity: 1;
+  }
+  88% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(120vh);
+    opacity: 0;
+  }
+}
+
+/* 3. Pulso de Radar Circular / Beacon del Hub (CD Villahermosa) */
+.satellite-radar-pulse {
+  position: absolute;
+  top: 18%;
+  right: 15%;
+  width: 650px;
+  height: 650px;
+  border-radius: 50%;
+  border: 1px solid rgba(6, 182, 212, 0.08);
+  transform: translate(50%, -50%) scale(0.2);
+  opacity: 0;
+  animation: satelliteRadarPing 16s ease-out infinite;
+  pointer-events: none;
+}
+
+.satellite-radar-pulse::after {
+  content: '';
+  position: absolute;
+  inset: -100px;
+  border-radius: 50%;
+  border: 1px dashed rgba(16, 185, 129, 0.05);
+  animation: satelliteRadarPing 16s ease-out infinite 4s;
+}
+
+@keyframes satelliteRadarPing {
+  0% {
+    transform: translate(50%, -50%) scale(0.1);
+    opacity: 0;
+  }
+  20% {
+    opacity: 0.65;
+  }
+  70% {
+    opacity: 0.15;
+  }
+  100% {
+    transform: translate(50%, -50%) scale(1.6);
+    opacity: 0;
+  }
+}
+
+/* 4. Resplandor Ambiental Tranquilo (Ambient Glow respiratorio - 18s) */
+.satellite-ambient-glow {
+  position: absolute;
+  top: -10%;
+  left: 25%;
+  width: 700px;
+  height: 480px;
+  background: radial-gradient(ellipse at center, rgba(6, 182, 212, 0.065) 0%, rgba(16, 185, 129, 0.025) 45%, transparent 70%);
+  filter: blur(80px);
+  animation: satelliteGlowBreathe 18s ease-in-out infinite alternate;
+  will-change: transform, opacity;
+}
+
+@keyframes satelliteGlowBreathe {
+  0% {
+    transform: scale(0.9) translate(0, 0);
+    opacity: 0.45;
+  }
+  50% {
+    transform: scale(1.15) translate(25px, 15px);
+    opacity: 0.75;
+  }
+  100% {
+    transform: scale(1) translate(-20px, 10px);
+    opacity: 0.5;
+  }
+}
+
+/* 5. Viñeta radial oscura para máxima legibilidad de tablas y tarjetas */
+.satellite-vignette {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 50% 35%, transparent 35%, rgba(7, 12, 24, 0.65) 75%, #070c18 95%);
+}
+
+/* Capas y contenidos por encima del fondo animado */
+.app-container {
+  position: relative;
+}
+
+.main-content,
+.app-header,
+.app-container > footer,
+.historical-banner-bar {
+  position: relative;
+  z-index: 1;
+}
+
+/* Accesibilidad: Respeta modo de movimiento reducido */
+@media (prefers-reduced-motion: reduce) {
+  .satellite-scan-beam,
+  .satellite-radar-pulse,
+  .satellite-ambient-glow {
+    animation: none !important;
+  }
+}
+
+
