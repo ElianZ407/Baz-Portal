@@ -12,14 +12,14 @@ import { SavePlanModal } from './components/SavePlanModal';
 import { PlanHistoryModal } from './components/PlanHistoryModal';
 import { HistoricalBanner } from './components/HistoricalBanner';
 import { ImportarPlaneacionModal } from './components/ImportarPlaneacionModal';
-import { SatelliteBackground } from './components/SatelliteBackground';
+import { RoutesBackground } from './components/RoutesBackground';
 
 const AppContent = () => {
   const { activeArea } = useFleet();
 
   return (
     <div className={`app-container ${activeArea === 'tv' ? 'tv-mode' : ''}`}>
-      <SatelliteBackground />
+      <RoutesBackground />
       <Header />
       <HistoricalBanner />
       
