@@ -473,50 +473,51 @@ export const ImportarPlaneacionModal = () => {
                       <Layers size={18} />
                     </div>
                     <div>
-                      <div style={{ fontWeight: 800, color: '#fff', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
-                        <span>Hoja Activa: <strong>{parsedData.nombreHoja}</strong> (Hoja {parsedData.indiceHoja})</span>
-                        {(parsedData.indiceHoja === 26 || parsedData.nombreHoja.includes('26')) && (
+                      <div style={{ fontWeight: 800, color: '#fff', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '0.45rem', flexWrap: 'wrap' }}>
+                        <span>Pestaña Activa: <strong style={{ color: '#22d3ee' }}>Pestaña {parsedData.nombreHoja} ({parsedData.nombreHoja === '26' ? 'Día 26' : `Día ${parsedData.nombreHoja}`})</strong></span>
+                        {(parsedData.nombreHoja === '26' || parseInt(parsedData.nombreHoja, 10) === 26) && (
                           <span style={{
                             background: '#10b981',
                             color: '#fff',
-                            fontSize: '0.68rem',
+                            fontSize: '0.7rem',
                             fontWeight: 800,
-                            padding: '0.1rem 0.45rem',
+                            padding: '0.15rem 0.5rem',
                             borderRadius: '4px'
                           }}>
-                            DÍA 26 (SELECCIONADA)
+                            ✓ DÍA 26 (SELECCIONADA)
                           </span>
                         )}
                       </div>
                       <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>
-                        El libro contiene {parsedData.hojasDisponibles.length} hojas diarias. Puedes alternar de día aquí:
+                        El libro contiene {parsedData.hojasDisponibles.length} pestañas diarias ({parsedData.hojasDisponibles.map(h => h.name).join(', ')}). Puedes cambiar de día aquí:
                       </div>
                     </div>
                   </div>
 
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                     <label style={{ fontSize: '0.78rem', color: '#94a3b8', fontWeight: 700 }}>
-                      Cambiar de Hoja / Día:
+                      Cambiar Día / Pestaña:
                     </label>
                     <select
-                      value={parsedData.indiceHoja}
-                      onChange={(e) => handleSwitchSheet(Number(e.target.value))}
+                      value={parsedData.nombreHoja}
+                      onChange={(e) => handleSwitchSheet(e.target.value)}
                       disabled={isProcessing}
                       style={{
                         background: '#070c17',
-                        border: '1px solid #06b6d4',
+                        border: '1.5px solid #06b6d4',
                         color: '#fff',
                         padding: '0.45rem 0.85rem',
                         borderRadius: '6px',
                         fontWeight: 700,
-                        fontSize: '0.82rem',
+                        fontSize: '0.84rem',
                         cursor: 'pointer',
-                        outline: 'none'
+                        outline: 'none',
+                        boxShadow: '0 0 10px rgba(6, 182, 212, 0.25)'
                       }}
                     >
                       {parsedData.hojasDisponibles.map(sh => (
-                        <option key={sh.index} value={sh.index}>
-                          Hoja {sh.index}: {sh.name} {sh.index === 26 || sh.name.includes('26') ? '★ (Día 26 - Recomendada)' : ''}
+                        <option key={sh.id || sh.name} value={sh.name}>
+                          Pestaña {sh.name} ({sh.displayName}) {sh.isToday ? '★ [DÍA 26 - ACTIVA]' : ''}
                         </option>
                       ))}
                     </select>

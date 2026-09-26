@@ -378,90 +378,146 @@ export const parsePlanningFile = async (
       throw new Error('El archivo Excel no contiene hojas de cálculo legibles.');
     }
 
-    // Listar todas las hojas disponibles en el libro
-    allSheets = workbook.worksheets.map((ws, idx) => ({
-      index: idx + 1,
-      id: ws.id,
-      name: ws.name || `Hoja ${idx + 1}`,
-      rowCount: ws.rowCount
-    }));
+    // Listar todas las hojas disponibles en el libro identificadas por su NOMBRE de pestaña (ej: '26', '25', '08')
+    allSheets = workbook.worksheets.map((ws, idx) => {
+      const tabName = String(ws.name || '').trim();
+      const numVal = parseInt(tabName, 10);
+      const isDayTab = !isNaN(numVal) && numVal >= 1 && numVal <= 31;
+      const isToday = tabName === '26' || numVal === 26;
 
-    // Selección de la Hoja Objetivo (Prioridad Día 26 / Hoja 26 solicitada por el usuario)
+      return {
+        index: idx + 1,
+        id: String(ws.id || idx + 1),
+        name: tabName || `Hoja ${idx + 1}`,
+        displayName: isDayTab ? `Día ${tabName}` : (tabName || `Hoja ${idx + 1}`),
+        dayNumber: isDayTab ? numVal : null,
+        isToday: isToday,
+        rowCount: ws.rowCount || 0
+      };
+    });
+
+    // Selección de la Hoja Objetivo (Prioridad Día 26 / Pestaña 26)
     let targetWorksheet = null;
+    let targetWorksheetIndex = 1;
 
-    // 1. Si el usuario seleccionó una hoja específica desde la interfaz
-    if (preferredSheet !== null && preferredSheet !== undefined) {
-      const preferredNum = Number(preferredSheet);
-      if (!isNaN(preferredNum) && preferredNum >= 1 && preferredNum <= workbook.worksheets.length) {
-        targetWorksheet = workbook.worksheets[preferredNum - 1];
-        targetWorksheetIndex = preferredNum;
-      } else if (typeof preferredSheet === 'string') {
-        const foundIdx = workbook.worksheets.findIndex(ws => 
-          ws.name.toLowerCase().trim() === preferredSheet.toLowerCase().trim()
-        );
-        if (foundIdx !== -1) {
-          targetWorksheet = workbook.worksheets[foundIdx];
-          targetWorksheetIndex = foundIdx + 1;
-        }
-      }
-    }
+    // 1. Si el usuario seleccionó una hoja específica desde la interfaz (por nombre de pestaña)
+    if (preferredSheet !== null && preferredSheet !== undefined && String(preferredSheet).trim() !== '') {
+      const prefStr = String(preferredSheet).trim();
+      const prefLower = prefStr.toLowerCase();
+      const prefNum = parseInt(prefStr, 10);
 
-    // 2. Si no se especificó hoja, buscar prioritariamente la HOJA 26
-    if (!targetWorksheet) {
-      // A. Buscar hoja que se llame "26" o contenga "26"
-      const idx26ByName = workbook.worksheets.findIndex(ws => {
-        const n = ws.name.trim().toLowerCase();
-        return n === '26' || n === 'hoja 26' || n === 'dia 26' || n === 'día 26' || n.includes('26');
+      // Prioridad 1.1: Buscar por coincidencia exacta de nombre de pestaña (ej: "26", "08", "25")
+      let foundIdx = workbook.worksheets.findIndex(ws => {
+        const n = String(ws.name || '').trim();
+        return n.toLowerCase() === prefLower;
       });
 
-      if (idx26ByName !== -1) {
-        targetWorksheet = workbook.worksheets[idx26ByName];
-        targetWorksheetIndex = idx26ByName + 1;
-      } else if (workbook.worksheets.length >= 26) {
-        // B. Si hay 26 o más hojas, seleccionar directamente la hoja 26 (posición 26)
-        targetWorksheet = workbook.worksheets[25];
-        targetWorksheetIndex = 26;
-      } else {
-        // C. Buscar hoja correspondiente al día actual del mes
-        const currentDayOfMonth = new Date().getDate();
-        const idxToday = workbook.worksheets.findIndex(ws => {
-          const n = ws.name.trim().toLowerCase();
-          return n === String(currentDayOfMonth) || n.includes(String(currentDayOfMonth));
+      // Prioridad 1.2: Coincidencia numérica con el número del día (ej: "26" vs "26", o "8" vs "08")
+      if (foundIdx === -1 && !isNaN(prefNum)) {
+        foundIdx = workbook.worksheets.findIndex(ws => {
+          const n = String(ws.name || '').trim();
+          const nNum = parseInt(n, 10);
+          return !isNaN(nNum) && nNum === prefNum;
         });
+      }
 
-        if (idxToday !== -1) {
-          targetWorksheet = workbook.worksheets[idxToday];
-          targetWorksheetIndex = idxToday + 1;
-        } else {
-          // D. Seleccionar la última hoja del libro
-          targetWorksheet = workbook.worksheets[workbook.worksheets.length - 1];
-          targetWorksheetIndex = workbook.worksheets.length;
-        }
+      // Prioridad 1.3: Nombre que contenga el texto buscado
+      if (foundIdx === -1) {
+        foundIdx = workbook.worksheets.findIndex(ws => {
+          const n = String(ws.name || '').trim().toLowerCase();
+          return n.includes(prefLower);
+        });
+      }
+
+      if (foundIdx !== -1 && workbook.worksheets[foundIdx]) {
+        targetWorksheet = workbook.worksheets[foundIdx];
+        targetWorksheetIndex = foundIdx + 1;
       }
     }
 
-    sheetName = targetWorksheet.name || `Hoja ${targetWorksheetIndex}`;
+    // 2. Si no se especificó hoja, BUSCAR PRIORITARIAMENTE LA PESTAÑA "26"
+    if (!targetWorksheet) {
+      // Prioridad A: Pestaña cuyo nombre sea exactamente "26" o valor numérico 26
+      const idx26 = workbook.worksheets.findIndex(ws => {
+        const n = String(ws.name || '').trim().toLowerCase();
+        return n === '26' || parseInt(n, 10) === 26 || n.includes('26');
+      });
+
+      if (idx26 !== -1) {
+        targetWorksheet = workbook.worksheets[idx26];
+        targetWorksheetIndex = idx26 + 1;
+      }
+    }
+
+    // Prioridad B: Pestaña activa / seleccionada en el archivo Excel (en la imagen el usuario tiene seleccionada la 26)
+    if (!targetWorksheet && workbook.views && workbook.views.length > 0 && workbook.views[0]?.activeTab !== undefined) {
+      const activeIdx = workbook.views[0].activeTab;
+      if (workbook.worksheets[activeIdx]) {
+        targetWorksheet = workbook.worksheets[activeIdx];
+        targetWorksheetIndex = activeIdx + 1;
+      }
+    }
+
+    // Prioridad C: Pestaña correspondiente al día actual del mes
+    if (!targetWorksheet) {
+      const currentDay = new Date().getDate(); // 26
+      const idxCurrentDay = workbook.worksheets.findIndex(ws => {
+        const n = String(ws.name || '').trim();
+        return parseInt(n, 10) === currentDay;
+      });
+
+      if (idxCurrentDay !== -1) {
+        targetWorksheet = workbook.worksheets[idxCurrentDay];
+        targetWorksheetIndex = idxCurrentDay + 1;
+      }
+    }
+
+    // Prioridad D: La última pestaña del libro
+    if (!targetWorksheet) {
+      targetWorksheet = workbook.worksheets[workbook.worksheets.length - 1];
+      targetWorksheetIndex = workbook.worksheets.length;
+    }
+
+    sheetName = String(targetWorksheet.name || `Hoja ${targetWorksheetIndex}`).trim();
 
     // 3. Extraer TODAS las filas de la hoja seleccionada con coordenadas absolutas
-    const totalRowsInSheet = targetWorksheet.rowCount;
-    const totalColsInSheet = Math.max(targetWorksheet.columnCount || 0, 35);
+    const maxRow = Math.max(targetWorksheet.rowCount || 0, targetWorksheet.actualRowCount || 0);
+    const totalColsInSheet = Math.max(targetWorksheet.columnCount || 0, targetWorksheet.actualColumnCount || 0, 35);
 
-    for (let r = 1; r <= totalRowsInSheet; r++) {
-      const row = targetWorksheet.getRow(r);
-      const rowValues = [];
-      let hasAnyValueInRow = false;
+    if (maxRow > 0) {
+      for (let r = 1; r <= maxRow; r++) {
+        const row = targetWorksheet.getRow(r);
+        const rowValues = [];
+        let hasAnyValueInRow = false;
 
-      for (let c = 1; c <= totalColsInSheet; c++) {
-        const cell = row.getCell(c);
-        const cellVal = extractExcelCellValue(cell);
-        rowValues[c - 1] = cellVal;
-        if (cellVal !== '' && cellVal !== null && cellVal !== undefined) {
-          hasAnyValueInRow = true;
+        for (let c = 1; c <= totalColsInSheet; c++) {
+          const cell = row.getCell(c);
+          const cellVal = extractExcelCellValue(cell);
+          rowValues[c - 1] = cellVal;
+          if (cellVal !== '' && cellVal !== null && cellVal !== undefined) {
+            hasAnyValueInRow = true;
+          }
         }
-      }
 
-      // Mantener la fila para respetar los índices exactos de fila
-      rows.push(hasAnyValueInRow ? rowValues : []);
+        // Mantener la fila para respetar los índices exactos de fila
+        rows.push(hasAnyValueInRow ? rowValues : []);
+      }
+    } else {
+      // Fallback con eachRow si rowCount reportó 0
+      targetWorksheet.eachRow({ includeEmpty: true }, (row, rowNumber) => {
+        const rowValues = [];
+        let hasAnyValueInRow = false;
+        const cellLimit = Math.max(row.cellCount || 0, 35);
+        for (let c = 1; c <= cellLimit; c++) {
+          const cell = row.getCell(c);
+          const cellVal = extractExcelCellValue(cell);
+          rowValues[c - 1] = cellVal;
+          if (cellVal !== '' && cellVal !== null && cellVal !== undefined) {
+            hasAnyValueInRow = true;
+          }
+        }
+        rows[rowNumber - 1] = hasAnyValueInRow ? rowValues : [];
+      });
     }
   }
 
@@ -469,13 +525,13 @@ export const parsePlanningFile = async (
     throw new Error('El archivo seleccionado está vacío.');
   }
 
-  // 3. Detectar Fila de Encabezados (Buscar en las primeras 25 filas)
+  // 3. Detectar Fila de Encabezados (Buscar en las primeras 50 filas)
   let headerRowIndex = -1;
   let columnMap = {}; // { colIndex: 'canonicalKey' }
   let maxMatches = 0;
   let fileHeaderDate = '';
 
-  for (let r = 0; r < Math.min(rows.length, 25); r++) {
+  for (let r = 0; r < Math.min(rows.length, 50); r++) {
     const candidateRow = rows[r];
     if (!Array.isArray(candidateRow) || candidateRow.length === 0) continue;
 
