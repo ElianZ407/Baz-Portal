@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { useFleet } from '../context/FleetContext';
 import { KpiBar } from './KpiBar';
+import { evaluarDisponibilidadManana } from '../utils/fleetUtils';
 
 export const TvDashboardView = () => {
   const { 
@@ -13,7 +14,8 @@ export const TvDashboardView = () => {
     filterStatus, 
     setFilterStatus, 
     searchQuery, 
-    setSearchQuery
+    setSearchQuery,
+    catalogoFlota
   } = useFleet();
 
   const [filterFL, setFilterFL] = useState('ALL'); // 'ALL' | 'LOCAL' | 'FORANEO'
@@ -53,6 +55,7 @@ export const TvDashboardView = () => {
       return false;
     }
 
+    // Filtros de estado por KPI
     if (filterStatus === 'EN_TRANSITO') {
       return unit.estatusSupervisor === 'En Ruta';
     }
@@ -61,6 +64,15 @@ export const TvDashboardView = () => {
     }
     if (filterStatus === 'RETRASADAS') {
       return unit.estatusSupervisor === 'Retrasado';
+    }
+    if (filterStatus === 'EN_TALLER') {
+      return unit.estatusPatio === 'Taller' || unit.estatus === 'TALLER';
+    }
+    if (filterStatus === 'DISPONIBLE_PATIO' || filterStatus === 'DISPONIBLES') {
+      return unit.estatusPatio === 'Disponible';
+    }
+    if (filterStatus === 'DISP_MANANA') {
+      return evaluarDisponibilidadManana(unit, catalogoFlota).disponible;
     }
 
     return true;
@@ -140,6 +152,46 @@ export const TvDashboardView = () => {
 
       {/* 4 KPIs Superiores de Telemetría */}
       <KpiBar />
+
+      {/* Banner explicativo cuando el filtro de Disponibles Mañana está activo */}
+      {filterStatus === 'DISP_MANANA' && (
+        <div style={{
+          background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.15), rgba(6, 182, 212, 0.08))',
+          border: '1px solid rgba(16, 185, 129, 0.35)',
+          borderRadius: '10px',
+          padding: '0.85rem 1.25rem',
+          marginBottom: '1rem',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          flexWrap: 'wrap',
+          gap: '0.75rem'
+        }}>
+          <div>
+            <div style={{ color: '#34d399', fontWeight: 800, fontSize: '0.92rem', display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+              <span>🌅 Filtro Activo: Unidades Estimadas Disponibles para Mañana ({filteredUnits.length} unidades)</span>
+            </div>
+            <div style={{ fontSize: '0.76rem', color: '#cbd5e1', marginTop: '0.2rem', lineHeight: '1.4' }}>
+              <strong>¿En qué se basa esta estimación?</strong>
+              <br />
+              • <strong>En Patio:</strong> Unidades actualmente libres en el CEDIS listas para asignar.
+              <br />
+              • <strong>Rutas Locales:</strong> Todo viaje local (Tabasco) tiene retorno el mismo día al CEDIS Villahermosa.
+              <br />
+              • <strong>Foráneos Tempranos:</strong> Unidades con salida antes de las 10:00 AM y retorno estimado antes de las 22:00 hrs.
+              <br />
+              • <strong>Exclusiones:</strong> Unidades en taller mecánico y viajes foráneos que pernoctan fuera del CD.
+            </div>
+          </div>
+          <button 
+            className="pill-btn"
+            style={{ background: 'rgba(255,255,255,0.1)', color: '#fff', fontSize: '0.76rem', fontWeight: 700 }}
+            onClick={() => setFilterStatus('ALL')}
+          >
+            Quitar Filtro (Ver Todas)
+          </button>
+        </div>
+      )}
 
       {/* Tabla Pizarra para TV Panorámica */}
       <div className="table-card">
@@ -362,10 +414,27 @@ export const TvDashboardView = () => {
                       <td style={{ textAlign: 'center' }}>
                         {(() => {
                           const opStatus = getUnitOperationalStatus(unit);
+                          const mananaStatus = evaluarDisponibilidadManana(unit, catalogoFlota);
                           return (
-                            <span className={`status-badge ${opStatus.badgeClass}`}>
-                              {opStatus.text}
-                            </span>
+                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.25rem' }}>
+                              <span className={`status-badge ${opStatus.badgeClass}`}>
+                                {opStatus.text}
+                              </span>
+                              {filterStatus === 'DISP_MANANA' && (
+                                <span style={{
+                                  fontSize: '0.7rem',
+                                  color: '#34d399',
+                                  background: 'rgba(16, 185, 129, 0.15)',
+                                  border: '1px solid rgba(16, 185, 129, 0.3)',
+                                  padding: '0.15rem 0.4rem',
+                                  borderRadius: '4px',
+                                  fontWeight: 700,
+                                  whiteSpace: 'nowrap'
+                                }} title={mananaStatus.detalle}>
+                                  🌅 {mananaStatus.motivo}
+                                </span>
+                              )}
+                            </div>
                           );
                         })()}
                       </td>

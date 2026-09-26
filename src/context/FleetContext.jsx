@@ -16,7 +16,7 @@ import {
   clearViajesDb
 } from '../lib/supabaseClient';
 import { FLOTA_TOTAL, SUCURSALES_MAESTRAS } from '../constants/fleetConstants';
-import { buscarIdOperadorPorNombre, buscarOperadorPorEco, checkTieneViajeYOperador } from '../utils/fleetUtils';
+import { buscarIdOperadorPorNombre, buscarOperadorPorEco, checkTieneViajeYOperador, evaluarDisponibilidadManana } from '../utils/fleetUtils';
 
 const FleetContext = createContext(null);
 
@@ -443,67 +443,35 @@ export const FleetProvider = ({ children }) => {
     // ==========================================
     // DISPONIBLES PARA MAÑANA (Estimación Inteligente)
     // ==========================================
-    // Reglas:
-    // 1. Unidades actualmente Disponibles en Patio => disponibles mañana (excepto taller)
-    // 2. Unidades LOCAL en ruta/sucursal => regresan hoy, disponibles mañana
-    // 3. Unidades FORÁNEO:
-    //    - Si hora salida <= 10:00 => regresan hoy (ida y vuelta ~8-10 hrs)
-    //    - Si hora salida > 10:00 => probablemente NO regresan hoy
-    //    - Si están en Retorno => ya vienen de regreso, disponibles mañana
-    //    - Si están Completado => ya en patio, disponibles mañana
-    // 4. Unidades en Taller => NO disponibles mañana (salvo que sean liberadas)
-
-    const tallerEcos = new Set();
-    (catalogoFlota || []).forEach(f => {
-      if (f.estatus === 'TALLER' || (f.estatus || '').toLowerCase().includes('taller')) {
-        tallerEcos.add(String(f.eco));
-      }
-    });
-    displayedUnits.forEach(u => {
-      if (u.economico && (u.estatusPatio === 'Taller' || u.estatus === 'TALLER')) {
-        tallerEcos.add(String(u.economico));
-      }
-    });
-
-    // Contar unidades que NO estarán disponibles mañana
-    const noDisponiblesMananaSet = new Set([...tallerEcos]);
+    // 1. Unidades en pantalla evaluadas según:
+    //    - Taller mecánico => NO disponible
+    //    - En patio sin viaje => DISPONIBLE
+    //    - Rutas locales => DISPONIBLE (regresan hoy)
+    //    - Retorno / Completado => DISPONIBLE
+    //    - Foráneos con salida temprana (<= 10:00) y retorno antes de 22:00 => DISPONIBLE
+    //    - Foráneos con salida tarde o viaje largo => NO DISPONIBLE
+    // 2. Unidades de la flota que no salieron a ruta y no están en taller => DISPONIBLES en patio
+    const activeEcos = new Set();
+    let disponiblesMananaActivas = 0;
 
     displayedUnits.forEach(u => {
-      if (!u.economico) return;
-      const eco = String(u.economico);
-      if (tallerEcos.has(eco)) return; // Ya contada como taller
-
-      const isForaneo = (u.fl || 'LOCAL').toUpperCase() === 'FORANEO';
-      const supervisor = u.estatusSupervisor || '';
-      const isEnRuta = supervisor === 'En Ruta';
-      const isEnSucursal = ['Espera Descarga', 'Descargando'].includes(supervisor);
-      const isRetorno = supervisor === 'Retorno' || u.estatusPlaneacion === 'RETORNO';
-      const isCompletado = supervisor === 'Completado' || u.estatusPlaneacion === 'COMPLETADO';
-
-      if (isCompletado || isRetorno) {
-        // Ya viene de regreso o ya llegó => disponible mañana
-        return;
+      if (u.economico) {
+        activeEcos.add(String(u.economico));
       }
-
-      if (isForaneo && (isEnRuta || isEnSucursal)) {
-        // Foráneo en ruta o en sucursal: evaluar hora de salida
-        const horaSalida = u.horaSalida || '';
-        let horaNum = 6; // default temprano
-        if (horaSalida) {
-          const parts = horaSalida.split(':');
-          horaNum = parseInt(parts[0], 10) || 6;
-        }
-        const tiempoViaje = Number(u.tiempoEstimadoHrs) || 0;
-        // Si salió tarde y el viaje es largo, no regresa hoy
-        if (horaNum >= 10 || (horaNum + tiempoViaje * 2) >= 22) {
-          noDisponiblesMananaSet.add(eco);
-        }
-        // Si salió temprano y viaje < 5hrs ida, regresa hoy => disponible mañana
+      const evalResult = evaluarDisponibilidadManana(u, catalogoFlota);
+      if (evalResult.disponible) {
+        disponiblesMananaActivas++;
       }
-      // LOCAL en ruta/sucursal => siempre regresan hoy
     });
 
-    const disponiblesManana = Math.max(0, totalFlotaCount - noDisponiblesMananaSet.size);
+    // Unidades de flota libres en patio (no programadas hoy ni en taller)
+    const flotaLibreEnPatio = (catalogoFlota || []).filter(f => {
+      const eco = String(f.eco);
+      const isTaller = f.estatus === 'TALLER' || (f.estatus || '').toLowerCase().includes('taller');
+      return !isTaller && !activeEcos.has(eco);
+    }).length;
+
+    const disponiblesManana = disponiblesMananaActivas + flotaLibreEnPatio;
 
     return {
       total,
@@ -1033,7 +1001,9 @@ export const FleetProvider = ({ children }) => {
       // Importación Masiva de Planeación
       isImportModalOpen,
       setIsImportModalOpen,
-      importViajesPlaneacion
+      importViajesPlaneacion,
+      // Utilidades operativas
+      evaluarDisponibilidadManana
     }}>
       {children}
     </FleetContext.Provider>

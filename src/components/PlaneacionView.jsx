@@ -16,11 +16,12 @@ import {
   ArrowDownCircle, 
   RotateCcw, 
   Package,
-  UploadCloud 
+  UploadCloud,
+  Sunrise
 } from 'lucide-react';
 import { useFleet } from '../context/FleetContext';
 import { BLOQUES } from '../constants/fleetConstants';
-import { validarRestriccionesViaje, checkTieneViajeYOperador } from '../utils/fleetUtils';
+import { validarRestriccionesViaje, checkTieneViajeYOperador, evaluarDisponibilidadManana } from '../utils/fleetUtils';
 import { exportOfficialExcel } from '../utils/exportOfficialExcel';
 
 // Configuración de colores e iconos para los estados de Supervisor reflejados en Planeación
@@ -92,6 +93,7 @@ export const PlaneacionView = () => {
     showConfirm,
     showAlert,
     catalogoSucursales,
+    catalogoFlota,
     searchQuery, 
     setSearchQuery,
     setIsImportModalOpen 
@@ -99,7 +101,7 @@ export const PlaneacionView = () => {
 
   const [filterBloque, setFilterBloque] = useState('ALL');
   const [filterFL, setFilterFL] = useState('ALL'); // 'ALL' | 'LOCAL' | 'FORANEO'
-  const [filterEstatus, setFilterEstatus] = useState('ALL'); // 'ALL' | 'PENDIENTE' | 'COLOCADO' | 'CARGADO' | 'TALLER'
+  const [filterEstatus, setFilterEstatus] = useState('ALL'); // 'ALL' | 'PENDIENTE' | 'COLOCADO' | 'CARGADO' | 'TALLER' | 'DISP_MANANA'
 
   // Filtrado de unidades en planeación:
   // En Planeación aparecen TODOS los viajes y unidades del plan del día (pendientes, colocados, cargados, en ruta, en sucursal, etc.)
@@ -126,6 +128,8 @@ export const PlaneacionView = () => {
     let matchesEstatus = true;
     if (filterEstatus === 'ALL') {
       matchesEstatus = true;
+    } else if (filterEstatus === 'DISP_MANANA') {
+      matchesEstatus = evaluarDisponibilidadManana(u, catalogoFlota).disponible;
     } else if (filterEstatus === 'TALLER') {
       matchesEstatus = isTaller;
     } else if (filterEstatus === 'CARGADO') {
@@ -146,6 +150,7 @@ export const PlaneacionView = () => {
   const pendienteCount = planeacionBaseUnits.filter(u => u.estatusPatio !== 'Taller' && (u.estatusPlaneacion || 'PENDIENTE') === 'PENDIENTE' && !SUPERVISOR_ACTIVE_STATUSES.includes(u.estatusSupervisor)).length;
   const tallerCount = planeacionBaseUnits.filter(u => u.estatusPatio === 'Taller' || u.estatus === 'TALLER').length;
   const disponiblesPatioCount = kpis?.disponiblesPatio ?? planeacionBaseUnits.filter(u => u.estatusPatio === 'Disponible').length;
+  const dispMananaCount = planeacionBaseUnits.filter(u => evaluarDisponibilidadManana(u, catalogoFlota).disponible).length;
 
   const handleEdit = (unit) => {
     setSelectedUnit(unit);
@@ -241,6 +246,26 @@ export const PlaneacionView = () => {
               {disponiblesPatioCount}
             </div>
           </div>
+          <div 
+            style={{ 
+              background: filterEstatus === 'DISP_MANANA' ? 'rgba(16, 185, 129, 0.25)' : '#101b30', 
+              padding: '0.45rem 0.85rem', 
+              borderRadius: 'var(--radius-md)', 
+              border: filterEstatus === 'DISP_MANANA' ? '1.5px solid #10b981' : '1px solid rgba(16, 185, 129, 0.4)', 
+              textAlign: 'center',
+              cursor: 'pointer',
+              transition: 'all 0.15s ease'
+            }}
+            onClick={() => setFilterEstatus(filterEstatus === 'DISP_MANANA' ? 'ALL' : 'DISP_MANANA')}
+            title="Clic para filtrar las unidades que estarán disponibles para mañana"
+          >
+            <span style={{ fontSize: '0.68rem', color: '#34d399', textTransform: 'uppercase', fontWeight: 700 }}>
+              DISPONIBLES MAÑANA
+            </span>
+            <div style={{ fontFamily: 'var(--font-mono)', fontSize: '1.25rem', fontWeight: 800, color: '#34d399' }}>
+              {dispMananaCount}
+            </div>
+          </div>
           <div style={{ background: '#101b30', padding: '0.45rem 0.85rem', borderRadius: 'var(--radius-md)', border: '1px solid rgba(6, 182, 212, 0.3)', textAlign: 'center' }}>
             <span style={{ fontSize: '0.68rem', color: '#22d3ee', textTransform: 'uppercase', fontWeight: 700 }}>COLOCADO</span>
             <div style={{ fontFamily: 'var(--font-mono)', fontSize: '1.25rem', fontWeight: 800, color: '#22d3ee' }}>
@@ -325,6 +350,14 @@ export const PlaneacionView = () => {
               onClick={() => setFilterEstatus('ALL')}
             >
               Todos ({planeacionBaseUnits.length})
+            </button>
+            <button 
+              className={`pill-btn ${filterEstatus === 'DISP_MANANA' ? 'active' : ''}`}
+              onClick={() => setFilterEstatus(filterEstatus === 'DISP_MANANA' ? 'ALL' : 'DISP_MANANA')}
+              style={filterEstatus === 'DISP_MANANA' ? { background: 'rgba(16, 185, 129, 0.25)', borderColor: '#10b981', color: '#34d399', fontWeight: 800 } : {}}
+              title="Filtrar unidades estimadas como Disponibles para Mañana"
+            >
+              🌅 DISP. MAÑANA ({dispMananaCount})
             </button>
             <button 
               className={`pill-btn ${filterEstatus === 'CARGADO' ? 'active' : ''}`}
@@ -433,6 +466,47 @@ export const PlaneacionView = () => {
             Estatus Oficial: COLOCADO, CARGADO, PENDIENTE (Sincronizado en tiempo real)
           </span>
         </div>
+
+        {/* Banner explicativo cuando el filtro de Disponibles Mañana está activo */}
+        {filterEstatus === 'DISP_MANANA' && (
+          <div style={{
+            background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.15), rgba(6, 182, 212, 0.08))',
+            border: '1px solid rgba(16, 185, 129, 0.35)',
+            borderRadius: '8px',
+            padding: '0.85rem 1.25rem',
+            margin: '0.75rem 1.25rem 0.5rem 1.25rem',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: '0.75rem'
+          }}>
+            <div>
+              <div style={{ color: '#34d399', fontWeight: 800, fontSize: '0.92rem', display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+                <Sunrise size={18} />
+                <span>Filtro Activo: Unidades Estimadas Disponibles para Mañana ({planeacionUnits.length} registros)</span>
+              </div>
+              <div style={{ fontSize: '0.76rem', color: '#cbd5e1', marginTop: '0.2rem', lineHeight: '1.4' }}>
+                <strong>¿En qué se basa esta estimación?</strong>
+                <br />
+                • <strong>En Patio:</strong> Unidades actualmente libres en el CEDIS listas para operar.
+                <br />
+                • <strong>Rutas Locales:</strong> Todo viaje local (Tabasco) tiene retorno garantizado hoy mismo al CEDIS.
+                <br />
+                • <strong>Foráneos Tempranos:</strong> Unidades foráneas con salida ≤ 10:00 AM y retorno estimado antes de las 22:00 hrs.
+                <br />
+                • <strong>Exclusiones:</strong> Unidades en taller mecánico y viajes foráneos que pernoctan fuera del CD.
+              </div>
+            </div>
+            <button 
+              className="pill-btn"
+              style={{ background: 'rgba(255,255,255,0.1)', color: '#fff', fontSize: '0.76rem', fontWeight: 700 }}
+              onClick={() => setFilterEstatus('ALL')}
+            >
+              Ver Todos los Registros
+            </button>
+          </div>
+        )}
 
         <div className="table-wrapper">
           <table className="data-table" style={{ fontSize: '0.83rem' }}>
@@ -687,6 +761,23 @@ export const PlaneacionView = () => {
                           }`}>
                             {estatusPlan}
                           </span>
+                        )}
+
+                        {/* Diagnóstico si el filtro de Disponibles Mañana está activo */}
+                        {filterEstatus === 'DISP_MANANA' && (
+                          <div style={{
+                            marginTop: '0.3rem',
+                            fontSize: '0.68rem',
+                            color: '#34d399',
+                            background: 'rgba(16, 185, 129, 0.15)',
+                            border: '1px solid rgba(16, 185, 129, 0.35)',
+                            padding: '0.12rem 0.4rem',
+                            borderRadius: '4px',
+                            fontWeight: 700,
+                            whiteSpace: 'nowrap'
+                          }} title={evaluarDisponibilidadManana(unit, catalogoFlota).detalle}>
+                            🌅 {evaluarDisponibilidadManana(unit, catalogoFlota).motivo}
+                          </div>
                         )}
                       </td>
 
