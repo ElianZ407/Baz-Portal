@@ -425,6 +425,7 @@ export const FleetProvider = ({ children }) => {
           u.estatusPatio === 'Taller' || 
           u.estatus === 'TALLER' ||
           u.estatusSupervisor === 'En Ruta' || 
+          u.estatusPlaneacion === 'PENDIENTE' ||
           u.estatusPatio === 'Colocado p/ Carga' || 
           u.estatusPatio === 'Cargado' || 
           u.estatusPatio === 'En Sucursal' || 
