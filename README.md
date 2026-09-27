@@ -34,7 +34,7 @@ Plataforma web integral para la coordinación, asignación y seguimiento en tiem
 - **Frontend:** React 19 + Vite
 - **Estilos:** Vanilla CSS moderno (*Glassmorphism, Dark Theme*)
 - **Iconografía:** Lucide React
-- **Persistencia:** Almacenamiento local persistente con preparación para sincronización con base de datos en tiempo real (Supabase / PostgreSQL).
+- **Persistencia:** Respaldo local y sincronización multi-dispositivo en tiempo real con Supabase / PostgreSQL.
 
 ---
 
