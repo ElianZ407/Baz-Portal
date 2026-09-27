@@ -1,11 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 
-// Credenciales oficiales de Supabase para BAZ Entregas CD Villahermosa
-// Clave anon pública con Row-Level Security activado para acceso seguro cliente
-const OFFICIAL_BAZ_SUPABASE_URL = 'https://gwqtxcceyzgkndyxpjdp.supabase.co';
-const OFFICIAL_BAZ_SUPABASE_ANON_KEY = 'sb_publishable_YJEgIM_tqk6pQXdpfGGBWQ_IuourZfR';
-
-// Obtener credenciales desde localStorage (personalizadas), variables de entorno (.env/Vercel) o valores oficiales por defecto
+// Obtener credenciales desde localStorage (personalizadas) o variables de entorno (.env/Vercel)
 export const getSupabaseCredentials = () => {
   try {
     const localUrl = localStorage.getItem('baz_supabase_url');
@@ -39,11 +34,10 @@ export const getSupabaseCredentials = () => {
     };
   }
 
-  // Fallback garantizado: permite que cualquier computadora conecte inmediatamente a la nube
   return {
-    url: OFFICIAL_BAZ_SUPABASE_URL,
-    key: OFFICIAL_BAZ_SUPABASE_ANON_KEY,
-    source: 'official'
+    url: '',
+    key: '',
+    source: 'missing'
   };
 };
 

@@ -931,6 +931,20 @@ const UnitModalForm = () => {
                   />
                 </div>
 
+                <div className="form-group">
+                  <label>Tiempo estimado de ida (hrs)</label>
+                  <input
+                    type="number"
+                    name="tiempoEstimadoHrs"
+                    className="form-control"
+                    min="0"
+                    step="0.5"
+                    placeholder="Ej. 2.5"
+                    value={formData.tiempoEstimadoHrs || ''}
+                    onChange={handleChange}
+                  />
+                </div>
+
                 {/* ETA */}
                 <div className="form-group">
                   <label>Llegada Estimada (ETA)</label>

@@ -61,6 +61,10 @@ export const COLUMN_DEFINITIONS = {
   fecha: [
     'fecha', 'dia', 'date', 'fecha viaje', 'fecha embarque'
   ],
+  tiempoEstimadoHrs: [
+    'horas de ida', 'tiempo estimado ida hrs', 'tiempo estimado de ida hrs',
+    'duracion de ida hrs', 'horas de manejo ida'
+  ],
   // 9. # Carga (Debe ser específico para no colisionar con fin de carga)
   numCarga: [
     'carga', 'num carga', 'no carga', 'numero carga', 'cve carga', 'embarque', 'id carga'
@@ -727,7 +731,7 @@ export const parsePlanningFile = async (
       capMax: finalCapMax,
       fecha: unitDate,
       horaSalida: parseTimeValue(rowData.horaCaseta) || '',
-      tiempoEstimadoHrs: 0,
+      tiempoEstimadoHrs: Number(rowData.tiempoEstimadoHrs) || 0,
       eta: '',
       horaColocacion: horaColocacion || '06:00',
       horaColocacionReal: parseTimeValue(rowData.horaColocacionReal) || '',

@@ -442,28 +442,26 @@ export const FleetProvider = ({ children }) => {
     const cargadasPatio = displayedUnits.filter(u => u.estatusPatio === 'Cargado').length;
 
     // ==========================================
-    // DISPONIBLES PARA MAÑANA (Estimación Inteligente)
-    // ==========================================
-    // 1. Unidades en pantalla evaluadas según:
-    //    - Taller mecánico => NO disponible
-    //    - En patio sin viaje => DISPONIBLE
-    //    - Rutas locales => DISPONIBLE (regresan hoy)
-    //    - Retorno / Completado => DISPONIBLE
-    //    - Foráneos con salida temprana (<= 10:00) y retorno antes de 22:00 => DISPONIBLE
-    //    - Foráneos con salida tarde o viaje largo => NO DISPONIBLE
-    // 2. Unidades de la flota que no salieron a ruta y no están en taller => DISPONIBLES en patio
+    // Pronóstico para mañana: contar económicos únicos y separar los que faltan confirmar.
     const activeEcos = new Set();
-    let disponiblesMananaActivas = 0;
+    const disponiblesMananaActivas = new Set();
+    const porConfirmarManana = new Set();
 
     displayedUnits.forEach(u => {
       if (u.economico) {
         activeEcos.add(String(u.economico));
       }
       const evalResult = evaluarDisponibilidadManana(u, catalogoFlota);
+      const unitKey = u.economico ? `eco-${u.economico}` : `id-${u.id}`;
       if (evalResult.disponible) {
-        disponiblesMananaActivas++;
+        disponiblesMananaActivas.add(unitKey);
+      } else if (evalResult.badge === 'POR CONFIRMAR') {
+        porConfirmarManana.add(unitKey);
       }
     });
+
+    // Una unidad con más de un viaje pendiente no se considera disponible todavía.
+    porConfirmarManana.forEach(key => disponiblesMananaActivas.delete(key));
 
     // Unidades de flota libres en patio (no programadas hoy ni en taller)
     const flotaLibreEnPatio = (catalogoFlota || []).filter(f => {
@@ -472,7 +470,7 @@ export const FleetProvider = ({ children }) => {
       return !isTaller && !activeEcos.has(eco);
     }).length;
 
-    const disponiblesManana = disponiblesMananaActivas + flotaLibreEnPatio;
+    const disponiblesManana = disponiblesMananaActivas.size + flotaLibreEnPatio;
 
     return {
       total,
@@ -482,7 +480,8 @@ export const FleetProvider = ({ children }) => {
       enTaller,
       disponiblesPatio,
       cargadasPatio,
-      disponiblesManana
+      disponiblesManana,
+      porConfirmarManana: porConfirmarManana.size
     };
   }, [displayedUnits, catalogoFlota]);
 

@@ -137,6 +137,8 @@ export const PlaneacionView = () => {
       matchesEstatus = true;
     } else if (filterEstatus === 'DISP_MANANA') {
       matchesEstatus = evaluarDisponibilidadManana(u, catalogoFlota).disponible;
+    } else if (filterEstatus === 'POR_CONFIRMAR') {
+      matchesEstatus = evaluarDisponibilidadManana(u, catalogoFlota).badge === 'POR CONFIRMAR';
     } else if (filterEstatus === 'TALLER') {
       matchesEstatus = isTaller;
     } else if (filterEstatus === 'CARGADO') {
@@ -157,7 +159,12 @@ export const PlaneacionView = () => {
   const pendienteCount = planeacionBaseUnits.filter(u => u.estatusPatio !== 'Taller' && (u.estatusPlaneacion || 'PENDIENTE') === 'PENDIENTE' && !SUPERVISOR_ACTIVE_STATUSES.includes(u.estatusSupervisor)).length;
   const tallerCount = planeacionBaseUnits.filter(u => u.estatusPatio === 'Taller' || u.estatus === 'TALLER').length;
   const disponiblesPatioCount = kpis?.disponiblesPatio ?? planeacionBaseUnits.filter(u => u.estatusPatio === 'Disponible').length;
-  const dispMananaCount = planeacionBaseUnits.filter(u => evaluarDisponibilidadManana(u, catalogoFlota).disponible).length;
+  const dispMananaCount = new Set(planeacionBaseUnits
+    .filter(u => evaluarDisponibilidadManana(u, catalogoFlota).disponible)
+    .map(u => u.economico || u.id)).size;
+  const porConfirmarMananaCount = new Set(planeacionBaseUnits
+    .filter(u => evaluarDisponibilidadManana(u, catalogoFlota).badge === 'POR CONFIRMAR')
+    .map(u => u.economico || u.id)).size;
 
   const handleEdit = (unit) => {
     setSelectedUnit(unit);
@@ -365,6 +372,14 @@ export const PlaneacionView = () => {
               title="Filtrar unidades estimadas como Disponibles para Mañana"
             >
               🌅 DISP. MAÑANA ({dispMananaCount})
+            </button>
+            <button
+              className={`pill-btn ${filterEstatus === 'POR_CONFIRMAR' ? 'active' : ''}`}
+              onClick={() => setFilterEstatus(filterEstatus === 'POR_CONFIRMAR' ? 'ALL' : 'POR_CONFIRMAR')}
+              style={filterEstatus === 'POR_CONFIRMAR' ? { background: 'rgba(245, 158, 11, 0.2)', borderColor: '#f59e0b', color: '#fbbf24', fontWeight: 800 } : {}}
+              title="Filtrar unidades a las que les falta hora de salida o duración estimada"
+            >
+              POR CONFIRMAR ({porConfirmarMananaCount})
             </button>
             <button 
               className={`pill-btn ${filterEstatus === 'CARGADO' ? 'active' : ''}`}

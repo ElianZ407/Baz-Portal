@@ -44,9 +44,13 @@ Plataforma web integral para la coordinación, asignación y seguimiento en tiem
 # Instalar dependencias
 npm install
 
+# Configurar Supabase (copiar .env.example a .env y completar las credenciales)
+
 # Iniciar servidor local
 npm run dev
 
 # Generar versión de producción
 npm run build
 ```
+
+Para producción en Vercel, configura `VITE_SUPABASE_URL` y `VITE_SUPABASE_ANON_KEY` en las variables de entorno del proyecto.

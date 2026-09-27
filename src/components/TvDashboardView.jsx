@@ -74,6 +74,9 @@ export const TvDashboardView = () => {
     if (filterStatus === 'DISP_MANANA') {
       return evaluarDisponibilidadManana(unit, catalogoFlota).disponible;
     }
+    if (filterStatus === 'POR_CONFIRMAR') {
+      return evaluarDisponibilidadManana(unit, catalogoFlota).badge === 'POR CONFIRMAR';
+    }
 
     return true;
   });
@@ -382,12 +385,12 @@ export const TvDashboardView = () => {
                               <span className={`status-badge ${opStatus.badgeClass}`}>
                                 {opStatus.text}
                               </span>
-                              {filterStatus === 'DISP_MANANA' && (
+                              {(filterStatus === 'DISP_MANANA' || filterStatus === 'POR_CONFIRMAR') && (
                                 <span style={{
                                   fontSize: '0.7rem',
-                                  color: '#34d399',
-                                  background: 'rgba(16, 185, 129, 0.15)',
-                                  border: '1px solid rgba(16, 185, 129, 0.3)',
+                                  color: mananaStatus.badge === 'POR CONFIRMAR' ? '#fbbf24' : '#34d399',
+                                  background: mananaStatus.badge === 'POR CONFIRMAR' ? 'rgba(245, 158, 11, 0.15)' : 'rgba(16, 185, 129, 0.15)',
+                                  border: mananaStatus.badge === 'POR CONFIRMAR' ? '1px solid rgba(245, 158, 11, 0.3)' : '1px solid rgba(16, 185, 129, 0.3)',
                                   padding: '0.15rem 0.4rem',
                                   borderRadius: '4px',
                                   fontWeight: 700,

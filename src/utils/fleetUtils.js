@@ -119,15 +119,8 @@ export const checkTieneViajeYOperador = (unit) => {
 };
 
 /**
- * Evalúa si una unidad estará disponible para operar mañana
- * Criterios Oficiales BAZ Entregas:
- * 1. TALLER: Si está en taller mecánico => NO DISPONIBLE
- * 2. PATIO DISPONIBLE: Si no tiene viaje activo o está libre en patio => DISPONIBLE
- * 3. LOCAL: Viajes locales (Villahermosa, Cárdenas, Comalcalco, Paraíso, etc.) retornan hoy => DISPONIBLE
- * 4. RETORNO / COMPLETADO: Ya en regreso o completadas en CEDIS => DISPONIBLE
- * 5. FORÁNEO:
- *    - Si salió temprano (<= 10:00 AM) y el tiempo total ida+vuelta le permite volver hoy antes de 22:00 => DISPONIBLE
- *    - Si salió tarde (> 10:00 AM), o es viaje largo (> 5 hrs ida), o no ha salido aún a esta hora => NO DISPONIBLE
+ * Estima disponibilidad para el día siguiente usando la hora de regreso al CEDIS.
+ * tiempoEstimadoHrs representa horas de manejo de ida; el regreso usa la misma duración.
  */
 export const evaluarDisponibilidadManana = (unit, catalogoFlota = []) => {
   if (!unit) return { disponible: false, motivo: 'Sin datos', badge: 'DESCONOCIDO', color: '#94a3b8' };
@@ -161,60 +154,71 @@ export const evaluarDisponibilidadManana = (unit, catalogoFlota = []) => {
     };
   }
 
-  // 3. Estatus de retorno o completado
+  // 3. Un viaje completado ya liberó la unidad en el CEDIS
   const estatusSup = unit.estatusSupervisor || '';
-  if (estatusSup === 'Retorno' || unit.estatusPlaneacion === 'RETORNO' || estatusSup === 'Completado' || unit.estatusPlaneacion === 'COMPLETADO') {
+  if (estatusSup === 'Completado' || unit.estatusPlaneacion === 'COMPLETADO') {
     return {
       disponible: true,
       badge: 'DISPONIBLE',
-      motivo: 'En Retorno / Concluido',
-      detalle: 'Ya en retorno al CEDIS o viaje concluido',
+      motivo: 'Viaje completado',
+      detalle: 'La unidad ya fue liberada en el CEDIS',
       color: '#10b981'
     };
   }
 
-  // 4. Tipo de viaje: LOCAL vs FORÁNEO
-  const isForaneo = (unit.fl || 'LOCAL').toUpperCase() === 'FORANEO';
-
-  if (!isForaneo) {
-    // Viaje Local: regresa hoy mismo
-    return {
-      disponible: true,
-      badge: 'DISPONIBLE',
-      motivo: 'Ruta Local (Regresa hoy)',
-      detalle: `${unit.destino || 'Destino local'} • Retorno garantizado hoy`,
-      color: '#10b981'
-    };
-  }
-
-  // 5. Viaje Foráneo: evaluar hora de salida y tiempo de viaje
+  // Sin hora de salida o duración de ruta no se debe inventar una disponibilidad.
   const horaSalida = unit.horaSalida || unit.horaCaseta || '';
-  let horaSalidaNum = 6;
-  if (horaSalida && horaSalida.includes(':')) {
-    horaSalidaNum = parseInt(horaSalida.split(':')[0], 10) || 6;
-  }
+  const tiempoEstimadoHrs = Number(unit.tiempoEstimadoHrs);
+  const departureMatch = String(horaSalida).trim().match(/^(\d{1,2}):(\d{2})(?:\s*(AM|PM))?$/i);
+  const departureHour = departureMatch ? Number(departureMatch[1]) : NaN;
+  const departureMinute = departureMatch ? Number(departureMatch[2]) : NaN;
+  const meridiem = departureMatch?.[3]?.toUpperCase();
+  const normalizedHour = meridiem === 'PM' && departureHour < 12
+    ? departureHour + 12
+    : meridiem === 'AM' && departureHour === 12
+      ? 0
+      : departureHour;
 
-  const tiempoEstimadoHrs = Number(unit.tiempoEstimadoHrs) || 4; // default 4 hrs ida
-  const horaRetornoEstimada = horaSalidaNum + (tiempoEstimadoHrs * 2);
-
-  // Si salió temprano (<= 10:00) y el tiempo total le permite volver antes de las 22:00
-  if (horaSalidaNum <= 10 && horaRetornoEstimada <= 22) {
+  if (
+    !departureMatch ||
+    !Number.isFinite(tiempoEstimadoHrs) ||
+    tiempoEstimadoHrs <= 0 ||
+    normalizedHour > 23 ||
+    departureMinute > 59
+  ) {
     return {
-      disponible: true,
-      badge: 'DISPONIBLE',
-      motivo: 'Foráneo temprano (Retorna hoy)',
-      detalle: `Salida ${horaSalida || '06:00'} • Retorno estimado ${Math.min(23, Math.floor(horaRetornoEstimada))}:00 hrs`,
-      color: '#10b981'
+      disponible: false,
+      badge: 'POR CONFIRMAR',
+      motivo: 'Por confirmar',
+      detalle: 'Captura la hora de salida y las horas estimadas de manejo de ida para calcular si regresa antes de las 06:00',
+      color: '#f59e0b'
     };
   }
 
-  // Foráneo tarde o viaje muy largo: no regresa hoy
+  const today = new Date();
+  const dateMatch = String(unit.fecha || '').match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  const departureDate = dateMatch
+    ? new Date(Number(dateMatch[1]), Number(dateMatch[2]) - 1, Number(dateMatch[3]))
+    : new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  departureDate.setHours(normalizedHour, departureMinute, 0, 0);
+
+  const returnAt = new Date(departureDate.getTime() + tiempoEstimadoHrs * 2 * 60 * 60 * 1000);
+  const cutoff = new Date(departureDate.getFullYear(), departureDate.getMonth(), departureDate.getDate() + 1, 6, 0, 0, 0);
+  const available = returnAt < cutoff;
+  const returnLabel = returnAt.toLocaleString('es-MX', {
+    day: '2-digit',
+    month: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false
+  });
+
   return {
-    disponible: false,
-    badge: 'NO DISPONIBLE',
-    motivo: 'Foráneo no retorna hoy',
-    detalle: `Salida ${horaSalida || 'tarde'} a ${unit.destino || 'Foráneo'} • Pernocta fuera de CD`,
-    color: '#f59e0b'
+    disponible: available,
+    badge: available ? 'DISPONIBLE' : 'NO DISPONIBLE',
+    motivo: available ? 'Regresa antes de las 06:00' : 'Regreso posterior a las 06:00',
+    detalle: `Regreso estimado al CEDIS: ${returnLabel} • ${unit.destino || 'Ruta'} (ida y vuelta)`,
+    color: available ? '#10b981' : '#f59e0b'
   };
 };
 

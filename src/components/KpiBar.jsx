@@ -55,7 +55,7 @@ export const KpiBar = () => {
         </div>
       </div>
 
-      {/* 4. Disponibles para Mañana (Criterio BAZ: Salida, destino local/foráneo y retorno) */}
+      {/* 4. Disponibilidad estimada para mañana */}
       <div 
         className={`kpi-card manana ${filterStatus === 'DISP_MANANA' ? 'active-filter' : ''}`}
         onClick={() => setFilterStatus(filterStatus === 'DISP_MANANA' ? 'ALL' : 'DISP_MANANA')}
@@ -69,6 +69,26 @@ export const KpiBar = () => {
         <div className="kpi-info">
           <h3>Disponibles Mañana</h3>
           <div className="kpi-value" style={{ color: '#34d399' }}>{kpis.disponiblesManana}</div>
+          <button
+            type="button"
+            onClick={event => {
+              event.stopPropagation();
+              setFilterStatus(filterStatus === 'POR_CONFIRMAR' ? 'ALL' : 'POR_CONFIRMAR');
+            }}
+            style={{
+              marginTop: '0.2rem',
+              padding: 0,
+              border: 0,
+              background: 'transparent',
+              color: '#fbbf24',
+              font: 'inherit',
+              fontSize: '0.72rem',
+              cursor: 'pointer'
+            }}
+            title="Ver unidades que necesitan confirmar hora de salida o duración"
+          >
+            {kpis.porConfirmarManana} por confirmar
+          </button>
         </div>
         <div className="kpi-icon-wrapper" style={{ color: '#34d399' }}>
           <Sunrise size={28} />
