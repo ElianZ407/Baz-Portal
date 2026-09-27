@@ -673,9 +673,35 @@ export const parsePlanningFile = async (
     const finalDestino = sucursal || (sucInfo ? sucInfo.nombre : '');
     const finalNumSuc = numSucursal || (sucInfo ? String(sucInfo.id) : '');
     const finalCloster = sucInfo ? (sucInfo.closter || '') : 'HUB-VHSA';
-    const finalFL = sucInfo ? (sucInfo.fl || 'LOCAL') : 'LOCAL';
     const finalCapMax = sucInfo ? (sucInfo.capMax || '') : '';
 
+    // Inferir F/L: primero del catálogo de sucursales, luego por keywords del destino
+    const inferirFL = (destName = '', numSuc = '', sucInfoData = null) => {
+      // Si el catálogo tiene el dato, usarlo directamente
+      if (sucInfoData?.fl && sucInfoData.fl !== 'LOCAL') return sucInfoData.fl;
+      if (sucInfoData?.fl === 'LOCAL') return 'LOCAL';
+      // Inferir por nombre del destino o número de sucursal
+      const d = (destName || '').toLowerCase();
+      const KEYWORDS_FORANEO = [
+        'chiapas', 'tuxtla', 'san cristobal', 'tapachula', 'comitan', 'ocosingo', 'palenque',
+        'villaflores', 'arriaga', 'tonala', 'cintalapa', 'jiquipilas', 'pichucalco',
+        'veracruz', 'coatzacoalcos', 'minatitlan', 'acayucan', 'san andres', 'texistepec', 'oluta',
+        'oaxaca', 'tabasco' // Nota: tabasco sin ciudad específica puede ser foráneo
+      ];
+      const KEYWORDS_LOCAL = [
+        'villahermosa', 'cunduacan', 'cárdenas', 'cardenas', 'comalcalco', 
+        'paraiso', 'paraíso', 'macuspana', 'balancán', 'balancan', 'tenosique',
+        'huimanguillo', 'jalpa', 'jonuta', 'nacajuca', 'centla', 'tab', 'vhsa'
+      ];
+      for (const kw of KEYWORDS_LOCAL) {
+        if (d.includes(kw)) return 'LOCAL';
+      }
+      for (const kw of KEYWORDS_FORANEO) {
+        if (d.includes(kw)) return 'FORANEO';
+      }
+      return 'LOCAL'; // default
+    };
+    const finalFL = inferirFL(finalDestino, finalNumSuc, sucInfo);
     const newUnit = {
       id: (typeof crypto !== 'undefined' && crypto.randomUUID) 
         ? crypto.randomUUID() 

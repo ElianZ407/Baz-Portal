@@ -16,8 +16,7 @@ import {
   ArrowDownCircle, 
   RotateCcw, 
   Package,
-  UploadCloud,
-  Sunrise
+  UploadCloud
 } from 'lucide-react';
 import { useFleet } from '../context/FleetContext';
 import { BLOQUES } from '../constants/fleetConstants';
@@ -102,12 +101,18 @@ export const PlaneacionView = () => {
   const [filterBloque, setFilterBloque] = useState('ALL');
   const [filterFL, setFilterFL] = useState('ALL'); // 'ALL' | 'LOCAL' | 'FORANEO'
   const [filterEstatus, setFilterEstatus] = useState('ALL'); // 'ALL' | 'PENDIENTE' | 'COLOCADO' | 'CARGADO' | 'TALLER' | 'DISP_MANANA'
+  const [filterCapUnidad, setFilterCapUnidad] = useState('ALL'); // 'ALL' | '18' | '40' | '50' | '90' | '110'
 
   // Filtrado de unidades en planeación:
   // En Planeación aparecen TODOS los viajes y unidades del plan del día (pendientes, colocados, cargados, en ruta, en sucursal, etc.)
   const SUPERVISOR_ACTIVE_STATUSES = ['En Ruta', 'Espera Descarga', 'Descargando', 'Retorno', 'Retrasado', 'Completado'];
 
   const planeacionBaseUnits = units;
+
+  // Capacidades únicas presentes en el plan cargado (ordenadas)
+  const capsDisponibles = [...new Set(
+    planeacionBaseUnits.map(u => u.capUnidad).filter(Boolean)
+  )].sort((a, b) => Number(a) - Number(b));
 
   const planeacionUnits = planeacionBaseUnits.filter(u => {
     const q = searchQuery.toLowerCase().trim();
@@ -118,12 +123,14 @@ export const PlaneacionView = () => {
       (u.numCarga && u.numCarga.toLowerCase().includes(q)) ||
       (u.placas && u.placas.toLowerCase().includes(q)) ||
       (u.cortina && u.cortina.toLowerCase().includes(q)) ||
-      (u.closter && u.closter.toLowerCase().includes(q));
+      (u.closter && u.closter.toLowerCase().includes(q)) ||
+      (u.capUnidad && String(u.capUnidad).includes(q));
 
     const isTaller = u.estatusPatio === 'Taller' || u.estatus === 'TALLER';
     const isSupervisorActive = SUPERVISOR_ACTIVE_STATUSES.includes(u.estatusSupervisor);
     const matchesBloque = filterBloque === 'ALL' || String(u.bloque) === filterBloque;
     const matchesFL = filterFL === 'ALL' || (u.fl || 'LOCAL') === filterFL;
+    const matchesCapUnidad = filterCapUnidad === 'ALL' || String(u.capUnidad) === filterCapUnidad;
     
     let matchesEstatus = true;
     if (filterEstatus === 'ALL') {
@@ -142,7 +149,7 @@ export const PlaneacionView = () => {
       matchesEstatus = !isTaller && (u.estatusPlaneacion || 'PENDIENTE') === filterEstatus;
     }
 
-    return matchesSearch && matchesBloque && matchesFL && matchesEstatus;
+    return matchesSearch && matchesBloque && matchesFL && matchesCapUnidad && matchesEstatus;
   });
 
   const cargadoCount = planeacionBaseUnits.filter(u => u.estatusPatio !== 'Taller' && ((u.estatusPlaneacion || 'PENDIENTE') === 'CARGADO' || SUPERVISOR_ACTIVE_STATUSES.includes(u.estatusSupervisor))).length;
@@ -394,7 +401,7 @@ export const PlaneacionView = () => {
           {/* Filtro F/L */}
           <div style={{ display: 'flex', gap: '0.35rem', alignItems: 'center' }}>
             <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginRight: '0.2rem' }}>
-              F/L:
+              Tipo viaje:
             </span>
             <button 
               className={`pill-btn ${filterFL === 'ALL' ? 'active' : ''}`}
@@ -405,18 +412,49 @@ export const PlaneacionView = () => {
             <button 
               className={`pill-btn ${filterFL === 'LOCAL' ? 'active' : ''}`}
               onClick={() => setFilterFL('LOCAL')}
-              style={filterFL === 'LOCAL' ? { background: 'rgba(16, 185, 129, 0.25)', borderColor: '#10b981', color: '#34d399' } : {}}
+              style={filterFL === 'LOCAL' ? { background: 'rgba(16, 185, 129, 0.25)', borderColor: '#10b981', color: '#34d399', fontWeight: 800 } : {}}
             >
-              Locales
+              🏙️ Local
             </button>
             <button 
               className={`pill-btn ${filterFL === 'FORANEO' ? 'active' : ''}`}
               onClick={() => setFilterFL('FORANEO')}
-              style={filterFL === 'FORANEO' ? { background: 'rgba(168, 85, 247, 0.25)', borderColor: '#a855f7', color: '#c084fc' } : {}}
+              style={filterFL === 'FORANEO' ? { background: 'rgba(168, 85, 247, 0.25)', borderColor: '#a855f7', color: '#c084fc', fontWeight: 800 } : {}}
             >
-              Foráneos
+              🚛 Foráneo
             </button>
           </div>
+
+          <div style={{ height: '20px', width: '1px', background: 'var(--border-color)' }}></div>
+
+          {/* Filtro Cap. Unidad — dinámico según el plan cargado */}
+          {capsDisponibles.length > 0 && (
+            <div style={{ display: 'flex', gap: '0.35rem', flexWrap: 'wrap', alignItems: 'center' }}>
+              <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginRight: '0.2rem' }}>
+                Cap.:
+              </span>
+              <button 
+                className={`pill-btn ${filterCapUnidad === 'ALL' ? 'active' : ''}`}
+                onClick={() => setFilterCapUnidad('ALL')}
+              >
+                Todas
+              </button>
+              {capsDisponibles.map(cap => {
+                const count = planeacionBaseUnits.filter(u => String(u.capUnidad) === String(cap)).length;
+                return (
+                  <button 
+                    key={cap}
+                    className={`pill-btn ${filterCapUnidad === String(cap) ? 'active' : ''}`}
+                    onClick={() => setFilterCapUnidad(String(cap))}
+                    style={filterCapUnidad === String(cap) ? { background: 'rgba(6, 182, 212, 0.25)', borderColor: '#06b6d4', color: '#22d3ee', fontWeight: 800 } : {}}
+                    title={`Filtrar unidades con capacidad ${cap}`}
+                  >
+                    {cap} cap. ({count})
+                  </button>
+                );
+              })}
+            </div>
+          )}
 
           <div style={{ height: '20px', width: '1px', background: 'var(--border-color)' }}></div>
 
@@ -467,46 +505,7 @@ export const PlaneacionView = () => {
           </span>
         </div>
 
-        {/* Banner explicativo cuando el filtro de Disponibles Mañana está activo */}
-        {filterEstatus === 'DISP_MANANA' && (
-          <div style={{
-            background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.15), rgba(6, 182, 212, 0.08))',
-            border: '1px solid rgba(16, 185, 129, 0.35)',
-            borderRadius: '8px',
-            padding: '0.85rem 1.25rem',
-            margin: '0.75rem 1.25rem 0.5rem 1.25rem',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            flexWrap: 'wrap',
-            gap: '0.75rem'
-          }}>
-            <div>
-              <div style={{ color: '#34d399', fontWeight: 800, fontSize: '0.92rem', display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
-                <Sunrise size={18} />
-                <span>Filtro Activo: Unidades Estimadas Disponibles para Mañana ({planeacionUnits.length} registros)</span>
-              </div>
-              <div style={{ fontSize: '0.76rem', color: '#cbd5e1', marginTop: '0.2rem', lineHeight: '1.4' }}>
-                <strong>¿En qué se basa esta estimación?</strong>
-                <br />
-                • <strong>En Patio:</strong> Unidades actualmente libres en el CEDIS listas para operar.
-                <br />
-                • <strong>Rutas Locales:</strong> Todo viaje local (Tabasco) tiene retorno garantizado hoy mismo al CEDIS.
-                <br />
-                • <strong>Foráneos Tempranos:</strong> Unidades foráneas con salida ≤ 10:00 AM y retorno estimado antes de las 22:00 hrs.
-                <br />
-                • <strong>Exclusiones:</strong> Unidades en taller mecánico y viajes foráneos que pernoctan fuera del CD.
-              </div>
-            </div>
-            <button 
-              className="pill-btn"
-              style={{ background: 'rgba(255,255,255,0.1)', color: '#fff', fontSize: '0.76rem', fontWeight: 700 }}
-              onClick={() => setFilterEstatus('ALL')}
-            >
-              Ver Todos los Registros
-            </button>
-          </div>
-        )}
+
 
         <div className="table-wrapper">
           <table className="data-table" style={{ fontSize: '0.83rem' }}>
