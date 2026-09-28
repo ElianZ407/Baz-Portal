@@ -64,7 +64,7 @@ export const KpiBar = () => {
           background: filterStatus === 'DISP_MANANA' ? 'rgba(16, 185, 129, 0.22)' : undefined,
           borderColor: filterStatus === 'DISP_MANANA' ? '#10b981' : undefined
         }}
-        title="Estimación de unidades disponibles para mañana (En patio, locales que regresan hoy y foráneos que retornan antes de 22:00 hrs) — Clic para filtrar"
+        title="Estimación de unidades disponibles mañana según la secuencia de viajes y regreso al CEDIS antes de las 06:00 — Clic para filtrar"
       >
         <div className="kpi-info">
           <h3>Disponibles Mañana</h3>
@@ -88,6 +88,26 @@ export const KpiBar = () => {
             title="Ver unidades que necesitan confirmar hora de salida o duración"
           >
             {kpis.porConfirmarManana} por confirmar
+          </button>
+          <button
+            type="button"
+            onClick={event => {
+              event.stopPropagation();
+              setFilterStatus(filterStatus === 'SIN_UNIDAD' ? 'ALL' : 'SIN_UNIDAD');
+            }}
+            style={{
+              marginTop: '0.15rem',
+              padding: 0,
+              border: 0,
+              background: 'transparent',
+              color: '#94a3b8',
+              font: 'inherit',
+              fontSize: '0.72rem',
+              cursor: 'pointer'
+            }}
+            title="Ver viajes sin económico asignado; no se cuentan como unidades"
+          >
+            {kpis.viajesSinUnidadAsignada} sin unidad asignada
           </button>
         </div>
         <div className="kpi-icon-wrapper" style={{ color: '#34d399' }}>

@@ -129,12 +129,12 @@ export const evaluarDisponibilidadManana = (unitOrTrips, catalogoFlota = []) => 
   }
 
   const eco = units[0].economico;
+  const fleetUnit = (catalogoFlota || []).find(f => String(f.eco).trim() === String(eco || '').trim());
+  const fleetStatus = String(fleetUnit?.estatus || '').trim().toUpperCase();
   const isTaller = units.some(unit =>
     unit.estatusPatio === 'Taller' ||
     unit.estatus === 'TALLER'
-  ) || (catalogoFlota || []).some(f =>
-    String(f.eco) === String(eco) && (f.estatus === 'TALLER' || (f.estatus || '').toLowerCase().includes('taller'))
-  );
+  ) || fleetStatus.includes('TALLER');
 
   if (isTaller) {
     return {
@@ -142,6 +142,16 @@ export const evaluarDisponibilidadManana = (unitOrTrips, catalogoFlota = []) => 
       badge: 'NO DISPONIBLE',
       motivo: 'En Taller mecánico',
       detalle: 'Bloqueada por mantenimiento',
+      color: '#ef4444'
+    };
+  }
+
+  if (fleetStatus && fleetStatus !== 'ACTIVO') {
+    return {
+      disponible: false,
+      badge: 'NO DISPONIBLE',
+      motivo: fleetStatus === 'BAJA' ? 'Unidad dada de baja' : 'Fuera de operación',
+      detalle: `Estatus del padrón: ${fleetUnit.estatus}`,
       color: '#ef4444'
     };
   }
@@ -269,13 +279,14 @@ export const resumirFlotaPorEstado = (units = [], catalogoFlota = []) => {
   const fleetByEco = new Map();
   (catalogoFlota || []).forEach(unit => {
     const eco = String(unit.eco || '').trim();
-    if (eco) fleetByEco.set(eco, unit);
+    const status = String(unit.estatus || '').trim().toUpperCase();
+    if (eco && status !== 'BAJA') fleetByEco.set(eco, unit);
   });
 
   const ecoRoster = fleetByEco.size > 0
     ? [...fleetByEco.keys()]
     : [...unitsByEco.keys()];
-  const counts = { total: fleetByEco.size || 55, disponibles: 0, colocadas: 0, cargadas: 0, pendientes: 0, taller: 0 };
+  const counts = { total: fleetByEco.size || 55, disponibles: 0, colocadas: 0, cargadas: 0, pendientes: 0, taller: 0, fueraOperacion: 0 };
   const activeStatuses = ['En Ruta', 'Espera Descarga', 'Descargando', 'Retorno', 'Retrasado'];
 
   ecoRoster.forEach(eco => {
@@ -293,14 +304,27 @@ export const resumirFlotaPorEstado = (units = [], catalogoFlota = []) => {
       unit.estatusPlaneacion === 'COLOCADO' || unit.estatusPatio === 'Colocado p/ Carga'
     );
     const isPendiente = records.some(unit => (unit.estatusPlaneacion || 'PENDIENTE') === 'PENDIENTE');
+    const masterStatus = String(master?.estatus || 'ACTIVO').trim().toUpperCase();
 
     if (isTaller) counts.taller++;
+    else if (masterStatus !== 'ACTIVO') counts.fueraOperacion++;
     else if (isCargada) counts.cargadas++;
     else if (isColocada) counts.colocadas++;
     else if (isPendiente) counts.pendientes++;
   });
 
-  counts.disponibles = Math.max(0, counts.total - counts.taller - counts.cargadas - counts.colocadas - counts.pendientes);
+  counts.disponibles = Math.max(0, counts.total - counts.taller - counts.fueraOperacion - counts.cargadas - counts.colocadas - counts.pendientes);
   return counts;
+};
+
+export const contarViajesSinUnidadAsignada = (units = []) => {
+  const tripKeys = new Set();
+  units.forEach(unit => {
+    if (String(unit.economico || '').trim()) return;
+    const noViaje = String(unit.noViaje || '').trim();
+    const hasTripNumber = noViaje && !['—', '-', '0', 'SIN VIAJE', 'POR ASIGNAR'].includes(noViaje.toUpperCase());
+    tripKeys.add(hasTripNumber ? `viaje-${noViaje}` : `id-${unit.id}`);
+  });
+  return tripKeys.size;
 };
 

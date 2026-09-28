@@ -80,7 +80,10 @@ export const TvDashboardView = () => {
       return availabilityByUnitId.get(String(unit.id))?.disponible || false;
     }
     if (filterStatus === 'POR_CONFIRMAR') {
-      return availabilityByUnitId.get(String(unit.id))?.badge === 'POR CONFIRMAR';
+      return Boolean(String(unit.economico || '').trim()) && availabilityByUnitId.get(String(unit.id))?.badge === 'POR CONFIRMAR';
+    }
+    if (filterStatus === 'SIN_UNIDAD') {
+      return !String(unit.economico || '').trim();
     }
 
     return true;
@@ -283,7 +286,7 @@ export const TvDashboardView = () => {
                             borderRadius: '4px',
                             display: 'inline-block'
                           }}>
-                            POR ASIGNAR
+                            SIN UNIDAD ASIGNADA
                           </span>
                         )}
                       </td>

@@ -16,7 +16,7 @@ import {
   clearViajesDb
 } from '../lib/supabaseClient';
 import { FLOTA_TOTAL, SUCURSALES_MAESTRAS } from '../constants/fleetConstants';
-import { buscarIdOperadorPorNombre, buscarOperadorPorEco, checkTieneViajeYOperador, evaluarDisponibilidadManana, evaluarDisponibilidadMananaPorUnidad, resumirFlotaPorEstado } from '../utils/fleetUtils';
+import { buscarIdOperadorPorNombre, buscarOperadorPorEco, checkTieneViajeYOperador, evaluarDisponibilidadManana, evaluarDisponibilidadMananaPorUnidad, resumirFlotaPorEstado, contarViajesSinUnidadAsignada } from '../utils/fleetUtils';
 
 const FleetContext = createContext(null);
 
@@ -247,7 +247,7 @@ export const FleetProvider = ({ children }) => {
           capUnidad: Number(f.cap_unidad || f.capUnidad) || 18,
           estatus: f.estatus || 'ACTIVO',
           linea: f.linea || 'LTI - VHS'
-        }));
+        })).filter(unit => String(unit.estatus).trim().toUpperCase() !== 'BAJA');
         setCatalogoFlota(formattedFlota);
       }
       if (sucursalesRemote && Array.isArray(sucursalesRemote) && sucursalesRemote.length > 0) {
@@ -409,14 +409,17 @@ export const FleetProvider = ({ children }) => {
 
   // KPIs en tiempo real basados en la flota completa y unidades en pantalla
   const kpis = useMemo(() => {
-    const total = displayedUnits.length;
-    const enTransito = displayedUnits.filter(u => u.estatusSupervisor === 'En Ruta').length;
-    const enSucursalRampa = displayedUnits.filter(u => 
+    const fleetStatusCounts = resumirFlotaPorEstado(displayedUnits, catalogoFlota);
+    const countUniqueEcos = predicate => new Set(displayedUnits
+      .filter(u => String(u.economico || '').trim() && predicate(u))
+      .map(u => String(u.economico).trim())).size;
+    const total = fleetStatusCounts.total;
+    const enTransito = countUniqueEcos(u => u.estatusSupervisor === 'En Ruta');
+    const enSucursalRampa = countUniqueEcos(u =>
       ['Espera Descarga', 'Descargando'].includes(u.estatusSupervisor) ||
       u.estatusPatio === 'En Sucursal'
-    ).length;
-    const retrasadas = displayedUnits.filter(u => u.estatusSupervisor === 'Retrasado').length;
-    const fleetStatusCounts = resumirFlotaPorEstado(displayedUnits, catalogoFlota);
+    );
+    const retrasadas = countUniqueEcos(u => u.estatusSupervisor === 'Retrasado');
     const enTaller = fleetStatusCounts.taller;
     const disponiblesPatio = fleetStatusCounts.disponibles;
     const cargadasPatio = fleetStatusCounts.cargadas;
@@ -427,13 +430,14 @@ export const FleetProvider = ({ children }) => {
     const disponiblesMananaActivas = new Set();
     const porConfirmarManana = new Set();
     const availabilityByUnitId = evaluarDisponibilidadMananaPorUnidad(displayedUnits, catalogoFlota);
+    const viajesSinUnidadAsignada = contarViajesSinUnidadAsignada(displayedUnits);
 
     displayedUnits.forEach(u => {
-      if (u.economico) {
-        activeEcos.add(String(u.economico));
-      }
+      const eco = String(u.economico || '').trim();
+      if (!eco) return;
+      activeEcos.add(eco);
       const evalResult = availabilityByUnitId.get(String(u.id));
-      const unitKey = u.economico ? `eco-${u.economico}` : `id-${u.id}`;
+      const unitKey = `eco-${eco}`;
       if (evalResult.disponible) {
         disponiblesMananaActivas.add(unitKey);
       } else if (evalResult.badge === 'POR CONFIRMAR') {
@@ -445,11 +449,10 @@ export const FleetProvider = ({ children }) => {
     porConfirmarManana.forEach(key => disponiblesMananaActivas.delete(key));
 
     // Unidades de flota libres en patio (no programadas hoy ni en taller)
-    const flotaLibreEnPatio = (catalogoFlota || []).filter(f => {
-      const eco = String(f.eco);
-      const isTaller = f.estatus === 'TALLER' || (f.estatus || '').toLowerCase().includes('taller');
-      return !isTaller && !activeEcos.has(eco);
-    }).length;
+    const flotaLibreEnPatio = new Set((catalogoFlota || [])
+      .filter(f => String(f.estatus || 'ACTIVO').trim().toUpperCase() === 'ACTIVO')
+      .map(f => String(f.eco || '').trim())
+      .filter(eco => eco && !activeEcos.has(eco))).size;
 
     const disponiblesManana = disponiblesMananaActivas.size + flotaLibreEnPatio;
 
@@ -463,7 +466,9 @@ export const FleetProvider = ({ children }) => {
       disponiblesPatio,
       cargadasPatio,
       disponiblesManana,
-      porConfirmarManana: porConfirmarManana.size
+      porConfirmarManana: porConfirmarManana.size,
+      viajesSinUnidadAsignada,
+      fueraOperacion: fleetStatusCounts.fueraOperacion
     };
   }, [displayedUnits, catalogoFlota]);
 

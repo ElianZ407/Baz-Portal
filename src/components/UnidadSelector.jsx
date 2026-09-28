@@ -49,6 +49,7 @@ export const UnidadSelector = ({ value, onSelect, mode }) => {
   flotaList.forEach(f => {
     const ecoKey = String(f.eco);
     const isCatalogTaller = f.estatus === 'TALLER' || (f.estatus || '').toLowerCase().includes('taller');
+    const isCatalogActive = String(f.estatus || 'ACTIVO').trim().toUpperCase() === 'ACTIVO';
     patioUnitsMap.set(ecoKey, {
       eco: ecoKey,
       placas: f.placas || '',
@@ -57,8 +58,8 @@ export const UnidadSelector = ({ value, onSelect, mode }) => {
       linea: f.linea || 'LTI - VHS',
       operador: f.operador || '',
       idOperador: f.idOperador || '',
-      estatusPatio: isCatalogTaller ? 'Taller' : 'Disponible',
-      estatus: isCatalogTaller ? 'TALLER' : 'ACTIVO'
+      estatusPatio: isCatalogTaller ? 'Taller' : isCatalogActive ? 'Disponible' : 'No Disponible',
+      estatus: isCatalogTaller ? 'TALLER' : f.estatus || 'ACTIVO'
     });
   });
 
@@ -76,7 +77,9 @@ export const UnidadSelector = ({ value, onSelect, mode }) => {
     }
   });
 
-  const sourceList = Array.from(patioUnitsMap.values());
+  const sourceList = Array.from(patioUnitsMap.values()).filter(unit =>
+    unit.estatus === 'ACTIVO' || unit.estatus === 'TALLER'
+  );
 
   const filteredUnidades = sourceList.filter(u => {
     const q = search.toLowerCase().trim();

@@ -20,7 +20,7 @@ import {
 } from 'lucide-react';
 import { useFleet } from '../context/FleetContext';
 import { BLOQUES } from '../constants/fleetConstants';
-import { validarRestriccionesViaje, checkTieneViajeYOperador, evaluarDisponibilidadManana, evaluarDisponibilidadMananaPorUnidad, resumirFlotaPorEstado } from '../utils/fleetUtils';
+import { validarRestriccionesViaje, checkTieneViajeYOperador, evaluarDisponibilidadManana, evaluarDisponibilidadMananaPorUnidad, resumirFlotaPorEstado, contarViajesSinUnidadAsignada } from '../utils/fleetUtils';
 import { exportOfficialExcel } from '../utils/exportOfficialExcel';
 
 // Configuración de colores e iconos para los estados de Supervisor reflejados en Planeación
@@ -143,10 +143,12 @@ export const PlaneacionView = () => {
     let matchesEstatus = true;
     if (filterEstatus === 'ALL') {
       matchesEstatus = true;
+    } else if (filterEstatus === 'SIN_UNIDAD') {
+      matchesEstatus = !String(u.economico || '').trim();
     } else if (filterEstatus === 'DISP_MANANA') {
-      matchesEstatus = availabilityByUnitId.get(String(u.id))?.disponible || false;
+      matchesEstatus = Boolean(String(u.economico || '').trim()) && Boolean(availabilityByUnitId.get(String(u.id))?.disponible);
     } else if (filterEstatus === 'POR_CONFIRMAR') {
-      matchesEstatus = availabilityByUnitId.get(String(u.id))?.badge === 'POR CONFIRMAR';
+      matchesEstatus = Boolean(String(u.economico || '').trim()) && availabilityByUnitId.get(String(u.id))?.badge === 'POR CONFIRMAR';
     } else if (filterEstatus === 'TALLER') {
       matchesEstatus = isTaller;
     } else if (filterEstatus === 'CARGADO') {
@@ -166,13 +168,15 @@ export const PlaneacionView = () => {
   const colocadoCount = fleetStatusCounts.colocadas;
   const pendienteCount = fleetStatusCounts.pendientes;
   const tallerCount = fleetStatusCounts.taller;
+  const fueraOperacionCount = fleetStatusCounts.fueraOperacion;
   const disponiblesPatioCount = kpis?.disponiblesPatio ?? fleetStatusCounts.disponibles;
   const dispMananaCount = new Set(planeacionBaseUnits
-    .filter(u => availabilityByUnitId.get(String(u.id))?.disponible)
-    .map(u => u.economico || u.id)).size;
+    .filter(u => String(u.economico || '').trim() && availabilityByUnitId.get(String(u.id))?.disponible)
+    .map(u => String(u.economico).trim())).size;
   const porConfirmarMananaCount = new Set(planeacionBaseUnits
-    .filter(u => availabilityByUnitId.get(String(u.id))?.badge === 'POR CONFIRMAR')
-    .map(u => u.economico || u.id)).size;
+    .filter(u => String(u.economico || '').trim() && availabilityByUnitId.get(String(u.id))?.badge === 'POR CONFIRMAR')
+    .map(u => String(u.economico).trim())).size;
+  const viajesSinUnidadAsignadaCount = contarViajesSinUnidadAsignada(planeacionBaseUnits);
 
   const handleEdit = (unit) => {
     setSelectedUnit(unit);
@@ -312,6 +316,12 @@ export const PlaneacionView = () => {
               {tallerCount}
             </div>
           </div>
+          <div style={{ background: '#101b30', padding: '0.45rem 0.85rem', borderRadius: 'var(--radius-md)', border: '1px solid rgba(148, 163, 184, 0.3)', textAlign: 'center' }}>
+            <span style={{ fontSize: '0.68rem', color: '#cbd5e1', textTransform: 'uppercase', fontWeight: 700 }}>FUERA DE OPERACIÓN</span>
+            <div style={{ fontFamily: 'var(--font-mono)', fontSize: '1.25rem', fontWeight: 800, color: '#e2e8f0' }}>
+              {fueraOperacionCount}
+            </div>
+          </div>
 
           <button 
             className="btn btn-primary"
@@ -371,7 +381,7 @@ export const PlaneacionView = () => {
               className={`pill-btn ${filterEstatus === 'ALL' ? 'active' : ''}`}
               onClick={() => setFilterEstatus('ALL')}
             >
-              Todos ({planeacionBaseUnits.length})
+              Todos ({planeacionBaseUnits.length} viajes)
             </button>
             <button 
               className={`pill-btn ${filterEstatus === 'DISP_MANANA' ? 'active' : ''}`}
@@ -388,6 +398,13 @@ export const PlaneacionView = () => {
               title="Filtrar unidades a las que les falta hora de salida o duración estimada"
             >
               POR CONFIRMAR ({porConfirmarMananaCount})
+            </button>
+            <button
+              className={`pill-btn ${filterEstatus === 'SIN_UNIDAD' ? 'active' : ''}`}
+              onClick={() => setFilterEstatus(filterEstatus === 'SIN_UNIDAD' ? 'ALL' : 'SIN_UNIDAD')}
+              title="Ver viajes que todavía no tienen económico asignado; no se incluyen en el pronóstico de unidades"
+            >
+              SIN UNIDAD ASIGNADA ({viajesSinUnidadAsignadaCount})
             </button>
             <button 
               className={`pill-btn ${filterEstatus === 'CARGADO' ? 'active' : ''}`}
@@ -635,7 +652,7 @@ export const PlaneacionView = () => {
                             borderRadius: '4px',
                             display: 'inline-block'
                           }}>
-                            POR ASIGNAR
+                            SIN UNIDAD ASIGNADA
                           </span>
                         )}
                       </td>
