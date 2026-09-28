@@ -168,7 +168,6 @@ export const PlaneacionView = () => {
   const colocadoCount = fleetStatusCounts.colocadas;
   const pendienteCount = fleetStatusCounts.pendientes;
   const tallerCount = fleetStatusCounts.taller;
-  const fueraOperacionCount = fleetStatusCounts.fueraOperacion;
   const disponiblesPatioCount = kpis?.disponiblesPatio ?? fleetStatusCounts.disponibles;
   const dispMananaCount = new Set(planeacionBaseUnits
     .filter(u => String(u.economico || '').trim() && availabilityByUnitId.get(String(u.id))?.disponible)
@@ -316,13 +315,6 @@ export const PlaneacionView = () => {
               {tallerCount}
             </div>
           </div>
-          <div style={{ background: '#101b30', padding: '0.45rem 0.85rem', borderRadius: 'var(--radius-md)', border: '1px solid rgba(148, 163, 184, 0.3)', textAlign: 'center' }}>
-            <span style={{ fontSize: '0.68rem', color: '#cbd5e1', textTransform: 'uppercase', fontWeight: 700 }}>FUERA DE OPERACIÓN</span>
-            <div style={{ fontFamily: 'var(--font-mono)', fontSize: '1.25rem', fontWeight: 800, color: '#e2e8f0' }}>
-              {fueraOperacionCount}
-            </div>
-          </div>
-
           <button 
             className="btn btn-primary"
             style={{

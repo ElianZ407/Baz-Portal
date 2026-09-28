@@ -172,15 +172,6 @@ export const PatioView = () => {
       color: 'var(--status-red-text)',
       badgeClass: 'status-taller',
       items: sortPatioUnits(patioUnits.filter(u => u.estatusPatio === 'Taller'))
-    },
-    {
-      id: 'Fuera de operación',
-      title: 'Fuera de operación',
-      subtitle: 'Préstamo, corralón u otro estatus no activo',
-      icon: Wrench,
-      color: 'var(--text-muted)',
-      badgeClass: 'status-taller',
-      items: sortPatioUnits(patioUnits.filter(u => u.estatusPatio === 'No Disponible'))
     }
   ];
 
