@@ -103,7 +103,7 @@ const getDefaultFormData = (selectedUnit) => {
 };
 
 const UnitModalForm = () => {
-  const { setIsModalOpen, selectedUnit, saveUnit, deleteUnit, showConfirm, showAlert, activeArea, catalogoFlota, catalogoSucursales } = useFleet();
+  const { setIsModalOpen, selectedUnit, saveUnit, deleteUnit, retireUnitFromFleet, showConfirm, showAlert, activeArea, catalogoFlota, catalogoSucursales } = useFleet();
   const isPatioMode = activeArea === 'patio';
 
   const [formData, setFormData] = useState(() => getDefaultFormData(selectedUnit));
@@ -1170,14 +1170,21 @@ const UnitModalForm = () => {
                 }}
                 onClick={() => {
                   showConfirm({
-                    title: `¿Eliminar ${isPatioMode ? 'unidad' : 'viaje / unidad'} ECO ${selectedUnit.economico}?`,
-                    message: 'Esta unidad será retirada de planeación, patio y de los tableros operativos.',
+                    title: `¿${isPatioMode ? 'Dar de baja la unidad' : 'Eliminar viaje / unidad'} ECO ${selectedUnit.economico}?`,
+                    message: isPatioMode
+                      ? 'Se marcará como BAJA en el padrón y se retirarán sus viajes diarios.'
+                      : 'Esta unidad será retirada de planeación, patio y de los tableros operativos.',
                     unit: selectedUnit,
-                    confirmText: 'Sí, eliminar',
+                    confirmText: isPatioMode ? 'Sí, dar de baja' : 'Sí, eliminar',
                     confirmType: 'danger',
-                    onConfirm: () => {
-                      deleteUnit(selectedUnit.id);
-                      setIsModalOpen(false);
+                    onConfirm: async () => {
+                      if (isPatioMode) {
+                        const retired = await retireUnitFromFleet(selectedUnit);
+                        if (retired) setIsModalOpen(false);
+                      } else {
+                        await deleteUnit(selectedUnit.id);
+                        setIsModalOpen(false);
+                      }
                     }
                   });
                 }}
