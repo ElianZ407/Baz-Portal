@@ -64,7 +64,7 @@ export const KpiBar = () => {
           background: filterStatus === 'DISP_MANANA' ? 'rgba(16, 185, 129, 0.22)' : undefined,
           borderColor: filterStatus === 'DISP_MANANA' ? '#10b981' : undefined
         }}
-        title="Incluye las unidades activas libres en patio. No sumes este indicador otra vez a Disponibles Patio. Considera la secuencia de viajes y regreso antes de las 06:00."
+        title="Incluye unidades activas libres en patio y viajes completados. Una unidad con ruta asignada no está disponible para mañana."
       >
         <div className="kpi-info">
           <h3>Disponibles Mañana</h3>

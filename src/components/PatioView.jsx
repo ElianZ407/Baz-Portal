@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { useFleet } from '../context/FleetContext';
 import { FLOTA_TOTAL } from '../constants/fleetConstants';
+import { tieneRutaAsignada } from '../utils/fleetUtils';
 
 export const PatioView = () => {
   const { 
@@ -28,40 +29,17 @@ export const PatioView = () => {
   const [filterTipo, setFilterTipo] = useState('ALL');
   const [filterViaje, setFilterViaje] = useState('ALL'); // 'ALL' | 'CON_VIAJE' | 'LIBRE'
 
-  const isUnitAssignedOrViaje = (u) => {
-    const hasViaje = Boolean(u.noViaje && String(u.noViaje).trim() !== '');
-    const hasOp = Boolean(
-      u.operador && 
-      u.operador.trim() !== '' && 
-      u.operador.toUpperCase() !== 'POR ASIGNAR' && 
-      u.operador.toUpperCase() !== 'SIN OPERADOR'
-    );
-    return hasViaje || hasOp;
-  };
+  const isUnitAssignedOrViaje = tieneRutaAsignada;
 
   // Función de ordenamiento prioritario para Patio:
   // Unidades con Viaje activo o asignadas van ARRIBA de todo
   const sortPatioUnits = (items) => {
     return [...items].sort((a, b) => {
-      const aHasViaje = Boolean(a.noViaje && String(a.noViaje).trim() !== '');
-      const bHasViaje = Boolean(b.noViaje && String(b.noViaje).trim() !== '');
-      const aHasOp = Boolean(
-        a.operador && 
-        a.operador.trim() !== '' && 
-        a.operador.toUpperCase() !== 'POR ASIGNAR' && 
-        a.operador.toUpperCase() !== 'SIN OPERADOR'
-      );
-      const bHasOp = Boolean(
-        b.operador && 
-        b.operador.trim() !== '' && 
-        b.operador.toUpperCase() !== 'POR ASIGNAR' && 
-        b.operador.toUpperCase() !== 'SIN OPERADOR'
-      );
+      const aHasViaje = isUnitAssignedOrViaje(a);
+      const bHasViaje = isUnitAssignedOrViaje(b);
 
-      // 1. Viaje asignado (prioridad máxima arriba)
+      // 1. Ruta asignada (prioridad máxima arriba)
       if (aHasViaje !== bHasViaje) return aHasViaje ? -1 : 1;
-      // 2. Operador asignado
-      if (aHasOp !== bHasOp) return aHasOp ? -1 : 1;
       // 3. Orden por número económico
       const numA = parseInt(String(a.economico || '').replace(/\D/g, ''), 10) || 0;
       const numB = parseInt(String(b.economico || '').replace(/\D/g, ''), 10) || 0;
@@ -152,11 +130,20 @@ export const PatioView = () => {
     {
       id: 'Disponible',
       title: 'Disponible en Patio',
-      subtitle: 'Unidades libres listas para asignar',
+      subtitle: 'Sin ruta asignada; listas para programar',
       icon: CheckCircle2,
       color: 'var(--status-green-text)',
       badgeClass: 'status-disponible',
-      items: sortPatioUnits(patioUnits.filter(u => u.estatusPatio === 'Disponible'))
+      items: sortPatioUnits(patioUnits.filter(u => u.estatusPatio === 'Disponible' && !isUnitAssignedOrViaje(u)))
+    },
+    {
+      id: 'Ruta asignada',
+      title: 'Ruta asignada',
+      subtitle: 'En patio, pero no disponible para otra ruta',
+      icon: ArrowRightCircle,
+      color: 'var(--status-cyan-text)',
+      badgeClass: 'status-colocado-p-carga',
+      items: sortPatioUnits(patioUnits.filter(u => u.estatusPatio === 'Disponible' && isUnitAssignedOrViaje(u)))
     },
     {
       id: 'Colocado p/ Carga',
