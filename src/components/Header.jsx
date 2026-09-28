@@ -22,6 +22,7 @@ export const Header = () => {
     setIsModalOpen, 
     setSelectedUnit, 
     units,
+    kpis,
     savedPlans,
     setIsSavePlanModalOpen,
     setIsHistoryModalOpen,
@@ -148,7 +149,7 @@ export const Header = () => {
           <Tv size={16} />
           <span className="tab-full-text">Resumen General</span>
           <span className="tab-short-text">Resumen</span>
-          <span className="badge-counter">{units.length}</span>
+          <span className="badge-counter">{kpis.totalFlota}</span>
         </button>
       </nav>
 

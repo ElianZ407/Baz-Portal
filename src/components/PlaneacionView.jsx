@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { 
   CalendarClock, 
   Send, 
@@ -20,7 +20,7 @@ import {
 } from 'lucide-react';
 import { useFleet } from '../context/FleetContext';
 import { BLOQUES } from '../constants/fleetConstants';
-import { validarRestriccionesViaje, checkTieneViajeYOperador, evaluarDisponibilidadManana } from '../utils/fleetUtils';
+import { validarRestriccionesViaje, checkTieneViajeYOperador, evaluarDisponibilidadManana, evaluarDisponibilidadMananaPorUnidad, resumirFlotaPorEstado } from '../utils/fleetUtils';
 import { exportOfficialExcel } from '../utils/exportOfficialExcel';
 
 // Configuración de colores e iconos para los estados de Supervisor reflejados en Planeación
@@ -108,6 +108,14 @@ export const PlaneacionView = () => {
   const SUPERVISOR_ACTIVE_STATUSES = ['En Ruta', 'Espera Descarga', 'Descargando', 'Retorno', 'Retrasado', 'Completado'];
 
   const planeacionBaseUnits = units;
+  const availabilityByUnitId = useMemo(
+    () => evaluarDisponibilidadMananaPorUnidad(planeacionBaseUnits, catalogoFlota),
+    [planeacionBaseUnits, catalogoFlota]
+  );
+  const fleetStatusCounts = useMemo(
+    () => resumirFlotaPorEstado(planeacionBaseUnits, catalogoFlota),
+    [planeacionBaseUnits, catalogoFlota]
+  );
 
   // Capacidades únicas presentes en el plan cargado (ordenadas)
   const capsDisponibles = [...new Set(
@@ -136,9 +144,9 @@ export const PlaneacionView = () => {
     if (filterEstatus === 'ALL') {
       matchesEstatus = true;
     } else if (filterEstatus === 'DISP_MANANA') {
-      matchesEstatus = evaluarDisponibilidadManana(u, catalogoFlota).disponible;
+      matchesEstatus = availabilityByUnitId.get(String(u.id))?.disponible || false;
     } else if (filterEstatus === 'POR_CONFIRMAR') {
-      matchesEstatus = evaluarDisponibilidadManana(u, catalogoFlota).badge === 'POR CONFIRMAR';
+      matchesEstatus = availabilityByUnitId.get(String(u.id))?.badge === 'POR CONFIRMAR';
     } else if (filterEstatus === 'TALLER') {
       matchesEstatus = isTaller;
     } else if (filterEstatus === 'CARGADO') {
@@ -154,16 +162,16 @@ export const PlaneacionView = () => {
     return matchesSearch && matchesBloque && matchesFL && matchesCapUnidad && matchesEstatus;
   });
 
-  const cargadoCount = planeacionBaseUnits.filter(u => u.estatusPatio !== 'Taller' && ((u.estatusPlaneacion || 'PENDIENTE') === 'CARGADO' || SUPERVISOR_ACTIVE_STATUSES.includes(u.estatusSupervisor))).length;
-  const colocadoCount = planeacionBaseUnits.filter(u => u.estatusPatio !== 'Taller' && u.estatusPlaneacion === 'COLOCADO' && !SUPERVISOR_ACTIVE_STATUSES.includes(u.estatusSupervisor)).length;
-  const pendienteCount = planeacionBaseUnits.filter(u => u.estatusPatio !== 'Taller' && (u.estatusPlaneacion || 'PENDIENTE') === 'PENDIENTE' && !SUPERVISOR_ACTIVE_STATUSES.includes(u.estatusSupervisor)).length;
-  const tallerCount = planeacionBaseUnits.filter(u => u.estatusPatio === 'Taller' || u.estatus === 'TALLER').length;
-  const disponiblesPatioCount = kpis?.disponiblesPatio ?? planeacionBaseUnits.filter(u => u.estatusPatio === 'Disponible').length;
+  const cargadoCount = fleetStatusCounts.cargadas;
+  const colocadoCount = fleetStatusCounts.colocadas;
+  const pendienteCount = fleetStatusCounts.pendientes;
+  const tallerCount = fleetStatusCounts.taller;
+  const disponiblesPatioCount = kpis?.disponiblesPatio ?? fleetStatusCounts.disponibles;
   const dispMananaCount = new Set(planeacionBaseUnits
-    .filter(u => evaluarDisponibilidadManana(u, catalogoFlota).disponible)
+    .filter(u => availabilityByUnitId.get(String(u.id))?.disponible)
     .map(u => u.economico || u.id)).size;
   const porConfirmarMananaCount = new Set(planeacionBaseUnits
-    .filter(u => evaluarDisponibilidadManana(u, catalogoFlota).badge === 'POR CONFIRMAR')
+    .filter(u => availabilityByUnitId.get(String(u.id))?.badge === 'POR CONFIRMAR')
     .map(u => u.economico || u.id)).size;
 
   const handleEdit = (unit) => {
@@ -789,8 +797,8 @@ export const PlaneacionView = () => {
                             borderRadius: '4px',
                             fontWeight: 700,
                             whiteSpace: 'nowrap'
-                          }} title={evaluarDisponibilidadManana(unit, catalogoFlota).detalle}>
-                            🌅 {evaluarDisponibilidadManana(unit, catalogoFlota).motivo}
+                          }} title={availabilityByUnitId.get(String(unit.id))?.detalle}>
+                            🌅 {availabilityByUnitId.get(String(unit.id))?.motivo}
                           </div>
                         )}
                       </td>

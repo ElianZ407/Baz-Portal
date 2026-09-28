@@ -122,15 +122,20 @@ export const checkTieneViajeYOperador = (unit) => {
  * Estima disponibilidad para el día siguiente usando la hora de regreso al CEDIS.
  * tiempoEstimadoHrs representa horas de manejo de ida; el regreso usa la misma duración.
  */
-export const evaluarDisponibilidadManana = (unit, catalogoFlota = []) => {
-  if (!unit) return { disponible: false, motivo: 'Sin datos', badge: 'DESCONOCIDO', color: '#94a3b8' };
+export const evaluarDisponibilidadManana = (unitOrTrips, catalogoFlota = []) => {
+  const units = (Array.isArray(unitOrTrips) ? unitOrTrips : [unitOrTrips]).filter(Boolean);
+  if (units.length === 0) {
+    return { disponible: false, motivo: 'Sin datos', badge: 'DESCONOCIDO', color: '#94a3b8' };
+  }
 
-  // 1. Taller mecánico
-  const isTaller = 
-    unit.estatusPatio === 'Taller' || 
-    unit.estatus === 'TALLER' ||
-    (catalogoFlota || []).some(f => String(f.eco) === String(unit.economico) && (f.estatus === 'TALLER' || (f.estatus || '').toLowerCase().includes('taller')));
-  
+  const eco = units[0].economico;
+  const isTaller = units.some(unit =>
+    unit.estatusPatio === 'Taller' ||
+    unit.estatus === 'TALLER'
+  ) || (catalogoFlota || []).some(f =>
+    String(f.eco) === String(eco) && (f.estatus === 'TALLER' || (f.estatus || '').toLowerCase().includes('taller'))
+  );
+
   if (isTaller) {
     return {
       disponible: false,
@@ -141,84 +146,161 @@ export const evaluarDisponibilidadManana = (unit, catalogoFlota = []) => {
     };
   }
 
-  // 2. Unidad libre en patio sin viaje asignado
-  const hasViaje = Boolean(unit.noViaje && String(unit.noViaje).trim() !== '' && unit.noViaje !== '—');
-  const isPatioLibre = (unit.estatusPatio === 'Disponible' || !unit.estatusPatio) && !hasViaje;
-  if (isPatioLibre) {
+  const isCompleted = unit => unit.estatusSupervisor === 'Completado' || unit.estatusPlaneacion === 'COMPLETADO';
+  const hasTrip = unit => Boolean(unit.noViaje && !['—', '-', '0'].includes(String(unit.noViaje).trim()));
+  const activeTripsById = new Map();
+  units.filter(unit => !isCompleted(unit)).forEach(unit => {
+    const tripNumber = String(unit.noViaje || '').trim();
+    const key = tripNumber && !['—', '-', '0'].includes(tripNumber)
+      ? `trip-${tripNumber}`
+      : `id-${unit.id}`;
+    if (!activeTripsById.has(key)) activeTripsById.set(key, unit);
+  });
+  const trips = [...activeTripsById.values()];
+
+  if (trips.length === 0) {
+    const isPatioLibre = units.some(unit =>
+      (unit.estatusPatio === 'Disponible' || !unit.estatusPatio) && !hasTrip(unit)
+    );
+    const available = isPatioLibre || units.some(isCompleted);
     return {
-      disponible: true,
-      badge: 'DISPONIBLE',
-      motivo: 'En Patio (Libre)',
-      detalle: 'Lista en patio para nueva asignación',
-      color: '#10b981'
+      disponible: available,
+      badge: available ? 'DISPONIBLE' : 'POR CONFIRMAR',
+      motivo: available ? 'Unidad libre en CEDIS' : 'Por confirmar',
+      detalle: available ? 'Sin viajes pendientes para esta unidad' : 'Confirma los viajes asignados a la unidad',
+      color: available ? '#10b981' : '#f59e0b'
     };
   }
 
-  // 3. Un viaje completado ya liberó la unidad en el CEDIS
-  const estatusSup = unit.estatusSupervisor || '';
-  if (estatusSup === 'Completado' || unit.estatusPlaneacion === 'COMPLETADO') {
-    return {
-      disponible: true,
-      badge: 'DISPONIBLE',
-      motivo: 'Viaje completado',
-      detalle: 'La unidad ya fue liberada en el CEDIS',
-      color: '#10b981'
-    };
+  const scheduledTrips = [];
+  for (const trip of trips) {
+    const horaSalida = trip.horaSalida || trip.horaCaseta || '';
+    const tiempoEstimadoHrs = Number(trip.tiempoEstimadoHrs);
+    const departureMatch = String(horaSalida).trim().match(/^(\d{1,2}):(\d{2})(?:\s*(AM|PM))?$/i);
+    const departureHour = departureMatch ? Number(departureMatch[1]) : NaN;
+    const departureMinute = departureMatch ? Number(departureMatch[2]) : NaN;
+    const meridiem = departureMatch?.[3]?.toUpperCase();
+    const normalizedHour = meridiem === 'PM' && departureHour < 12
+      ? departureHour + 12
+      : meridiem === 'AM' && departureHour === 12
+        ? 0
+        : departureHour;
+
+    if (
+      !departureMatch ||
+      !Number.isFinite(tiempoEstimadoHrs) ||
+      tiempoEstimadoHrs <= 0 ||
+      normalizedHour > 23 ||
+      departureMinute > 59
+    ) {
+      return {
+        disponible: false,
+        badge: 'POR CONFIRMAR',
+        motivo: 'Por confirmar',
+        detalle: `Faltan hora de salida u horas de ida en el viaje ${trip.noViaje || ''}`.trim(),
+        color: '#f59e0b'
+      };
+    }
+
+    const today = new Date();
+    const dateMatch = String(trip.fecha || '').match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    const departureDate = dateMatch
+      ? new Date(Number(dateMatch[1]), Number(dateMatch[2]) - 1, Number(dateMatch[3]))
+      : new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    departureDate.setHours(normalizedHour, departureMinute, 0, 0);
+    scheduledTrips.push({ trip, departureAt: departureDate, durationMs: tiempoEstimadoHrs * 2 * 60 * 60 * 1000 });
   }
 
-  // Sin hora de salida o duración de ruta no se debe inventar una disponibilidad.
-  const horaSalida = unit.horaSalida || unit.horaCaseta || '';
-  const tiempoEstimadoHrs = Number(unit.tiempoEstimadoHrs);
-  const departureMatch = String(horaSalida).trim().match(/^(\d{1,2}):(\d{2})(?:\s*(AM|PM))?$/i);
-  const departureHour = departureMatch ? Number(departureMatch[1]) : NaN;
-  const departureMinute = departureMatch ? Number(departureMatch[2]) : NaN;
-  const meridiem = departureMatch?.[3]?.toUpperCase();
-  const normalizedHour = meridiem === 'PM' && departureHour < 12
-    ? departureHour + 12
-    : meridiem === 'AM' && departureHour === 12
-      ? 0
-      : departureHour;
+  scheduledTrips.sort((a, b) => a.departureAt - b.departureAt);
+  const firstDeparture = scheduledTrips[0].departureAt;
+  let lastReturn = null;
 
-  if (
-    !departureMatch ||
-    !Number.isFinite(tiempoEstimadoHrs) ||
-    tiempoEstimadoHrs <= 0 ||
-    normalizedHour > 23 ||
-    departureMinute > 59
-  ) {
-    return {
-      disponible: false,
-      badge: 'POR CONFIRMAR',
-      motivo: 'Por confirmar',
-      detalle: 'Captura la hora de salida y las horas estimadas de manejo de ida para calcular si regresa antes de las 06:00',
-      color: '#f59e0b'
-    };
-  }
+  scheduledTrips.forEach(({ departureAt, durationMs }) => {
+    const actualDeparture = lastReturn && departureAt < lastReturn ? lastReturn : departureAt;
+    lastReturn = new Date(actualDeparture.getTime() + durationMs);
+  });
 
-  const today = new Date();
-  const dateMatch = String(unit.fecha || '').match(/^(\d{4})-(\d{2})-(\d{2})$/);
-  const departureDate = dateMatch
-    ? new Date(Number(dateMatch[1]), Number(dateMatch[2]) - 1, Number(dateMatch[3]))
-    : new Date(today.getFullYear(), today.getMonth(), today.getDate());
-  departureDate.setHours(normalizedHour, departureMinute, 0, 0);
-
-  const returnAt = new Date(departureDate.getTime() + tiempoEstimadoHrs * 2 * 60 * 60 * 1000);
-  const cutoff = new Date(departureDate.getFullYear(), departureDate.getMonth(), departureDate.getDate() + 1, 6, 0, 0, 0);
-  const available = returnAt < cutoff;
-  const returnLabel = returnAt.toLocaleString('es-MX', {
+  const cutoff = new Date(firstDeparture.getFullYear(), firstDeparture.getMonth(), firstDeparture.getDate() + 1, 6, 0, 0, 0);
+  const available = lastReturn < cutoff;
+  const returnLabel = lastReturn.toLocaleString('es-MX', {
     day: '2-digit',
     month: '2-digit',
     hour: '2-digit',
     minute: '2-digit',
     hour12: false
   });
+  const tripCount = trips.length;
 
   return {
     disponible: available,
     badge: available ? 'DISPONIBLE' : 'NO DISPONIBLE',
-    motivo: available ? 'Regresa antes de las 06:00' : 'Regreso posterior a las 06:00',
-    detalle: `Regreso estimado al CEDIS: ${returnLabel} • ${unit.destino || 'Ruta'} (ida y vuelta)`,
+    motivo: available ? 'Todos sus viajes terminan antes de las 06:00' : 'Sus viajes terminan después de las 06:00',
+    detalle: `Regreso estimado tras ${tripCount} ${tripCount === 1 ? 'viaje' : 'viajes'}: ${returnLabel} • sin sumar espera de descarga`,
     color: available ? '#10b981' : '#f59e0b'
   };
+};
+
+export const evaluarDisponibilidadMananaPorUnidad = (units = [], catalogoFlota = []) => {
+  const groups = new Map();
+  units.forEach(unit => {
+    const eco = String(unit.economico || '').trim();
+    const groupKey = eco ? `eco-${eco}` : `id-${unit.id}`;
+    if (!groups.has(groupKey)) groups.set(groupKey, []);
+    groups.get(groupKey).push(unit);
+  });
+
+  const statusByUnitId = new Map();
+  groups.forEach(group => {
+    const status = evaluarDisponibilidadManana(group, catalogoFlota);
+    group.forEach(unit => statusByUnitId.set(String(unit.id), status));
+  });
+  return statusByUnitId;
+};
+
+export const resumirFlotaPorEstado = (units = [], catalogoFlota = []) => {
+  const unitsByEco = new Map();
+  units.forEach(unit => {
+    const eco = String(unit.economico || '').trim();
+    if (!eco) return;
+    if (!unitsByEco.has(eco)) unitsByEco.set(eco, []);
+    unitsByEco.get(eco).push(unit);
+  });
+
+  const fleetByEco = new Map();
+  (catalogoFlota || []).forEach(unit => {
+    const eco = String(unit.eco || '').trim();
+    if (eco) fleetByEco.set(eco, unit);
+  });
+
+  const ecoRoster = fleetByEco.size > 0
+    ? [...fleetByEco.keys()]
+    : [...unitsByEco.keys()];
+  const counts = { total: fleetByEco.size || 55, disponibles: 0, colocadas: 0, cargadas: 0, pendientes: 0, taller: 0 };
+  const activeStatuses = ['En Ruta', 'Espera Descarga', 'Descargando', 'Retorno', 'Retrasado'];
+
+  ecoRoster.forEach(eco => {
+    const records = unitsByEco.get(eco) || [];
+    const master = fleetByEco.get(eco);
+    const isTaller = master?.estatus === 'TALLER' || (master?.estatus || '').toLowerCase().includes('taller') || records.some(unit =>
+      unit.estatusPatio === 'Taller' || unit.estatus === 'TALLER'
+    );
+    const isCargada = records.some(unit =>
+      unit.estatusPlaneacion === 'CARGADO' ||
+      unit.estatusPatio === 'Cargado' ||
+      activeStatuses.includes(unit.estatusSupervisor)
+    );
+    const isColocada = records.some(unit =>
+      unit.estatusPlaneacion === 'COLOCADO' || unit.estatusPatio === 'Colocado p/ Carga'
+    );
+    const isPendiente = records.some(unit => (unit.estatusPlaneacion || 'PENDIENTE') === 'PENDIENTE');
+
+    if (isTaller) counts.taller++;
+    else if (isCargada) counts.cargadas++;
+    else if (isColocada) counts.colocadas++;
+    else if (isPendiente) counts.pendientes++;
+  });
+
+  counts.disponibles = Math.max(0, counts.total - counts.taller - counts.cargadas - counts.colocadas - counts.pendientes);
+  return counts;
 };
 

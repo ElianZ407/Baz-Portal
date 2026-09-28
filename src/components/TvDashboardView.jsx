@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { 
   Tv, 
   MapPin, 
@@ -6,7 +6,7 @@ import {
 } from 'lucide-react';
 import { useFleet } from '../context/FleetContext';
 import { KpiBar } from './KpiBar';
-import { evaluarDisponibilidadManana } from '../utils/fleetUtils';
+import { evaluarDisponibilidadMananaPorUnidad } from '../utils/fleetUtils';
 
 export const TvDashboardView = () => {
   const { 
@@ -17,6 +17,11 @@ export const TvDashboardView = () => {
     setSearchQuery,
     catalogoFlota
   } = useFleet();
+
+  const availabilityByUnitId = useMemo(
+    () => evaluarDisponibilidadMananaPorUnidad(units, catalogoFlota),
+    [units, catalogoFlota]
+  );
 
   const [filterFL, setFilterFL] = useState('ALL'); // 'ALL' | 'LOCAL' | 'FORANEO'
   const [currentDate, setCurrentDate] = useState(() => {
@@ -72,14 +77,17 @@ export const TvDashboardView = () => {
       return unit.estatusPatio === 'Disponible';
     }
     if (filterStatus === 'DISP_MANANA') {
-      return evaluarDisponibilidadManana(unit, catalogoFlota).disponible;
+      return availabilityByUnitId.get(String(unit.id))?.disponible || false;
     }
     if (filterStatus === 'POR_CONFIRMAR') {
-      return evaluarDisponibilidadManana(unit, catalogoFlota).badge === 'POR CONFIRMAR';
+      return availabilityByUnitId.get(String(unit.id))?.badge === 'POR CONFIRMAR';
     }
 
     return true;
   });
+  const filteredEcosCount = new Set(
+    filteredUnits.map(unit => String(unit.economico || '').trim()).filter(Boolean)
+  ).size;
 
   const getUnitOperationalStatus = (unit) => {
     if (!unit) return { text: 'PROGRAMADO', badgeClass: 'status-programado' };
@@ -164,7 +172,7 @@ export const TvDashboardView = () => {
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
             <h2>
               <Tv size={20} color="var(--accent-cyan)" />
-              Flota y Embarques del Día ({filteredUnits.length} Unidades)
+              Flota y Embarques del Día ({filteredEcosCount} Unidades)
             </h2>
             {filterStatus !== 'ALL' && (
               <button 
@@ -379,7 +387,7 @@ export const TvDashboardView = () => {
                       <td style={{ textAlign: 'center' }}>
                         {(() => {
                           const opStatus = getUnitOperationalStatus(unit);
-                          const mananaStatus = evaluarDisponibilidadManana(unit, catalogoFlota);
+                          const mananaStatus = availabilityByUnitId.get(String(unit.id));
                           return (
                             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.25rem' }}>
                               <span className={`status-badge ${opStatus.badgeClass}`}>

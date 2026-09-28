@@ -16,7 +16,7 @@ import {
   clearViajesDb
 } from '../lib/supabaseClient';
 import { FLOTA_TOTAL, SUCURSALES_MAESTRAS } from '../constants/fleetConstants';
-import { buscarIdOperadorPorNombre, buscarOperadorPorEco, checkTieneViajeYOperador, evaluarDisponibilidadManana } from '../utils/fleetUtils';
+import { buscarIdOperadorPorNombre, buscarOperadorPorEco, checkTieneViajeYOperador, evaluarDisponibilidadManana, evaluarDisponibilidadMananaPorUnidad, resumirFlotaPorEstado } from '../utils/fleetUtils';
 
 const FleetContext = createContext(null);
 
@@ -416,42 +416,23 @@ export const FleetProvider = ({ children }) => {
       u.estatusPatio === 'En Sucursal'
     ).length;
     const retrasadas = displayedUnits.filter(u => u.estatusSupervisor === 'Retrasado').length;
-    const enTaller = displayedUnits.filter(u => u.estatusPatio === 'Taller' || u.estatus === 'TALLER').length;
-
-    const totalFlotaCount = catalogoFlota && catalogoFlota.length > 0 ? catalogoFlota.length : (FLOTA_TOTAL.length || 56);
-    const ocupadasSet = new Set(
-      displayedUnits
-        .filter(u => u.economico && (
-          u.estatusPatio === 'Taller' || 
-          u.estatus === 'TALLER' ||
-          u.estatusSupervisor === 'En Ruta' || 
-          u.estatusPlaneacion === 'PENDIENTE' ||
-          u.estatusPatio === 'Colocado p/ Carga' || 
-          u.estatusPatio === 'Cargado' || 
-          u.estatusPatio === 'En Sucursal' || 
-          u.estatusPatio === 'Descargando'
-        ))
-        .map(u => String(u.economico))
-    );
-    (catalogoFlota || []).forEach(f => {
-      if (f.estatus === 'TALLER' || (f.estatus || '').toLowerCase().includes('taller')) {
-        ocupadasSet.add(String(f.eco));
-      }
-    });
-    const disponiblesPatio = Math.max(0, totalFlotaCount - ocupadasSet.size);
-    const cargadasPatio = displayedUnits.filter(u => u.estatusPatio === 'Cargado').length;
+    const fleetStatusCounts = resumirFlotaPorEstado(displayedUnits, catalogoFlota);
+    const enTaller = fleetStatusCounts.taller;
+    const disponiblesPatio = fleetStatusCounts.disponibles;
+    const cargadasPatio = fleetStatusCounts.cargadas;
 
     // ==========================================
     // Pronóstico para mañana: contar económicos únicos y separar los que faltan confirmar.
     const activeEcos = new Set();
     const disponiblesMananaActivas = new Set();
     const porConfirmarManana = new Set();
+    const availabilityByUnitId = evaluarDisponibilidadMananaPorUnidad(displayedUnits, catalogoFlota);
 
     displayedUnits.forEach(u => {
       if (u.economico) {
         activeEcos.add(String(u.economico));
       }
-      const evalResult = evaluarDisponibilidadManana(u, catalogoFlota);
+      const evalResult = availabilityByUnitId.get(String(u.id));
       const unitKey = u.economico ? `eco-${u.economico}` : `id-${u.id}`;
       if (evalResult.disponible) {
         disponiblesMananaActivas.add(unitKey);
@@ -474,6 +455,7 @@ export const FleetProvider = ({ children }) => {
 
     return {
       total,
+      totalFlota: fleetStatusCounts.total,
       enTransito,
       enSucursalRampa,
       retrasadas,
