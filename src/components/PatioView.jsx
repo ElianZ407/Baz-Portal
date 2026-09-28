@@ -11,7 +11,7 @@ import {
 } from 'lucide-react';
 import { useFleet } from '../context/FleetContext';
 import { FLOTA_TOTAL } from '../constants/fleetConstants';
-import { tieneRutaAsignada } from '../utils/fleetUtils';
+import { tieneRutaAsignada, consolidarUnidadesPatioPorEconomico } from '../utils/fleetUtils';
 
 export const PatioView = () => {
   const { 
@@ -54,12 +54,7 @@ export const PatioView = () => {
     : FLOTA_TOTAL;
 
   // Unidades activas mapeadas por número económico
-  const activeUnitsMap = new Map();
-  (units || []).forEach(u => {
-    if (u.economico) {
-      activeUnitsMap.set(String(u.economico), u);
-    }
-  });
+  const activeUnitsMap = consolidarUnidadesPatioPorEconomico(units || []);
 
   // Consolidar toda la flota para Patio:
   // Toda unidad de la flota que no tenga viaje activo ni taller está DISPONIBLE en patio

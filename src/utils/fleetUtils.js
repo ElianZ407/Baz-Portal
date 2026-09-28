@@ -126,14 +126,31 @@ export const tieneRutaAsignada = (unit) => {
   const planningStatus = String(unit.estatusPlaneacion || '').trim().toUpperCase();
   const patioStatus = String(unit.estatusPatio || '').trim().toUpperCase();
   const supervisorStatus = String(unit.estatusSupervisor || '').trim().toUpperCase();
+  if (planningStatus === 'COMPLETADO' || supervisorStatus === 'COMPLETADO') return false;
   const destination = String(unit.destino || '').trim().toUpperCase();
   const cargo = String(unit.numCarga || '').trim().toUpperCase();
+  const hasSecondaryStops = Array.isArray(unit.destinosSecundarios) && unit.destinosSecundarios.length > 0;
   return hasTripNumber(unit) ||
+    hasSecondaryStops ||
+    String(unit.observaciones || '').includes('__PARADAS__:') ||
     ['COLOCADO', 'CARGADO', 'EN CASETA', 'RETORNO'].includes(planningStatus) ||
     ['COLOCADO P/ CARGA', 'CARGADO', 'EN RUTA', 'EN SUCURSAL', 'DESCARGANDO'].includes(patioStatus) ||
     ['EN RUTA', 'ESPERA DESCARGA', 'DESCARGANDO', 'RETORNO', 'RETRASADO'].includes(supervisorStatus) ||
     Boolean(destination && !['SIN DEFINIR', 'SIN DESTINO', 'POR ASIGNAR'].includes(destination)) ||
     Boolean(cargo && !['—', '-', '0', 'POR ASIGNAR'].includes(cargo));
+};
+
+export const consolidarUnidadesPatioPorEconomico = (units = []) => {
+  const unitsByEco = new Map();
+  units.forEach(unit => {
+    const eco = String(unit.economico || '').trim();
+    if (!eco) return;
+    const existing = unitsByEco.get(eco);
+    if (!existing || tieneRutaAsignada(unit) || !tieneRutaAsignada(existing)) {
+      unitsByEco.set(eco, unit);
+    }
+  });
+  return unitsByEco;
 };
 
 export const evaluarDisponibilidadManana = (unitOrTrips, catalogoFlota = []) => {
@@ -155,7 +172,7 @@ export const evaluarDisponibilidadManana = (unitOrTrips, catalogoFlota = []) => 
       disponible: false,
       badge: 'NO DISPONIBLE',
       motivo: 'En Taller mecánico',
-      detalle: 'Bloqueada por mantenimiento',
+      detalle: 'No disponible por mantenimiento',
       color: '#ef4444'
     };
   }
