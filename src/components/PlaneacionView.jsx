@@ -16,10 +16,11 @@ import {
   ArrowDownCircle, 
   RotateCcw, 
   Package,
-  UploadCloud
+  UploadCloud,
+  ChevronDown,
+  ChevronRight
 } from 'lucide-react';
 import { useFleet } from '../context/FleetContext';
-import { BLOQUES } from '../constants/fleetConstants';
 import { validarRestriccionesViaje, checkTieneViajeYOperador, resumirFlotaPorEstado, contarViajesSinUnidadAsignada } from '../utils/fleetUtils';
 import { exportOfficialExcel } from '../utils/exportOfficialExcel';
 
@@ -98,10 +99,11 @@ export const PlaneacionView = () => {
     setIsImportModalOpen 
   } = useFleet();
 
-  const [filterBloque, setFilterBloque] = useState('ALL');
   const [filterFL, setFilterFL] = useState('ALL'); // 'ALL' | 'LOCAL' | 'FORANEO'
   const [filterEstatus, setFilterEstatus] = useState('ALL'); // 'ALL' | 'PENDIENTE' | 'COLOCADO' | 'CARGADO' | 'TALLER' | 'SIN_UNIDAD'
   const [filterCapUnidad, setFilterCapUnidad] = useState('ALL'); // 'ALL' | '18' | '40' | '50' | '90' | '110'
+  const [expandedTripGroups, setExpandedTripGroups] = useState(() => new Set());
+  const [expandedStops, setExpandedStops] = useState(() => new Set());
 
   // Filtrado de unidades en planeación:
   // En Planeación aparecen TODOS los viajes y unidades del plan del día (pendientes, colocados, cargados, en ruta, en sucursal, etc.)
@@ -132,7 +134,6 @@ export const PlaneacionView = () => {
 
     const isTaller = u.estatusPatio === 'Taller' || u.estatus === 'TALLER';
     const isSupervisorActive = SUPERVISOR_ACTIVE_STATUSES.includes(u.estatusSupervisor);
-    const matchesBloque = filterBloque === 'ALL' || String(u.bloque) === filterBloque;
     const matchesFL = filterFL === 'ALL' || (u.fl || 'LOCAL') === filterFL;
     const matchesCapUnidad = filterCapUnidad === 'ALL' || String(u.capUnidad) === filterCapUnidad;
     
@@ -153,8 +154,19 @@ export const PlaneacionView = () => {
       matchesEstatus = !isTaller && (u.estatusPlaneacion || 'PENDIENTE') === filterEstatus;
     }
 
-    return matchesSearch && matchesBloque && matchesFL && matchesCapUnidad && matchesEstatus;
+    return matchesSearch && matchesFL && matchesCapUnidad && matchesEstatus;
   });
+
+  const tripsByEco = useMemo(() => {
+    const groups = new Map();
+    planeacionUnits.forEach(unit => {
+      const eco = String(unit.economico || '').trim();
+      if (!eco) return;
+      if (!groups.has(eco)) groups.set(eco, []);
+      groups.get(eco).push(unit);
+    });
+    return groups;
+  }, [planeacionUnits]);
 
   const cargadoCount = fleetStatusCounts.cargadas;
   const colocadoCount = fleetStatusCounts.colocadas;
@@ -327,7 +339,7 @@ export const PlaneacionView = () => {
         </div>
       </div>
 
-      {/* Barra de Filtros: Estatus Oficial, Tipo F/L y Bloques */}
+      {/* Barra de Filtros: Estatus Oficial, Tipo F/L y Capacidad */}
       <div className="controls-bar" style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', justifyContent: 'space-between' }}>
         <div style={{ display: 'flex', gap: '0.85rem', flexWrap: 'wrap', alignItems: 'center' }}>
           {/* Filtro Estatus Oficial (Excel) */}
@@ -438,29 +450,6 @@ export const PlaneacionView = () => {
             </div>
           )}
 
-          <div style={{ height: '20px', width: '1px', background: 'var(--border-color)' }}></div>
-
-          {/* Filtro Bloques */}
-          <div style={{ display: 'flex', gap: '0.35rem', flexWrap: 'wrap', alignItems: 'center' }}>
-            <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginRight: '0.2rem' }}>
-              Bloque:
-            </span>
-            <button 
-              className={`pill-btn ${filterBloque === 'ALL' ? 'active' : ''}`}
-              onClick={() => setFilterBloque('ALL')}
-            >
-              Todos
-            </button>
-            {BLOQUES.map(b => (
-              <button 
-                key={b}
-                className={`pill-btn ${filterBloque === String(b) ? 'active' : ''}`}
-                onClick={() => setFilterBloque(String(b))}
-              >
-                B-{b}
-              </button>
-            ))}
-          </div>
         </div>
 
         <div className="search-input-group" style={{ maxWidth: '300px' }}>
@@ -512,6 +501,15 @@ export const PlaneacionView = () => {
                 </tr>
               ) : (
                 planeacionUnits.map(unit => {
+                  const ecoKey = String(unit.economico || '').trim();
+                  const ecoTrips = ecoKey ? tripsByEco.get(ecoKey) || [] : [];
+                  const isRepeatedEco = ecoTrips.length > 1;
+                  const isFirstTripForEco = isRepeatedEco && ecoTrips[0].id === unit.id;
+                  const isTripGroupExpanded = expandedTripGroups.has(ecoKey);
+                  const stopGroupKey = String(unit.id);
+                  const isStopsExpanded = expandedStops.has(stopGroupKey);
+                  const tripNumbers = [...new Set(ecoTrips.map(trip => String(trip.noViaje || '').trim()).filter(Boolean))];
+                  const groupDestinations = [...new Set(ecoTrips.map(trip => String(trip.destino || '').trim()).filter(Boolean))];
                   const isEnTaller = unit.estatusPatio === 'Taller' || unit.estatus === 'TALLER';
                   const estatusPlan = unit.estatusPlaneacion || 'PENDIENTE';
                   const estatusSup = unit.estatusSupervisor || null;
@@ -549,6 +547,43 @@ export const PlaneacionView = () => {
 
                   return (
                     <React.Fragment key={unit.id}>
+                      {isFirstTripForEco && (
+                        <tr style={{ background: 'rgba(6, 182, 212, 0.08)', borderLeft: '4px solid var(--accent-cyan)' }}>
+                          <td colSpan="8" style={{ padding: 0 }}>
+                            <button
+                              type="button"
+                              aria-expanded={isTripGroupExpanded}
+                              onClick={() => setExpandedTripGroups(previous => {
+                                const next = new Set(previous);
+                                if (next.has(ecoKey)) next.delete(ecoKey);
+                                else next.add(ecoKey);
+                                return next;
+                              })}
+                              style={{
+                                width: '100%',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '0.55rem',
+                                padding: '0.6rem 0.75rem',
+                                border: 0,
+                                background: 'transparent',
+                                color: '#e2e8f0',
+                                textAlign: 'left',
+                                cursor: 'pointer'
+                              }}
+                              title={isTripGroupExpanded ? 'Contraer viajes del ECO' : 'Desglosar viajes del ECO'}
+                            >
+                              {isTripGroupExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+                              <strong>ECO {ecoKey}</strong>
+                              <span style={{ color: 'var(--accent-cyan)', fontWeight: 700 }}>{ecoTrips.length} viajes</span>
+                              {tripNumbers.length > 0 && <span style={{ color: 'var(--text-muted)' }}>Folios: {tripNumbers.join(', ')}</span>}
+                              {groupDestinations.length > 0 && <span style={{ color: 'var(--text-secondary)' }}>Destinos: {groupDestinations.slice(0, 3).join(' → ')}{groupDestinations.length > 3 ? ` +${groupDestinations.length - 3}` : ''}</span>}
+                            </button>
+                          </td>
+                        </tr>
+                      )}
+                      {(!isRepeatedEco || isTripGroupExpanded) && (
+                      <React.Fragment>
                       <tr 
                         style={{
                         background: isEnTaller 
@@ -905,7 +940,27 @@ export const PlaneacionView = () => {
                     </tr>
 
                     {/* SUB-FILAS DE PARADAS SECUNDARIAS / VTEX (RUTA MULTIPARADA) */}
-                    {Array.isArray(unit.destinosSecundarios) && unit.destinosSecundarios.map((parada, pIdx) => {
+                        {Array.isArray(unit.destinosSecundarios) && unit.destinosSecundarios.length > 0 && (
+                          <tr key={`${unit.id}-stops-toggle`}>
+                            <td colSpan="8" style={{ padding: '0.25rem 0.65rem', background: 'rgba(15, 23, 42, 0.35)' }}>
+                              <button
+                                type="button"
+                                aria-expanded={isStopsExpanded}
+                                onClick={() => setExpandedStops(previous => {
+                                  const next = new Set(previous);
+                                  if (next.has(stopGroupKey)) next.delete(stopGroupKey);
+                                  else next.add(stopGroupKey);
+                                  return next;
+                                })}
+                                style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', border: 0, padding: '0.2rem 0.3rem', background: 'transparent', color: 'var(--accent-cyan)', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 700 }}
+                              >
+                                {isStopsExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                                {unit.destinosSecundarios.length} paradas adicionales
+                              </button>
+                            </td>
+                          </tr>
+                        )}
+                        {isStopsExpanded && Array.isArray(unit.destinosSecundarios) && unit.destinosSecundarios.map((parada, pIdx) => {
                       const isVtex = Boolean(parada.esVtex);
                       const vtexLabel = isVtex 
                         ? (parada.destino && parada.destino.startsWith('VTEX') 
@@ -1033,6 +1088,8 @@ export const PlaneacionView = () => {
                         </tr>
                       );
                     })}
+                      </React.Fragment>
+                      )}
                   </React.Fragment>
                 );
                 })
