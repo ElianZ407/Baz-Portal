@@ -60,11 +60,16 @@ export const PatioView = () => {
   // Toda unidad de la flota que no tenga viaje activo ni taller está DISPONIBLE en patio
   const fullPatioUnits = flotaList.map(f => {
     const ecoKey = String(f.eco);
+    const catalogStatus = String(f.estatus || 'ACTIVO').trim().toUpperCase();
+    const isCatalogTaller = catalogStatus.includes('TALLER');
+    const isCatalogOutOfOperation = catalogStatus !== 'ACTIVO' && !isCatalogTaller;
     const active = activeUnitsMap.get(ecoKey);
     if (active) {
+      if (isCatalogOutOfOperation && !isUnitAssignedOrViaje(active)) {
+        return { ...active, estatus: catalogStatus, estatusPatio: 'No Disponible' };
+      }
       return active;
     }
-    const isCatalogTaller = f.estatus === 'TALLER' || (f.estatus || '').toLowerCase().includes('taller');
     return {
       id: `fleet-${ecoKey}`,
       economico: ecoKey,
@@ -83,7 +88,8 @@ export const PatioView = () => {
       destinosSecundarios: [],
       closter: 'HUB-VHSA',
       fl: 'LOCAL',
-      estatusPatio: isCatalogTaller ? 'Taller' : 'Disponible',
+      estatus: catalogStatus,
+      estatusPatio: isCatalogTaller ? 'Taller' : isCatalogOutOfOperation ? 'No Disponible' : 'Disponible',
       estatusPlaneacion: 'PENDIENTE',
       estatusSupervisor: isCatalogTaller ? 'No Disponible' : 'Pendiente',
       observaciones: f.observaciones || ''
@@ -113,11 +119,11 @@ export const PatioView = () => {
   });
 
   const totalConViaje = allPatioUnits.filter(isUnitAssignedOrViaje).length;
-  const totalLibres = allPatioUnits.filter(u => !isUnitAssignedOrViaje(u)).length;
+  const totalLibres = allPatioUnits.filter(u => u.estatusPatio === 'Disponible' && !isUnitAssignedOrViaje(u)).length;
 
   const patioUnits = allPatioUnits.filter(u => {
     if (filterViaje === 'CON_VIAJE') return isUnitAssignedOrViaje(u);
-    if (filterViaje === 'LIBRE') return !isUnitAssignedOrViaje(u);
+    if (filterViaje === 'LIBRE') return u.estatusPatio === 'Disponible' && !isUnitAssignedOrViaje(u);
     return true;
   });
 
@@ -166,6 +172,15 @@ export const PatioView = () => {
       color: 'var(--status-red-text)',
       badgeClass: 'status-taller',
       items: sortPatioUnits(patioUnits.filter(u => u.estatusPatio === 'Taller'))
+    },
+    {
+      id: 'Fuera de operación',
+      title: 'Fuera de operación',
+      subtitle: 'Préstamo, corralón u otro estatus no activo',
+      icon: Wrench,
+      color: 'var(--text-muted)',
+      badgeClass: 'status-taller',
+      items: sortPatioUnits(patioUnits.filter(u => u.estatusPatio === 'No Disponible'))
     }
   ];
 
