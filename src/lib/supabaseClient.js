@@ -288,6 +288,65 @@ export const deleteViajeDb = async (id) => {
   return data;
 };
 
+export const retireFleetUnitDb = async (eco, dbClient = supabase) => {
+  if (!dbClient) throw new Error('No hay conexión configurada con Supabase.');
+  const unitEco = String(eco || '').trim();
+  if (!unitEco) throw new Error('La unidad no tiene un económico válido.');
+
+  let catalogTable = null;
+  let originalStatus = 'ACTIVO';
+  for (const table of ['unidades', 'flota_maestra']) {
+    const { data, error } = await dbClient
+      .from(table)
+      .select('eco, estatus')
+      .eq('eco', unitEco)
+      .maybeSingle();
+
+    if (error) {
+      if (error.code === '42P01' || error.code === 'PGRST205') continue;
+      throw error;
+    }
+    if (data) {
+      catalogTable = table;
+      originalStatus = data.estatus || 'ACTIVO';
+      break;
+    }
+  }
+
+  if (!catalogTable) {
+    throw new Error(`No se encontró el ECO ${unitEco} en el padrón de flota.`);
+  }
+
+  const { data: retiredUnit, error: retireError } = await dbClient
+    .from(catalogTable)
+    .update({ estatus: 'BAJA' })
+    .eq('eco', unitEco)
+    .select('eco');
+
+  if (retireError) throw retireError;
+  if (!retiredUnit || retiredUnit.length === 0) {
+    throw new Error('Supabase no confirmó la baja de la unidad.');
+  }
+
+  const { error: deleteTripsError } = await dbClient
+    .from('viajes_diarios')
+    .delete()
+    .eq('economico', unitEco);
+
+  if (deleteTripsError) {
+    const { error: rollbackError } = await dbClient
+      .from(catalogTable)
+      .update({ estatus: originalStatus })
+      .eq('eco', unitEco);
+    if (rollbackError) {
+      throw new Error(`No se pudieron retirar los viajes y tampoco restaurar el estatus: ${rollbackError.message}`);
+    }
+    throw deleteTripsError;
+  }
+
+  return true;
+};
+
 // ==========================================
 // OPERACIONES HISTÓRICAS DE PLANES / DÍAS
 // ==========================================

@@ -13,7 +13,8 @@ import {
   fetchFlotaMaestraDb,
   fetchSucursalesDb,
   bulkUpsertViajesDb,
-  clearViajesDb
+  clearViajesDb,
+  retireFleetUnitDb
 } from '../lib/supabaseClient';
 import { FLOTA_TOTAL, SUCURSALES_MAESTRAS } from '../constants/fleetConstants';
 import { buscarIdOperadorPorNombre, buscarOperadorPorEco, checkTieneViajeYOperador, evaluarDisponibilidadManana, evaluarDisponibilidadMananaPorUnidad, resumirFlotaPorEstado, contarViajesSinUnidadAsignada } from '../utils/fleetUtils';
@@ -547,6 +548,33 @@ export const FleetProvider = ({ children }) => {
     }
   };
 
+  const retireUnitFromFleet = async (unit) => {
+    if (historicalPlanView) {
+      showAlert({
+        title: 'Modo Consulta Histórico',
+        message: 'Estás consultando un plan del historial en modo lectura. Para dar de baja una unidad, vuelve a tu plan de hoy.',
+        confirmType: 'warning'
+      });
+      return false;
+    }
+
+    const eco = String(unit?.economico || '').trim();
+    try {
+      await retireFleetUnitDb(eco);
+      setUnits(prev => prev.filter(current => String(current.economico || '').trim() !== eco));
+      setCatalogoFlota(prev => prev.filter(current => String(current.eco || '').trim() !== eco));
+      return true;
+    } catch (error) {
+      console.error('Error al dar de baja la unidad:', error);
+      showAlert({
+        title: 'No se pudo dar de baja la unidad',
+        message: error.message || 'Verifica tu conexión y los permisos de Supabase. No se retiró la unidad del tablero.',
+        confirmType: 'danger'
+      });
+      return false;
+    }
+  };
+
   // Cambio rápido de estatus por área
   const updateStatus = async (unitId, area, newStatus) => {
     if (historicalPlanView) {
@@ -965,6 +993,7 @@ export const FleetProvider = ({ children }) => {
       currentTime,
       saveUnit,
       deleteUnit,
+      retireUnitFromFleet,
       updateStatus,
       clearAllUnits,
       confirmModal,

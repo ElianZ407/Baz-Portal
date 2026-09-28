@@ -20,7 +20,7 @@ export const PatioView = () => {
     updateStatus, 
     setSelectedUnit, 
     setIsModalOpen, 
-    deleteUnit,
+    retireUnitFromFleet,
     showConfirm,
     searchQuery,
     setSearchQuery 
@@ -490,12 +490,12 @@ export const PatioView = () => {
                             onClick={(e) => {
                               e.stopPropagation();
                               showConfirm({
-                                title: `¿Eliminar la unidad ECO ${unit.economico}?`,
-                                message: 'Esta unidad será retirada de patio y de los tableros operativos de monitoreo.',
+                                title: `¿Dar de baja la unidad ECO ${unit.economico}?`,
+                                message: 'Se marcará como BAJA en el padrón y se retirarán sus viajes diarios. Esta acción la quitará de los tableros operativos.',
                                 unit: unit,
-                                confirmText: 'Sí, eliminar',
+                                confirmText: 'Sí, dar de baja',
                                 confirmType: 'danger',
-                                onConfirm: () => deleteUnit(unit.id)
+                                onConfirm: () => retireUnitFromFleet(unit)
                               });
                             }}
                             title="Eliminar unidad"
