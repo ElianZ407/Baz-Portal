@@ -159,7 +159,7 @@ export const evaluarDisponibilidadManana = (unitOrTrips, catalogoFlota = []) => 
   const isCompleted = unit => unit.estatusSupervisor === 'Completado' || unit.estatusPlaneacion === 'COMPLETADO';
   const hasTrip = unit => Boolean(unit.noViaje && !['—', '-', '0'].includes(String(unit.noViaje).trim()));
   const activeTripsById = new Map();
-  units.filter(unit => !isCompleted(unit)).forEach(unit => {
+  units.filter(unit => !isCompleted(unit) && hasTrip(unit)).forEach(unit => {
     const tripNumber = String(unit.noViaje || '').trim();
     const key = tripNumber && !['—', '-', '0'].includes(tripNumber)
       ? `trip-${tripNumber}`

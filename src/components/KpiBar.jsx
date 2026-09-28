@@ -64,11 +64,14 @@ export const KpiBar = () => {
           background: filterStatus === 'DISP_MANANA' ? 'rgba(16, 185, 129, 0.22)' : undefined,
           borderColor: filterStatus === 'DISP_MANANA' ? '#10b981' : undefined
         }}
-        title="Estimación de unidades disponibles mañana según la secuencia de viajes y regreso al CEDIS antes de las 06:00 — Clic para filtrar"
+        title="Incluye las unidades activas libres en patio. No sumes este indicador otra vez a Disponibles Patio. Considera la secuencia de viajes y regreso antes de las 06:00."
       >
         <div className="kpi-info">
           <h3>Disponibles Mañana</h3>
           <div className="kpi-value" style={{ color: '#34d399' }}>{kpis.disponiblesManana}</div>
+          <span style={{ display: 'block', marginTop: '0.1rem', color: 'var(--text-muted)', fontSize: '0.68rem' }}>
+            Incluye libres de patio
+          </span>
           <button
             type="button"
             onClick={event => {

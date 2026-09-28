@@ -18,11 +18,6 @@ export const TvDashboardView = () => {
     catalogoFlota
   } = useFleet();
 
-  const availabilityByUnitId = useMemo(
-    () => evaluarDisponibilidadMananaPorUnidad(units, catalogoFlota),
-    [units, catalogoFlota]
-  );
-
   const [filterFL, setFilterFL] = useState('ALL'); // 'ALL' | 'LOCAL' | 'FORANEO'
   const [currentDate, setCurrentDate] = useState(() => {
     return new Date().toLocaleDateString('es-MX', {
@@ -43,8 +38,48 @@ export const TvDashboardView = () => {
     return () => clearInterval(interval);
   }, []);
 
+  const tripEcos = useMemo(
+    () => new Set(units.map(unit => String(unit.economico || '').trim()).filter(Boolean)),
+    [units]
+  );
+  const catalogOnlyUnits = useMemo(() => (catalogoFlota || [])
+    .filter(unit => !tripEcos.has(String(unit.eco || '').trim()))
+    .map(unit => {
+      const eco = String(unit.eco || '').trim();
+      const status = String(unit.estatus || 'ACTIVO').trim().toUpperCase();
+      const isWorkshop = status.includes('TALLER');
+      return {
+        id: `catalog-${eco}`,
+        economico: eco,
+        noViaje: '',
+        placas: unit.placas || '',
+        operador: unit.operador || '',
+        idOperador: unit.idOperador || '',
+        tipo: unit.tipo || '',
+        capUnidad: unit.capUnidad || 0,
+        linea: unit.linea || '',
+        destino: '',
+        destinosSecundarios: [],
+        fl: 'LOCAL',
+        estatus: status,
+        estatusPatio: isWorkshop ? 'Taller' : status === 'ACTIVO' ? 'Disponible' : 'No Disponible',
+        estatusPlaneacion: 'PENDIENTE',
+        estatusSupervisor: 'Pendiente'
+      };
+    }),
+  [catalogoFlota, tripEcos]);
+  const includeCatalogOnly = ['DISP_MANANA', 'DISPONIBLE_PATIO', 'DISPONIBLES', 'EN_TALLER'].includes(filterStatus);
+  const unitsForFilter = useMemo(
+    () => includeCatalogOnly ? [...units, ...catalogOnlyUnits] : units,
+    [units, catalogOnlyUnits, includeCatalogOnly]
+  );
+  const availabilityByUnitId = useMemo(
+    () => evaluarDisponibilidadMananaPorUnidad(unitsForFilter, catalogoFlota),
+    [unitsForFilter, catalogoFlota]
+  );
+
   // Filtrar según el estado seleccionado, búsqueda y F/L
-  const filteredUnits = units.filter(unit => {
+  const filteredUnits = unitsForFilter.filter(unit => {
     const matchesSearch = 
       (unit.economico && unit.economico.toLowerCase().includes(searchQuery.toLowerCase())) ||
       (unit.operador && unit.operador.toLowerCase().includes(searchQuery.toLowerCase())) ||
