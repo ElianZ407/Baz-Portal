@@ -24,6 +24,8 @@ import { useFleet } from '../context/FleetContext';
 import { validarRestriccionesViaje, checkTieneViajeYOperador, resumirFlotaPorEstado, contarViajesSinUnidadAsignada } from '../utils/fleetUtils';
 import { exportOfficialExcel } from '../utils/exportOfficialExcel';
 
+const SUPERVISOR_ACTIVE_STATUSES = ['En Ruta', 'Espera Descarga', 'Descargando', 'Retorno', 'Retrasado', 'Completado'];
+
 // Configuración de colores e iconos para los estados de Supervisor reflejados en Planeación
 const getSupervisorStatusConfig = (status) => {
   switch (status) {
@@ -105,10 +107,7 @@ export const PlaneacionView = () => {
   const [expandedTripGroups, setExpandedTripGroups] = useState(() => new Set());
   const [expandedStops, setExpandedStops] = useState(() => new Set());
 
-  // Filtrado de unidades en planeación:
-  // En Planeación aparecen TODOS los viajes y unidades del plan del día (pendientes, colocados, cargados, en ruta, en sucursal, etc.)
-  const SUPERVISOR_ACTIVE_STATUSES = ['En Ruta', 'Espera Descarga', 'Descargando', 'Retorno', 'Retrasado', 'Completado'];
-
+  // En Planeación aparecen todos los viajes del día, con rutas repetidas agrupadas por ECO.
   const planeacionBaseUnits = units;
   const fleetStatusCounts = useMemo(
     () => resumirFlotaPorEstado(planeacionBaseUnits, catalogoFlota),
@@ -116,11 +115,11 @@ export const PlaneacionView = () => {
   );
 
   // Capacidades únicas presentes en el plan cargado (ordenadas)
-  const capsDisponibles = [...new Set(
+  const capsDisponibles = useMemo(() => [...new Set(
     planeacionBaseUnits.map(u => u.capUnidad).filter(Boolean)
-  )].sort((a, b) => Number(a) - Number(b));
+  )].sort((a, b) => Number(a) - Number(b)), [planeacionBaseUnits]);
 
-  const planeacionUnits = planeacionBaseUnits.filter(u => {
+  const planeacionUnits = useMemo(() => planeacionBaseUnits.filter(u => {
     const q = searchQuery.toLowerCase().trim();
     const matchesSearch = !q || 
       (u.economico && u.economico.toLowerCase().includes(q)) ||
@@ -155,7 +154,7 @@ export const PlaneacionView = () => {
     }
 
     return matchesSearch && matchesFL && matchesCapUnidad && matchesEstatus;
-  });
+  }), [planeacionBaseUnits, searchQuery, filterFL, filterCapUnidad, filterEstatus]);
 
   const tripsByEco = useMemo(() => {
     const groups = new Map();
@@ -167,6 +166,21 @@ export const PlaneacionView = () => {
     });
     return groups;
   }, [planeacionUnits]);
+  const tripGroupSummaries = useMemo(() => {
+    const summaries = new Map();
+    tripsByEco.forEach((trips, eco) => {
+      if (trips.length < 2) return;
+      const tripNumbers = [...new Set(trips.map(trip => String(trip.noViaje || '').trim()).filter(Boolean))];
+      const destinations = [...new Set(trips.map(trip => String(trip.destino || '').trim()).filter(Boolean))];
+      summaries.set(eco, {
+        firstTripId: trips[0].id,
+        tripCount: trips.length,
+        tripNumbers,
+        destinations
+      });
+    });
+    return summaries;
+  }, [tripsByEco]);
 
   const cargadoCount = fleetStatusCounts.cargadas;
   const colocadoCount = fleetStatusCounts.colocadas;
@@ -469,7 +483,7 @@ export const PlaneacionView = () => {
         <div className="table-header-title">
           <h2>
             <CalendarClock size={20} color="var(--accent-cyan)" />
-            Matriz de Embarques y Despacho ({planeacionUnits.length} Registros)
+            Matriz de Embarques y Despacho ({planeacionUnits.length} Viajes)
           </h2>
           <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
             Estatus Oficial: COLOCADO, CARGADO, PENDIENTE (Sincronizado en tiempo real)
@@ -502,14 +516,12 @@ export const PlaneacionView = () => {
               ) : (
                 planeacionUnits.map(unit => {
                   const ecoKey = String(unit.economico || '').trim();
-                  const ecoTrips = ecoKey ? tripsByEco.get(ecoKey) || [] : [];
-                  const isRepeatedEco = ecoTrips.length > 1;
-                  const isFirstTripForEco = isRepeatedEco && ecoTrips[0].id === unit.id;
+                  const tripGroup = ecoKey ? tripGroupSummaries.get(ecoKey) : null;
+                  const isRepeatedEco = Boolean(tripGroup);
+                  const isFirstTripForEco = isRepeatedEco && tripGroup.firstTripId === unit.id;
                   const isTripGroupExpanded = expandedTripGroups.has(ecoKey);
                   const stopGroupKey = String(unit.id);
                   const isStopsExpanded = expandedStops.has(stopGroupKey);
-                  const tripNumbers = [...new Set(ecoTrips.map(trip => String(trip.noViaje || '').trim()).filter(Boolean))];
-                  const groupDestinations = [...new Set(ecoTrips.map(trip => String(trip.destino || '').trim()).filter(Boolean))];
                   const isEnTaller = unit.estatusPatio === 'Taller' || unit.estatus === 'TALLER';
                   const estatusPlan = unit.estatusPlaneacion || 'PENDIENTE';
                   const estatusSup = unit.estatusSupervisor || null;
@@ -548,9 +560,10 @@ export const PlaneacionView = () => {
                   return (
                     <React.Fragment key={unit.id}>
                       {isFirstTripForEco && (
-                        <tr style={{ background: 'rgba(6, 182, 212, 0.08)', borderLeft: '4px solid var(--accent-cyan)' }}>
+                        <tr className="planeacion-eco-group-row">
                           <td colSpan="8" style={{ padding: 0 }}>
                             <button
+                              className="planeacion-eco-group-toggle"
                               type="button"
                               aria-expanded={isTripGroupExpanded}
                               onClick={() => setExpandedTripGroups(previous => {
@@ -559,32 +572,20 @@ export const PlaneacionView = () => {
                                 else next.add(ecoKey);
                                 return next;
                               })}
-                              style={{
-                                width: '100%',
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '0.55rem',
-                                padding: '0.6rem 0.75rem',
-                                border: 0,
-                                background: 'transparent',
-                                color: '#e2e8f0',
-                                textAlign: 'left',
-                                cursor: 'pointer'
-                              }}
                               title={isTripGroupExpanded ? 'Contraer viajes del ECO' : 'Desglosar viajes del ECO'}
                             >
                               {isTripGroupExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
                               <strong>ECO {ecoKey}</strong>
-                              <span style={{ color: 'var(--accent-cyan)', fontWeight: 700 }}>{ecoTrips.length} viajes</span>
-                              {tripNumbers.length > 0 && <span style={{ color: 'var(--text-muted)' }}>Folios: {tripNumbers.join(', ')}</span>}
-                              {groupDestinations.length > 0 && <span style={{ color: 'var(--text-secondary)' }}>Destinos: {groupDestinations.slice(0, 3).join(' → ')}{groupDestinations.length > 3 ? ` +${groupDestinations.length - 3}` : ''}</span>}
+                              <span className="planeacion-eco-group-count">{tripGroup.tripCount} viajes</span>
+                              {tripGroup.tripNumbers.length > 0 && <span className="planeacion-eco-group-meta">Folios: {tripGroup.tripNumbers.join(', ')}</span>}
+                              {tripGroup.destinations.length > 0 && <span className="planeacion-eco-group-destinations">Destinos: {tripGroup.destinations.slice(0, 3).join(' → ')}{tripGroup.destinations.length > 3 ? ` +${tripGroup.destinations.length - 3}` : ''}</span>}
                             </button>
                           </td>
                         </tr>
                       )}
                       {(!isRepeatedEco || isTripGroupExpanded) && (
                       <React.Fragment>
-                      <tr 
+                      <tr className="planeacion-data-row"
                         style={{
                         background: isEnTaller 
                           ? 'rgba(239, 68, 68, 0.06)' 
@@ -941,9 +942,10 @@ export const PlaneacionView = () => {
 
                     {/* SUB-FILAS DE PARADAS SECUNDARIAS / VTEX (RUTA MULTIPARADA) */}
                         {Array.isArray(unit.destinosSecundarios) && unit.destinosSecundarios.length > 0 && (
-                          <tr key={`${unit.id}-stops-toggle`}>
+                          <tr key={`${unit.id}-stops-toggle`} className="planeacion-stops-toggle-row">
                             <td colSpan="8" style={{ padding: '0.25rem 0.65rem', background: 'rgba(15, 23, 42, 0.35)' }}>
                               <button
+                                className="planeacion-stops-toggle"
                                 type="button"
                                 aria-expanded={isStopsExpanded}
                                 onClick={() => setExpandedStops(previous => {
