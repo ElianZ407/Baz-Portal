@@ -20,7 +20,7 @@ import {
 } from 'lucide-react';
 import { useFleet } from '../context/FleetContext';
 import { BLOQUES } from '../constants/fleetConstants';
-import { validarRestriccionesViaje, checkTieneViajeYOperador, evaluarDisponibilidadManana, evaluarDisponibilidadMananaPorUnidad, resumirFlotaPorEstado, contarViajesSinUnidadAsignada } from '../utils/fleetUtils';
+import { validarRestriccionesViaje, checkTieneViajeYOperador, resumirFlotaPorEstado, contarViajesSinUnidadAsignada } from '../utils/fleetUtils';
 import { exportOfficialExcel } from '../utils/exportOfficialExcel';
 
 // Configuración de colores e iconos para los estados de Supervisor reflejados en Planeación
@@ -100,7 +100,7 @@ export const PlaneacionView = () => {
 
   const [filterBloque, setFilterBloque] = useState('ALL');
   const [filterFL, setFilterFL] = useState('ALL'); // 'ALL' | 'LOCAL' | 'FORANEO'
-  const [filterEstatus, setFilterEstatus] = useState('ALL'); // 'ALL' | 'PENDIENTE' | 'COLOCADO' | 'CARGADO' | 'TALLER' | 'DISP_MANANA'
+  const [filterEstatus, setFilterEstatus] = useState('ALL'); // 'ALL' | 'PENDIENTE' | 'COLOCADO' | 'CARGADO' | 'TALLER' | 'SIN_UNIDAD'
   const [filterCapUnidad, setFilterCapUnidad] = useState('ALL'); // 'ALL' | '18' | '40' | '50' | '90' | '110'
 
   // Filtrado de unidades en planeación:
@@ -108,10 +108,6 @@ export const PlaneacionView = () => {
   const SUPERVISOR_ACTIVE_STATUSES = ['En Ruta', 'Espera Descarga', 'Descargando', 'Retorno', 'Retrasado', 'Completado'];
 
   const planeacionBaseUnits = units;
-  const availabilityByUnitId = useMemo(
-    () => evaluarDisponibilidadMananaPorUnidad(planeacionBaseUnits, catalogoFlota),
-    [planeacionBaseUnits, catalogoFlota]
-  );
   const fleetStatusCounts = useMemo(
     () => resumirFlotaPorEstado(planeacionBaseUnits, catalogoFlota),
     [planeacionBaseUnits, catalogoFlota]
@@ -145,10 +141,6 @@ export const PlaneacionView = () => {
       matchesEstatus = true;
     } else if (filterEstatus === 'SIN_UNIDAD') {
       matchesEstatus = !String(u.economico || '').trim();
-    } else if (filterEstatus === 'DISP_MANANA') {
-      matchesEstatus = Boolean(String(u.economico || '').trim()) && Boolean(availabilityByUnitId.get(String(u.id))?.disponible);
-    } else if (filterEstatus === 'POR_CONFIRMAR') {
-      matchesEstatus = Boolean(String(u.economico || '').trim()) && availabilityByUnitId.get(String(u.id))?.badge === 'POR CONFIRMAR';
     } else if (filterEstatus === 'TALLER') {
       matchesEstatus = isTaller;
     } else if (filterEstatus === 'CARGADO') {
@@ -169,12 +161,6 @@ export const PlaneacionView = () => {
   const pendienteCount = fleetStatusCounts.pendientes;
   const tallerCount = fleetStatusCounts.taller;
   const disponiblesPatioCount = kpis?.disponiblesPatio ?? fleetStatusCounts.disponibles;
-  const dispMananaCount = new Set(planeacionBaseUnits
-    .filter(u => String(u.economico || '').trim() && availabilityByUnitId.get(String(u.id))?.disponible)
-    .map(u => String(u.economico).trim())).size;
-  const porConfirmarMananaCount = new Set(planeacionBaseUnits
-    .filter(u => String(u.economico || '').trim() && availabilityByUnitId.get(String(u.id))?.badge === 'POR CONFIRMAR')
-    .map(u => String(u.economico).trim())).size;
   const viajesSinUnidadAsignadaCount = contarViajesSinUnidadAsignada(planeacionBaseUnits);
 
   const handleEdit = (unit) => {
@@ -271,26 +257,6 @@ export const PlaneacionView = () => {
               {disponiblesPatioCount}
             </div>
           </div>
-          <div 
-            style={{ 
-              background: filterEstatus === 'DISP_MANANA' ? 'rgba(16, 185, 129, 0.25)' : '#101b30', 
-              padding: '0.45rem 0.85rem', 
-              borderRadius: 'var(--radius-md)', 
-              border: filterEstatus === 'DISP_MANANA' ? '1.5px solid #10b981' : '1px solid rgba(16, 185, 129, 0.4)', 
-              textAlign: 'center',
-              cursor: 'pointer',
-              transition: 'all 0.15s ease'
-            }}
-            onClick={() => setFilterEstatus(filterEstatus === 'DISP_MANANA' ? 'ALL' : 'DISP_MANANA')}
-            title="Clic para filtrar las unidades que estarán disponibles para mañana"
-          >
-            <span style={{ fontSize: '0.68rem', color: '#34d399', textTransform: 'uppercase', fontWeight: 700 }}>
-              DISPONIBLES MAÑANA
-            </span>
-            <div style={{ fontFamily: 'var(--font-mono)', fontSize: '1.25rem', fontWeight: 800, color: '#34d399' }}>
-              {dispMananaCount}
-            </div>
-          </div>
           <div style={{ background: '#101b30', padding: '0.45rem 0.85rem', borderRadius: 'var(--radius-md)', border: '1px solid rgba(6, 182, 212, 0.3)', textAlign: 'center' }}>
             <span style={{ fontSize: '0.68rem', color: '#22d3ee', textTransform: 'uppercase', fontWeight: 700 }}>COLOCADO</span>
             <div style={{ fontFamily: 'var(--font-mono)', fontSize: '1.25rem', fontWeight: 800, color: '#22d3ee' }}>
@@ -374,22 +340,6 @@ export const PlaneacionView = () => {
               onClick={() => setFilterEstatus('ALL')}
             >
               Todos ({planeacionBaseUnits.length} viajes)
-            </button>
-            <button 
-              className={`pill-btn ${filterEstatus === 'DISP_MANANA' ? 'active' : ''}`}
-              onClick={() => setFilterEstatus(filterEstatus === 'DISP_MANANA' ? 'ALL' : 'DISP_MANANA')}
-              style={filterEstatus === 'DISP_MANANA' ? { background: 'rgba(16, 185, 129, 0.25)', borderColor: '#10b981', color: '#34d399', fontWeight: 800 } : {}}
-              title="Filtrar unidades estimadas como Disponibles para Mañana"
-            >
-              🌅 DISP. MAÑANA ({dispMananaCount})
-            </button>
-            <button
-              className={`pill-btn ${filterEstatus === 'POR_CONFIRMAR' ? 'active' : ''}`}
-              onClick={() => setFilterEstatus(filterEstatus === 'POR_CONFIRMAR' ? 'ALL' : 'POR_CONFIRMAR')}
-              style={filterEstatus === 'POR_CONFIRMAR' ? { background: 'rgba(245, 158, 11, 0.2)', borderColor: '#f59e0b', color: '#fbbf24', fontWeight: 800 } : {}}
-              title="Filtrar unidades a las que les falta hora de salida o duración estimada"
-            >
-              POR CONFIRMAR ({porConfirmarMananaCount})
             </button>
             <button
               className={`pill-btn ${filterEstatus === 'SIN_UNIDAD' ? 'active' : ''}`}
@@ -794,22 +744,6 @@ export const PlaneacionView = () => {
                           </span>
                         )}
 
-                        {/* Diagnóstico si el filtro de Disponibles Mañana está activo */}
-                        {filterEstatus === 'DISP_MANANA' && (
-                          <div style={{
-                            marginTop: '0.3rem',
-                            fontSize: '0.68rem',
-                            color: '#34d399',
-                            background: 'rgba(16, 185, 129, 0.15)',
-                            border: '1px solid rgba(16, 185, 129, 0.35)',
-                            padding: '0.12rem 0.4rem',
-                            borderRadius: '4px',
-                            fontWeight: 700,
-                            whiteSpace: 'nowrap'
-                          }} title={availabilityByUnitId.get(String(unit.id))?.detalle}>
-                            🌅 {availabilityByUnitId.get(String(unit.id))?.motivo}
-                          </div>
-                        )}
                       </td>
 
                       {/* ACCIONES Y TRANSICIÓN RÁPIDA */}
