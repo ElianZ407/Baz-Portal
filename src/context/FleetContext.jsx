@@ -429,6 +429,7 @@ export const FleetProvider = ({ children }) => {
     // Pronóstico para mañana: contar económicos únicos y separar los que faltan confirmar.
     const activeEcos = new Set();
     const disponiblesMananaActivas = new Set();
+    const regresanManana = new Set();
     const porConfirmarManana = new Set();
     const availabilityByUnitId = evaluarDisponibilidadMananaPorUnidad(displayedUnits, catalogoFlota);
     const viajesSinUnidadAsignada = contarViajesSinUnidadAsignada(displayedUnits);
@@ -441,6 +442,7 @@ export const FleetProvider = ({ children }) => {
       const unitKey = `eco-${eco}`;
       if (evalResult.disponible) {
         disponiblesMananaActivas.add(unitKey);
+        if (evalResult.regresaManana) regresanManana.add(unitKey);
       } else if (evalResult.badge === 'POR CONFIRMAR') {
         porConfirmarManana.add(unitKey);
       }
@@ -467,6 +469,8 @@ export const FleetProvider = ({ children }) => {
       disponiblesPatio,
       cargadasPatio,
       disponiblesManana,
+      libresManana: disponiblesManana - regresanManana.size,
+      regresanManana: regresanManana.size,
       porConfirmarManana: porConfirmarManana.size,
       viajesSinUnidadAsignada,
       fueraOperacion: fleetStatusCounts.fueraOperacion

@@ -114,6 +114,9 @@ export const TvDashboardView = () => {
     if (filterStatus === 'DISP_MANANA') {
       return availabilityByUnitId.get(String(unit.id))?.disponible || false;
     }
+    if (filterStatus === 'REGRESAN_MANANA') {
+      return availabilityByUnitId.get(String(unit.id))?.regresaManana || false;
+    }
     if (filterStatus === 'POR_CONFIRMAR') {
       return Boolean(String(unit.economico || '').trim()) && availabilityByUnitId.get(String(unit.id))?.badge === 'POR CONFIRMAR';
     }
@@ -425,24 +428,36 @@ export const TvDashboardView = () => {
                       <td style={{ textAlign: 'center' }}>
                         {(() => {
                           const opStatus = getUnitOperationalStatus(unit);
-                          const mananaStatus = availabilityByUnitId.get(String(unit.id));
+                          const mananaStatus = availabilityByUnitId.get(String(unit.id)) || {};
+                          const showManana = filterStatus === 'DISP_MANANA' ||
+                            filterStatus === 'POR_CONFIRMAR' ||
+                            filterStatus === 'REGRESAN_MANANA';
+                          const mananaColor = mananaStatus.badge === 'POR CONFIRMAR'
+                            ? '#fbbf24'
+                            : mananaStatus.regresaManana ? '#38bdf8' : '#34d399';
+                          const mananaBackground = mananaStatus.badge === 'POR CONFIRMAR'
+                            ? 'rgba(245, 158, 11, 0.15)'
+                            : mananaStatus.regresaManana ? 'rgba(56, 189, 248, 0.15)' : 'rgba(16, 185, 129, 0.15)';
+                          const mananaBorder = mananaStatus.badge === 'POR CONFIRMAR'
+                            ? '1px solid rgba(245, 158, 11, 0.3)'
+                            : mananaStatus.regresaManana ? '1px solid rgba(56, 189, 248, 0.35)' : '1px solid rgba(16, 185, 129, 0.3)';
                           return (
                             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.25rem' }}>
                               <span className={`status-badge ${opStatus.badgeClass}`}>
                                 {opStatus.text}
                               </span>
-                              {(filterStatus === 'DISP_MANANA' || filterStatus === 'POR_CONFIRMAR') && (
+                              {showManana && mananaStatus.badge && (
                                 <span style={{
                                   fontSize: '0.7rem',
-                                  color: mananaStatus.badge === 'POR CONFIRMAR' ? '#fbbf24' : '#34d399',
-                                  background: mananaStatus.badge === 'POR CONFIRMAR' ? 'rgba(245, 158, 11, 0.15)' : 'rgba(16, 185, 129, 0.15)',
-                                  border: mananaStatus.badge === 'POR CONFIRMAR' ? '1px solid rgba(245, 158, 11, 0.3)' : '1px solid rgba(16, 185, 129, 0.3)',
+                                  color: mananaColor,
+                                  background: mananaBackground,
+                                  border: mananaBorder,
                                   padding: '0.15rem 0.4rem',
                                   borderRadius: '4px',
                                   fontWeight: 700,
                                   whiteSpace: 'nowrap'
                                 }} title={mananaStatus.detalle}>
-                                  🌅 {mananaStatus.motivo}
+                                  {mananaStatus.regresaManana ? '🌄' : '🌅'} {mananaStatus.motivo}
                                 </span>
                               )}
                             </div>

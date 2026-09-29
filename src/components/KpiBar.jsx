@@ -64,14 +64,35 @@ export const KpiBar = () => {
           background: filterStatus === 'DISP_MANANA' ? 'rgba(16, 185, 129, 0.22)' : undefined,
           borderColor: filterStatus === 'DISP_MANANA' ? '#10b981' : undefined
         }}
-        title="Incluye unidades activas libres en patio y viajes completados. Una unidad con ruta asignada no está disponible para mañana."
+        title="Libres en patio + unidades que regresan de viaje largo. No incluye camionetas, que regresan en el mismo día."
       >
         <div className="kpi-info">
           <h3>Disponibles Mañana</h3>
           <div className="kpi-value" style={{ color: '#34d399' }}>{kpis.disponiblesManana}</div>
           <span style={{ display: 'block', marginTop: '0.1rem', color: 'var(--text-muted)', fontSize: '0.68rem' }}>
-            Incluye libres de patio
+            {kpis.libresManana} libres · {kpis.regresanManana} regresan
           </span>
+          <button
+            type="button"
+            onClick={event => {
+              event.stopPropagation();
+              setFilterStatus(filterStatus === 'REGRESAN_MANANA' ? 'ALL' : 'REGRESAN_MANANA');
+            }}
+            style={{
+              marginTop: '0.2rem',
+              padding: 0,
+              border: 0,
+              background: 'transparent',
+              color: '#38bdf8',
+              font: 'inherit',
+              fontSize: '0.72rem',
+              fontWeight: filterStatus === 'REGRESAN_MANANA' ? 700 : undefined,
+              cursor: 'pointer'
+            }}
+            title="Ver unidades que ya salieron en viaje largo y regresan mañana (Clic para filtrar)"
+          >
+            {kpis.regresanManana} regresan de viaje largo
+          </button>
           <button
             type="button"
             onClick={event => {

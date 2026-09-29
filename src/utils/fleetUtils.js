@@ -121,6 +121,51 @@ export const checkTieneViajeYOperador = (unit) => {
 // Una unidad solo se pronostica disponible si está libre o terminó su viaje.
 const hasTripNumber = unit => Boolean(unit.noViaje && !['—', '-', '0'].includes(String(unit.noViaje).trim()));
 
+// Normaliza texto para comparar sin acentos ni mayúsculas (Rabón = RABON).
+const normalizarTexto = value => String(value || '')
+  .trim()
+  .toUpperCase()
+  .normalize('NFD')
+  .replace(/[\u0300-\u036f]/g, '');
+
+// Estados que confirman que la unidad ya salió del CEDIS y está en camino.
+const PARTIO_PLANEACION = ['CARGADO', 'EN CASETA', 'RETORNO'];
+const PARTIO_PATIO = ['CARGADO', 'EN SUCURSAL', 'EN RUTA', 'DESCARGANDO', 'RETORNO'];
+const PARTIO_SUPERVISOR = ['EN RUTA', 'ESPERA DESCARGA', 'DESCARGANDO', 'RETORNO', 'RETRASADO'];
+
+// La flota ya viene clasificada en el campo `tipo` del padrón. Solo se listan
+// aquí los sinónimos que deben tratarse como camioneta (vuelven en el mismo día).
+const TIPOS_CAMIONETA = ['CAMIONETA', 'VAN', 'SPRINTER', 'KANGOO', 'PICKUP'];
+const CAPACIDAD_CAMIONETA = 18;
+
+export const esUnidadCamioneta = (unit) => {
+  if (!unit) return false;
+  const tipo = normalizarTexto(unit.tipo);
+  if (tipo) return TIPOS_CAMIONETA.some(alias => tipo.includes(alias));
+  return Number(unit.capUnidad) === CAPACIDAD_CAMIONETA;
+};
+
+// El `tipo` del padrón manda; `capUnidad` solo resuelve registros sin tipo.
+const clasificarTipoUnidad = (units, fleetUnit) => {
+  const candidatos = [fleetUnit, ...units].filter(Boolean);
+  const conTipo = candidatos.find(u => String(u.tipo || '').trim());
+  return esUnidadCamioneta(conTipo || candidatos[0] || {}) ? 'CAMIONETA' : 'LARGO';
+};
+
+const yaPartioDeRuta = (unit) => {
+  if (!unit) return false;
+  return PARTIO_PLANEACION.includes(normalizarTexto(unit.estatusPlaneacion)) ||
+    PARTIO_PATIO.includes(normalizarTexto(unit.estatusPatio)) ||
+    PARTIO_SUPERVISOR.includes(normalizarTexto(unit.estatusSupervisor));
+};
+
+export const regresaMananaDeViajeLargo = (units, fleetUnit) => {
+  const registros = (Array.isArray(units) ? units : [units]).filter(Boolean);
+  if (registros.length === 0) return false;
+  if (clasificarTipoUnidad(registros, fleetUnit) === 'CAMIONETA') return false;
+  return registros.some(yaPartioDeRuta);
+};
+
 export const tieneRutaAsignada = (unit) => {
   if (!unit) return false;
   const planningStatus = String(unit.estatusPlaneacion || '').trim().toUpperCase();
@@ -156,7 +201,7 @@ export const consolidarUnidadesPatioPorEconomico = (units = []) => {
 export const evaluarDisponibilidadManana = (unitOrTrips, catalogoFlota = []) => {
   const units = (Array.isArray(unitOrTrips) ? unitOrTrips : [unitOrTrips]).filter(Boolean);
   if (units.length === 0) {
-    return { disponible: false, motivo: 'Sin datos', badge: 'DESCONOCIDO', color: '#94a3b8' };
+    return { disponible: false, regresaManana: false, motivo: 'Sin datos', badge: 'DESCONOCIDO', color: '#94a3b8' };
   }
 
   const eco = units[0].economico;
@@ -170,6 +215,7 @@ export const evaluarDisponibilidadManana = (unitOrTrips, catalogoFlota = []) => 
   if (isTaller) {
     return {
       disponible: false,
+      regresaManana: false,
       badge: 'NO DISPONIBLE',
       motivo: 'En Taller mecánico',
       detalle: 'No disponible por mantenimiento',
@@ -180,6 +226,7 @@ export const evaluarDisponibilidadManana = (unitOrTrips, catalogoFlota = []) => 
   if (fleetStatus && fleetStatus !== 'ACTIVO') {
     return {
       disponible: false,
+      regresaManana: false,
       badge: 'NO DISPONIBLE',
       motivo: fleetStatus === 'BAJA' ? 'Unidad dada de baja' : 'Fuera de operación',
       detalle: `Estatus del padrón: ${fleetUnit.estatus}`,
@@ -198,17 +245,6 @@ export const evaluarDisponibilidadManana = (unitOrTrips, catalogoFlota = []) => 
   });
   const trips = [...activeTripsById.values()];
 
-  if (trips.length > 0) {
-    const tripCount = trips.length;
-    return {
-      disponible: false,
-      badge: 'NO DISPONIBLE',
-      motivo: 'Tiene ruta programada',
-      detalle: `Asignada a ${tripCount} ${tripCount === 1 ? 'viaje' : 'viajes'}; se libera al completar sus rutas`,
-      color: '#f59e0b'
-    };
-  }
-
   if (trips.length === 0) {
     const isPatioLibre = units.some(unit =>
       (unit.estatusPatio === 'Disponible' || !unit.estatusPatio) && !hasTripNumber(unit)
@@ -216,12 +252,37 @@ export const evaluarDisponibilidadManana = (unitOrTrips, catalogoFlota = []) => 
     const available = isPatioLibre || units.some(isCompleted);
     return {
       disponible: available,
+      regresaManana: false,
       badge: available ? 'DISPONIBLE' : 'POR CONFIRMAR',
       motivo: available ? 'Unidad libre en CEDIS' : 'Por confirmar',
       detalle: available ? 'Sin viajes pendientes para esta unidad' : 'Confirma los viajes asignados a la unidad',
       color: available ? '#10b981' : '#f59e0b'
     };
   }
+
+  // La unidad ya salió del CEDIS en un viaje largo (rabón, automática o full):
+  // esos viajes son de 36 h, así que vuelve a estar operable mañana.
+  // Las camionetas se excluyen porque regresan dentro del mismo día.
+  if (trips.every(yaPartioDeRuta) && regresaMananaDeViajeLargo(units, fleetUnit)) {
+    return {
+      disponible: true,
+      regresaManana: true,
+      badge: 'REGRESA MAÑANA',
+      motivo: 'Regresa de viaje largo',
+      detalle: 'Viaje de 36 h en curso; la unidad queda libre para mañana',
+      color: '#38bdf8'
+    };
+  }
+
+  const tripCount = trips.length;
+  return {
+    disponible: false,
+    regresaManana: false,
+    badge: 'NO DISPONIBLE',
+    motivo: 'Tiene ruta programada',
+    detalle: `Asignada a ${tripCount} ${tripCount === 1 ? 'viaje' : 'viajes'}; se libera al completar sus rutas`,
+    color: '#f59e0b'
+  };
 };
 
 export const evaluarDisponibilidadMananaPorUnidad = (units = [], catalogoFlota = []) => {
