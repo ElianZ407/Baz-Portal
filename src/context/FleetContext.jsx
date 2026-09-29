@@ -244,8 +244,8 @@ export const FleetProvider = ({ children }) => {
           placas: f.placas || '',
           idOperador: f.id_operador || f.idOperador || '',
           operador: f.operador || '',
-          tipo: f.tipo || 'Camioneta',
-          capUnidad: Number(f.cap_unidad || f.capUnidad) || 18,
+          tipo: f.tipo || '',
+          capUnidad: Number(f.cap_unidad || f.capUnidad) || 0,
           estatus: f.estatus || 'ACTIVO',
           linea: f.linea || 'LTI - VHS'
         })).filter(unit => String(unit.estatus).trim().toUpperCase() !== 'BAJA');
@@ -601,8 +601,8 @@ export const FleetProvider = ({ children }) => {
           id: (typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID() : `baz-${Date.now()}-${Math.random().toString(36).substring(2)}`,
           economico: String(master.eco),
           placas: master.placas || '',
-          tipo: master.tipo || 'Camioneta',
-          capUnidad: Number(master.capUnidad || 18),
+          tipo: master.tipo || '',
+          capUnidad: Number(master.capUnidad) || 0,
           linea: master.linea || 'LTI - VHS',
           operador: master.operador || '',
           idOperador: master.idOperador || '',

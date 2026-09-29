@@ -145,11 +145,16 @@ export const esUnidadCamioneta = (unit) => {
   return Number(unit.capUnidad) === CAPACIDAD_CAMIONETA;
 };
 
-// El `tipo` del padrón manda; `capUnidad` solo resuelve registros sin tipo.
+// `fl` viene de la sucursal destino y se copia a la fila del viaje. Solo el
+// foraneo puede pernoctar: un local regresa dentro del mismo dia.
+const esViajeForaneo = unit => String(unit?.fl || '').trim().toUpperCase() === 'FORANEO';
+
+// El `tipo` del padron manda; `capUnidad` solo resuelve registros sin tipo.
 const clasificarTipoUnidad = (units, fleetUnit) => {
   const candidatos = [fleetUnit, ...units].filter(Boolean);
   const conTipo = candidatos.find(u => String(u.tipo || '').trim());
-  return esUnidadCamioneta(conTipo || candidatos[0] || {}) ? 'CAMIONETA' : 'LARGO';
+  if (!conTipo) return 'DESCONOCIDO';
+  return esUnidadCamioneta(conTipo) ? 'CAMIONETA' : 'LARGO';
 };
 
 const yaPartioDeRuta = (unit) => {
@@ -162,7 +167,8 @@ const yaPartioDeRuta = (unit) => {
 export const regresaMananaDeViajeLargo = (units, fleetUnit) => {
   const registros = (Array.isArray(units) ? units : [units]).filter(Boolean);
   if (registros.length === 0) return false;
-  if (clasificarTipoUnidad(registros, fleetUnit) === 'CAMIONETA') return false;
+  const tipo = clasificarTipoUnidad(registros, fleetUnit);
+  if (tipo === 'CAMIONETA' || tipo === 'DESCONOCIDO') return false;
   return registros.some(yaPartioDeRuta);
 };
 
@@ -260,16 +266,18 @@ export const evaluarDisponibilidadManana = (unitOrTrips, catalogoFlota = []) => 
     };
   }
 
-  // La unidad ya salió del CEDIS en un viaje largo (rabón, automática o full):
-  // esos viajes son de 36 h, así que vuelve a estar operable mañana.
-  // Las camionetas se excluyen porque regresan dentro del mismo día.
-  if (trips.every(yaPartioDeRuta) && regresaMananaDeViajeLargo(units, fleetUnit)) {
+  // La unidad ya salió del CEDIS en un viaje largo (rabón, automática o full)
+  // con destino foráneo: esos viajes son de 36 h, así que vuelve a estar
+  // operable mañana. Las camionetas se excluyen porque regresan dentro del
+  // mismo día, y los viajes locales también, porque regresan en el día.
+  const hayForaneoPartido = trips.some(trip => yaPartioDeRuta(trip) && esViajeForaneo(trip));
+  if (trips.every(yaPartioDeRuta) && hayForaneoPartido && regresaMananaDeViajeLargo(units, fleetUnit)) {
     return {
       disponible: true,
       regresaManana: true,
       badge: 'REGRESA MAÑANA',
-      motivo: 'Regresa de viaje largo',
-      detalle: 'Viaje de 36 h en curso; la unidad queda libre para mañana',
+      motivo: 'Regresa de viaje foráneo',
+      detalle: 'Viaje foráneo de 36 h en curso; la unidad queda libre para mañana',
       color: '#38bdf8'
     };
   }
@@ -321,7 +329,7 @@ export const resumirFlotaPorEstado = (units = [], catalogoFlota = []) => {
   const ecoRoster = fleetByEco.size > 0
     ? [...fleetByEco.keys()]
     : [...unitsByEco.keys()];
-  const counts = { total: fleetByEco.size || 55, disponibles: 0, colocadas: 0, cargadas: 0, pendientes: 0, taller: 0, fueraOperacion: 0 };
+  const counts = { total: ecoRoster.length, disponibles: 0, colocadas: 0, cargadas: 0, pendientes: 0, taller: 0, fueraOperacion: 0 };
   const activeStatuses = ['En Ruta', 'Espera Descarga', 'Descargando', 'Retorno', 'Retrasado'];
 
   ecoRoster.forEach(eco => {

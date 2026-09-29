@@ -64,7 +64,7 @@ export const KpiBar = () => {
           background: filterStatus === 'DISP_MANANA' ? 'rgba(16, 185, 129, 0.22)' : undefined,
           borderColor: filterStatus === 'DISP_MANANA' ? '#10b981' : undefined
         }}
-        title="Libres en patio + unidades que regresan de viaje largo. No incluye camionetas, que regresan en el mismo día."
+        title="Libres en patio + unidades que regresan de viaje foráneo largo. No incluye camionetas ni viajes locales, que regresan en el mismo día."
       >
         <div className="kpi-info">
           <h3>Disponibles Mañana</h3>
@@ -89,9 +89,9 @@ export const KpiBar = () => {
               fontWeight: filterStatus === 'REGRESAN_MANANA' ? 700 : undefined,
               cursor: 'pointer'
             }}
-            title="Ver unidades que ya salieron en viaje largo y regresan mañana (Clic para filtrar)"
+            title="Ver unidades que ya salieron en viaje foráneo largo y regresan mañana (Clic para filtrar)"
           >
-            {kpis.regresanManana} regresan de viaje largo
+            {kpis.regresanManana} regresan de viaje foráneo
           </button>
           <button
             type="button"
