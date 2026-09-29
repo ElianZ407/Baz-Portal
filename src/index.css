@@ -2669,6 +2669,118 @@ body {
   100% { transform: translateY(10px) translateX(-8px); }
 }
 
+/* ==========================================================================
+   Fondo Animado: Red de Rutas BAZ
+   Las capas continuas y estaticas viven aqui (GPU, coste JS cero);
+   el canvas solo dibuja el estado dinamico de la red de nodos.
+   ========================================================================== */
+.routes-background-wrapper {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  pointer-events: none;
+  z-index: 0;
+  overflow: hidden;
+  background: radial-gradient(125% 95% at 50% 0%, #0a1628 0%, #060a15 48%, #04070f 100%);
+}
+
+.routes-bg-canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* Resplandores ambientales en deriva lenta */
+.routes-bg-glow {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(100px);
+  will-change: transform;
+  transform: translateZ(0);
+}
+
+.routes-bg-glow-cyan {
+  width: 860px;
+  height: 640px;
+  top: -20%;
+  right: 2%;
+  background: radial-gradient(circle, rgba(34, 211, 238, 0.24) 0%, rgba(6, 182, 212, 0.1) 46%, transparent 72%);
+  animation: routesGlowDriftA 26s ease-in-out infinite alternate;
+}
+
+.routes-bg-glow-emerald {
+  width: 720px;
+  height: 560px;
+  bottom: -12%;
+  left: 2%;
+  background: radial-gradient(circle, rgba(16, 185, 129, 0.2) 0%, rgba(5, 150, 105, 0.08) 48%, transparent 72%);
+  animation: routesGlowDriftB 32s ease-in-out infinite alternate;
+}
+
+.routes-bg-glow-purple {
+  width: 640px;
+  height: 640px;
+  top: 34%;
+  right: 26%;
+  background: radial-gradient(circle, rgba(168, 85, 247, 0.16) 0%, rgba(126, 34, 206, 0.06) 50%, transparent 74%);
+  animation: routesGlowDriftC 38s ease-in-out infinite alternate;
+}
+
+@keyframes routesGlowDriftA {
+  0% { transform: translate3d(0, 0, 0) scale(1); }
+  50% { transform: translate3d(-70px, 46px, 0) scale(1.12); }
+  100% { transform: translate3d(34px, -34px, 0) scale(0.94); }
+}
+
+@keyframes routesGlowDriftB {
+  0% { transform: translate3d(0, 0, 0) scale(1); }
+  50% { transform: translate3d(58px, -52px, 0) scale(1.1); }
+  100% { transform: translate3d(-38px, 34px, 0) scale(0.93); }
+}
+
+@keyframes routesGlowDriftC {
+  0% { transform: translate3d(0, 0, 0) scale(0.96); }
+  50% { transform: translate3d(46px, 62px, 0) scale(1.14); }
+  100% { transform: translate3d(-52px, -24px, 0) scale(1); }
+}
+
+/* Malla de coordenadas con deriva de paralaje */
+.routes-bg-grid {
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background-image:
+    linear-gradient(rgba(56, 189, 248, 0.045) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(56, 189, 248, 0.045) 1px, transparent 1px);
+  background-size: 64px 64px;
+  -webkit-mask-image: radial-gradient(closest-side at 50% 45%, #000 18%, transparent 76%);
+  mask-image: radial-gradient(closest-side at 50% 45%, #000 18%, transparent 76%);
+  will-change: transform;
+  animation: routesGridDrift 44s linear infinite;
+}
+
+@keyframes routesGridDrift {
+  from { transform: translate3d(0, 0, 0); }
+  to { transform: translate3d(-64px, -64px, 0); }
+}
+
+/* Vineta para anclar la composicion y mantener legible el contenido */
+.routes-bg-vignette {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: radial-gradient(115% 88% at 50% 42%, transparent 44%, rgba(2, 4, 10, 0.5) 80%, rgba(2, 4, 10, 0.82) 100%);
+}
+
 /* Capas y contenidos por encima del fondo animado */
 .app-container {
   position: relative;
@@ -2692,13 +2804,16 @@ body {
   -webkit-backdrop-filter: blur(12px) !important;
 }
 
-/* Accesibilidad */
+/* Accesibilidad: el canvas de rutas se detiene desde JS (matchMedia),
+   aqui se cubren las capas CSS */
 @media (prefers-reduced-motion: reduce) {
   .sat-radar-sweep,
   .sat-laser-scanline,
   .sat-glow-orb,
   .sat-node,
-  .sat-hub-ping {
+  .sat-hub-ping,
+  .routes-bg-glow,
+  .routes-bg-grid {
     animation: none !important;
   }
 }
