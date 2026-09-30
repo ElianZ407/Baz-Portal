@@ -386,69 +386,48 @@ export const evaluarDisponibilidadManana = (unitOrTrips, catalogoFlota = []) => 
     return 0;
   };
 
-  // La unidad ya salió del CEDIS en un viaje. 
-  // Para viajes foráneos calculamos si por la duración de horas regresará antes de mañana a las 22:00.
-  const hayForaneoPartido = trips.some(trip => yaPartioDeRuta(trip) && esViajeForaneo(trip));
+  // Analizar la disponibilidad basada en el viaje asignado (sin importar si ya partió o está pendiente)
+  const trip = trips.find(t => esViajeForaneo(t)) || trips[0]; // Usar el viaje más largo/foráneo si hay
   
-  // Si todos sus viajes asignados ya partieron, evaluamos su ETA.
-  if (trips.every(yaPartioDeRuta) && regresaMananaDeViajeLargo(units, fleetUnit)) {
-    const trip = trips.find(t => esViajeForaneo(t)) || trips[0]; // Usar el viaje foráneo principal
-    
-    // Determinar la duración del viaje en horas (priorizando el tiempo estimado cargado, o el diccionario)
-    let duracion = Number(trip.tiempoEstimadoHrs) || 0;
-    if (!duracion && trip.destino) {
-      duracion = getDuracionViajeHrs(trip.destino);
-    }
-
-    if (hayForaneoPartido && duracion > 0) {
-      // Calcular a qué hora termina el viaje tomando en cuenta la hora de salida de hoy
-      const horaSalida = trip.horaCaseta || trip.horaSalida || '08:00';
-      const [h, m] = horaSalida.split(':').map(Number);
-      const horasSaliendoHoy = (h || 8) + (m || 0) / 60; // Horas transcurridas de hoy al salir
-      const horaRegresoTotal = horasSaliendoHoy + duracion;
-
-      // 46 horas significa las 22:00 hrs de mañana (24 de hoy + 22 de mañana).
-      // Si el viaje sobrepasa eso, no estará disponible mañana.
-      if (horaRegresoTotal > 46) {
-        return {
-          disponible: false,
-          regresaManana: false,
-          badge: 'NO DISPONIBLE',
-          motivo: 'Viaje foráneo extenso',
-          detalle: `Duración de ${duracion} hrs. No alcanza a regresar mañana.`,
-          color: '#f59e0b' // Ámbar
-        };
-      } else {
-        return {
-          disponible: true,
-          regresaManana: true,
-          badge: 'REGRESA MAÑANA',
-          motivo: 'Regresa de viaje foráneo',
-          detalle: `Duración: ${duracion} hrs. Retorno estimado antes de mañana en la noche.`,
-          color: '#38bdf8'
-        };
-      }
-    } else if (hayForaneoPartido) {
-      // Si es foráneo pero no tenemos horas específicas, usamos el caso base (36h default)
-      return {
-        disponible: true,
-        regresaManana: true,
-        badge: 'REGRESA MAÑANA',
-        motivo: 'Regresa de viaje foráneo',
-        detalle: 'Viaje foráneo en curso; la unidad queda libre mañana',
-        color: '#38bdf8'
-      };
-    }
+  // Determinar la duración del viaje en horas (priorizando el tiempo estimado cargado, o el diccionario)
+  let duracion = Number(trip.tiempoEstimadoHrs) || 0;
+  if (!duracion && trip.destino) {
+    duracion = getDuracionViajeHrs(trip.destino);
   }
 
-  const tripCount = trips.length;
+  // Si no logramos inferir duración, aplicamos un default según F/L para no romper la matemática
+  if (duracion === 0) {
+    duracion = esViajeForaneo(trip) ? 36 : 6;
+  }
+
+  // Calcular a qué hora termina el viaje tomando en cuenta la hora de salida planificada o real de hoy
+  const horaSalida = trip.horaCaseta || trip.horaSalida || trip.horaColocacion || '08:00';
+  const [h, m] = horaSalida.split(':').map(Number);
+  const horasSaliendoHoy = (h || 8) + (m || 0) / 60; // Horas transcurridas de hoy al momento de salir
+  const horaRegresoTotal = horasSaliendoHoy + duracion;
+
+  // 46 horas significa las 22:00 hrs de mañana (24 hrs de hoy + 22 hrs de mañana).
+  // Si el tiempo total estimado supera las 46 horas, la unidad NO estará disponible mañana.
+  if (horaRegresoTotal > 46) {
+    return {
+      disponible: false,
+      regresaManana: false,
+      badge: 'NO DISPONIBLE',
+      motivo: esViajeForaneo(trip) ? 'Viaje foráneo extenso' : 'Ruta larga',
+      detalle: `Duración de ${duracion} hrs. No alcanza a regresar mañana.`,
+      color: '#f59e0b' // Ámbar
+    };
+  } 
+
+  // Si el viaje es corto y terminará antes de mañana en la noche, SÍ contamos con la unidad para mañana.
+  const isEnRuta = yaPartioDeRuta(trip);
   return {
-    disponible: false,
-    regresaManana: false,
-    badge: 'NO DISPONIBLE',
-    motivo: 'Tiene ruta programada',
-    detalle: `Asignada a ${tripCount} ${tripCount === 1 ? 'viaje' : 'viajes'}; se libera al completar sus rutas`,
-    color: '#f59e0b'
+    disponible: true,
+    regresaManana: true,
+    badge: 'REGRESA MAÑANA',
+    motivo: isEnRuta ? 'En ruta' : 'Ruta programada',
+    detalle: `Duración: ${duracion} hrs. Retorno estimado antes de mañana en la noche.`,
+    color: '#38bdf8'
   };
 };
 
