@@ -11,6 +11,53 @@ export const buscarSucursal = (query, catalogo = SUCURSALES_MAESTRAS) => {
   ) || null;
 };
 
+// Clave de comparación sin acentos ni mayúsculas
+const claveNormalizada = (value) => String(value === null || value === undefined ? '' : value)
+  .trim()
+  .toLowerCase()
+  .normalize('NFD')
+  .replace(/[\u0300-\u036f]/g, '');
+
+// Índices O(1) del padrón de flota. Evitan el barrido lineal por cada fila al importar
+// un archivo de planeación con cientos de viajes.
+export const crearIndiceFlota = (catalogo = FLOTA_TOTAL) => {
+  const lista = catalogo && Array.isArray(catalogo) && catalogo.length > 0 ? catalogo : FLOTA_TOTAL;
+  const porEco = new Map();
+  const idOperadorPorNombre = new Map();
+
+  lista.forEach(unidad => {
+    const eco = claveNormalizada(unidad.eco);
+    if (eco && !porEco.has(eco)) porEco.set(eco, unidad);
+
+    const placas = claveNormalizada(unidad.placas);
+    if (placas && !porEco.has(placas)) porEco.set(placas, unidad);
+
+    const operador = claveNormalizada(unidad.operador);
+    if (operador && !idOperadorPorNombre.has(operador)) {
+      idOperadorPorNombre.set(operador, unidad.idOperador || '');
+    }
+  });
+
+  return { porEco, idOperadorPorNombre, lista };
+};
+
+// Índices O(1) del catálogo de sucursales por ID y por nombre
+export const crearIndiceSucursales = (catalogo = SUCURSALES_MAESTRAS) => {
+  const lista = catalogo && Array.isArray(catalogo) && catalogo.length > 0 ? catalogo : SUCURSALES_MAESTRAS;
+  const porId = new Map();
+  const porNombre = new Map();
+
+  lista.forEach(sucursal => {
+    const id = claveNormalizada(sucursal.id);
+    if (id && !porId.has(id)) porId.set(id, sucursal);
+
+    const nombre = claveNormalizada(sucursal.nombre);
+    if (nombre && !porNombre.has(nombre)) porNombre.set(nombre, sucursal);
+  });
+
+  return { porId, porNombre, lista };
+};
+
 // Validador de Restricciones Operativas
 export const validarRestriccionesViaje = (sucursalesList, capUnidad, catalogo = SUCURSALES_MAESTRAS) => {
   if (!sucursalesList || !Array.isArray(sucursalesList) || sucursalesList.length === 0) return [];

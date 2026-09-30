@@ -9,7 +9,50 @@
  * NO. VALE DE ESTRUCTURAS | MOTOS ESTRUCTURAS | MOTOS CARTON | REMOLQUE | MTRS
  */
 
-import { buscarSucursal, buscarUnidadPorEco, buscarIdOperadorPorNombre } from './fleetUtils';
+import { buscarSucursal, crearIndiceFlota, crearIndiceSucursales } from './fleetUtils';
+
+// Clave de comparación para eco, placas, operador o sucursal: sin acentos ni mayúsculas
+const claveEco = (value) => String(value === null || value === undefined ? '' : value)
+  .trim()
+  .toLowerCase()
+  .normalize('NFD')
+  .replace(/[\u0300-\u036f]/g, '');
+
+// Destinos que exigen pernocta fuera de Villahermosa
+const KEYWORDS_FORANEO = [
+  'chiapas', 'tuxtla', 'san cristobal', 'tapachula', 'comitan', 'ocosingo', 'palenque',
+  'villaflores', 'arriaga', 'tonala', 'cintalapa', 'jiquipilas', 'pichucalco',
+  'veracruz', 'coatzacoalcos', 'minatitlan', 'acayucan', 'san andres', 'texistepec', 'oluta',
+  'oaxaca', 'tabasco' // Nota: tabasco sin ciudad específica puede ser foráneo
+];
+
+const KEYWORDS_LOCAL = [
+  'villahermosa', 'cunduacan', 'cárdenas', 'cardenas', 'comalcalco',
+  'paraiso', 'paraíso', 'macuspana', 'balancán', 'balancan', 'tenosique',
+  'huimanguillo', 'jalpa', 'jonuta', 'nacajuca', 'centla', 'tab', 'vhsa'
+];
+
+// Busca la sucursal por índice y cae al barrido lineal solo si no hay coincidencia exacta
+const buscarSucursalIndexada = (query, indice) => {
+  if (!query) return null;
+  const clave = claveEco(query);
+  if (!clave) return null;
+  return indice.porId.get(clave) || indice.porNombre.get(clave) || buscarSucursal(query, indice.lista);
+};
+
+// Inferir F/L: primero el catálogo de sucursales, luego keywords del destino
+const inferirFL = (destName = '', numSuc = '', sucInfoData = null) => {
+  if (sucInfoData?.fl) return sucInfoData.fl === 'LOCAL' ? 'LOCAL' : sucInfoData.fl;
+
+  const destino = String(destName || '').toLowerCase();
+  for (const keyword of KEYWORDS_LOCAL) {
+    if (destino.includes(keyword)) return 'LOCAL';
+  }
+  for (const keyword of KEYWORDS_FORANEO) {
+    if (destino.includes(keyword)) return 'FORANEO';
+  }
+  return 'LOCAL';
+};
 
 // Normaliza nombres de encabezados quitando acentos, puntuación, saltos de línea y espacios no separables
 export const normalizeHeaderKey = (rawHeader) => {
@@ -132,72 +175,102 @@ export const COLUMN_DEFINITIONS = {
   ]
 };
 
+// Índice de encabezados precompilado: se arma una sola vez al cargar el módulo
+// para no crear decenas de RegEx por cada celda candidata a encabezado.
+const HEADER_EXACTOS = new Map();
+const HEADER_PATRONES = [];
+
+Object.entries(COLUMN_DEFINITIONS).forEach(([canonicalKey, synonyms]) => {
+  synonyms.forEach(syn => {
+    const norm = normalizeHeaderKey(syn);
+    if (!norm) return;
+    // Gana la primera columna declarada que use ese sinónimo
+    if (!HEADER_EXACTOS.has(norm)) HEADER_EXACTOS.set(norm, canonicalKey);
+    const escaped = syn.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    HEADER_PATRONES.push({
+      key: canonicalKey,
+      len: norm.length,
+      re: new RegExp(`(^|\\s)${escaped}(\\s|$)`, 'i')
+    });
+  });
+});
+
+// El patrón más largo (más específico) se prueba primero: 'plan de colocacion' gana sobre 'colocacion'
+HEADER_PATRONES.sort((a, b) => b.len - a.len);
+
 // Determina el campo canónico para un encabezado dado con prioridad exacta para evitar colisiones
 export const matchColumnKey = (rawHeader) => {
   const norm = normalizeHeaderKey(rawHeader);
   if (!norm) return null;
 
   // Paso 1: Coincidencia EXACTA (Garantiza que 'sucursal' vaya a 'destino' y no a 'numSucursal')
-  for (const [canonicalKey, synonyms] of Object.entries(COLUMN_DEFINITIONS)) {
-    if (synonyms.includes(norm)) {
-      return canonicalKey;
-    }
+  const exacto = HEADER_EXACTOS.get(norm);
+  if (exacto) return exacto;
+
+  // Paso 2: Coincidencia por palabra completa, gana la más específica
+  for (const patron of HEADER_PATRONES) {
+    if (patron.re.test(norm)) return patron.key;
   }
 
-  // Paso 2: Coincidencia por palabra clave más larga / específica
-  let bestMatch = null;
-  let longestMatchLength = 0;
-
-  for (const [canonicalKey, synonyms] of Object.entries(COLUMN_DEFINITIONS)) {
-    for (const syn of synonyms) {
-      // Coincidencia de palabra completa usando límites de palabra
-      const escaped = syn.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-      const regex = new RegExp(`(^|\\s)${escaped}(\\s|$)`, 'i');
-      if (regex.test(norm) && syn.length > longestMatchLength) {
-        longestMatchLength = syn.length;
-        bestMatch = canonicalKey;
-      }
-    }
-  }
-
-  return bestMatch;
+  return null;
 };
 
-// Extrae el valor limpio de una celda de ExcelJS evitando pérdidas por fórmulas u objetos
-const extractExcelCellValue = (cell) => {
-  if (!cell) return '';
-  let val = cell.value;
+// Normaliza el valor crudo de una celda resolviendo fórmulas, texto enriquecido,
+// hipervínculos y errores de Excel para no perder información al leer el archivo
+const normalizeCellValue = (val) => {
   if (val === null || val === undefined) return '';
-
   if (val instanceof Date) return val;
+  if (typeof val !== 'object') return val;
 
-  // Si es un objeto de ExcelJS
-  if (typeof val === 'object') {
-    // Si contiene el resultado de una fórmula
-    if (val.result !== undefined && val.result !== null) {
-      if (typeof val.result === 'object' && val.result.error) return '';
-      return val.result;
-    }
-    // Si es texto enriquecido (RichText)
-    if (Array.isArray(val.richText)) {
-      return val.richText.map(t => t.text || '').join('').trim();
-    }
-    // Si es un hipervínculo
-    if (val.text !== undefined) return String(val.text).trim();
-    if (val.hyperlink !== undefined) return String(val.text || val.hyperlink).trim();
-    if (val.error) return '';
+  if (val.error) return '';
+  if (val.result !== undefined && val.result !== null) {
+    if (typeof val.result === 'object' && val.result.error) return '';
+    return normalizeCellValue(val.result);
+  }
+  if (Array.isArray(val.richText)) {
+    return val.richText.map(t => t.text || '').join('').trim();
+  }
+  if (val.hyperlink !== undefined) return String(val.text || val.hyperlink).trim();
+  if (val.text !== undefined) return String(val.text).trim();
+
+  return '';
+};
+
+// Vuelca una fila de ExcelJS a un arreglo denso de valores primitivos.
+// Usa row.values (mucho más rápido que getCell en cada columna) y conserva el
+// índice absoluto de columna para alinear con el mapa de encabezados.
+const extractRowValues = (row) => {
+  if (!row) return [];
+  const values = row.values;
+  if (!values || values.length <= 1) return [];
+
+  const out = new Array(values.length - 1);
+  let hasAnyValue = false;
+  for (let c = 1; c < values.length; c++) {
+    const val = normalizeCellValue(values[c]);
+    out[c - 1] = val;
+    if (val !== '') hasAnyValue = true;
   }
 
-  // Si cell.text tiene un valor formateado legible, puede usarse de respaldo
-  if (cell.text && typeof cell.text === 'string' && cell.text !== '[object Object]') {
-    const trimmed = cell.text.trim();
-    // Si el valor original era número o fecha y cell.text está bien formateado
-    if (typeof val === 'number' && (trimmed.includes(':') || trimmed.includes('/'))) {
-      return trimmed;
+  return hasAnyValue ? out : [];
+};
+
+// Lee todas las filas de una hoja respetando los índices reales de fila
+const extractSheetRows = (worksheet) => {
+  const rows = [];
+  const maxRow = Math.max(worksheet.rowCount || 0, worksheet.actualRowCount || 0);
+
+  if (maxRow > 0) {
+    for (let r = 1; r <= maxRow; r++) {
+      rows.push(extractRowValues(worksheet.getRow(r)));
     }
+    return rows;
   }
 
-  return val;
+  worksheet.eachRow({ includeEmpty: true }, (row, rowNumber) => {
+    rows[rowNumber - 1] = extractRowValues(row);
+  });
+  return rows;
 };
 
 // Formateador de Horas (soporta fracciones de Excel, fechas y strings)
@@ -288,64 +361,235 @@ export const parseDateValue = (val, fallbackDate = '') => {
   return fallbackDate || new Date().toISOString().split('T')[0];
 };
 
-// Mapeador de Estatus Oficial BAZ
+// Los tres estatus canónicos que consumen las vistas de la app
+const ESTADO_PENDIENTE = { estatusPlaneacion: 'PENDIENTE', estatusPatio: 'Disponible', estatusSupervisor: 'Pendiente' };
+const ESTADO_COLOCADO = { estatusPlaneacion: 'COLOCADO', estatusPatio: 'Colocado p/ Carga', estatusSupervisor: 'Pendiente' };
+const ESTADO_CARGADO = { estatusPlaneacion: 'CARGADO', estatusPatio: 'Cargado', estatusSupervisor: 'Cargado' };
+const ESTADO_EN_RUTA = { estatusPlaneacion: 'CARGADO', estatusPatio: 'En Ruta', estatusSupervisor: 'En Ruta' };
+const ESTADO_ESPERA_DESCARGA = { estatusPlaneacion: 'CARGADO', estatusPatio: 'En Ruta', estatusSupervisor: 'Espera Descarga' };
+const ESTADO_DESCARGANDO = { estatusPlaneacion: 'CARGADO', estatusPatio: 'Descargando', estatusSupervisor: 'Descargando' };
+const ESTADO_RETRASADO = { estatusPlaneacion: 'CARGADO', estatusPatio: 'En Ruta', estatusSupervisor: 'Retrasado' };
+const ESTADO_RETORNO = { estatusPlaneacion: 'RETORNO', estatusPatio: 'Disponible', estatusSupervisor: 'Retorno' };
+const ESTADO_COMPLETADO = { estatusPlaneacion: 'COMPLETADO', estatusPatio: 'Disponible', estatusSupervisor: 'Completado' };
+const ESTADO_TALLER = { estatusPlaneacion: 'PENDIENTE', estatusPatio: 'Taller', estatusSupervisor: 'No Disponible' };
+const ESTADO_NO_DISPONIBLE = { estatusPlaneacion: 'PENDIENTE', estatusPatio: 'No Disponible', estatusSupervisor: 'No Disponible' };
+
+// Valores literales que emite BAZ (y el export oficial de la app)
+const ESTATUS_EXACTOS = {
+  'PENDIENTE': ESTADO_PENDIENTE,
+  'SIN ESTATUS': ESTADO_PENDIENTE,
+  'NO ASIGNADO': ESTADO_PENDIENTE,
+  'PLAN DE COLOCACION': ESTADO_PENDIENTE,
+  'PROGRAMADO': ESTADO_PENDIENTE,
+  'COLOCADO': ESTADO_COLOCADO,
+  'EN COLOCACION': ESTADO_COLOCADO,
+  'ACOMODADO': ESTADO_COLOCADO,
+  'CARGADO': ESTADO_CARGADO,
+  'EN CASETA': ESTADO_CARGADO,
+  'CASETA': ESTADO_CARGADO,
+  'CARGADO EN CASETA': ESTADO_CARGADO,
+  'EN RUTA': ESTADO_EN_RUTA,
+  'RUTA': ESTADO_EN_RUTA,
+  'EN CAMINO': ESTADO_EN_RUTA,
+  'TRANSITO': ESTADO_EN_RUTA,
+  'ESPERA DESCARGA': ESTADO_ESPERA_DESCARGA,
+  'EN ESPERA DESCARGA': ESTADO_ESPERA_DESCARGA,
+  'ESPERANDO DESCARGA': ESTADO_ESPERA_DESCARGA,
+  'RETRASADO': ESTADO_RETRASADO,
+  'EN RETRASO': ESTADO_RETRASADO,
+  'DESCARGANDO': ESTADO_DESCARGANDO,
+  'EN DESCARGA': ESTADO_DESCARGANDO,
+  'EN SUCURSAL': ESTADO_DESCARGANDO,
+  'RETORNO': ESTADO_RETORNO,
+  'EN RETORNO': ESTADO_RETORNO,
+  'COMPLETADO': ESTADO_COMPLETADO,
+  'FINALIZADO': ESTADO_COMPLETADO,
+  'ENTREGADO': ESTADO_COMPLETADO,
+  'CERRADO': ESTADO_COMPLETADO,
+  'TALLER': ESTADO_TALLER,
+  'EN TALLER': ESTADO_TALLER,
+  'MANTENIMIENTO': ESTADO_TALLER,
+  'NO DISPONIBLE': ESTADO_NO_DISPONIBLE,
+  'FUERA DE OPERACION': ESTADO_NO_DISPONIBLE,
+  'FUERA DE SERVICIO': ESTADO_NO_DISPONIBLE,
+  'BAJA': ESTADO_NO_DISPONIBLE,
+  'VACACION': ESTADO_NO_DISPONIBLE,
+  'INCAPACIDAD': ESTADO_NO_DISPONIBLE
+};
+
+// Reglas por palabra clave. El orden es la prioridad: gana la primera que coincide,
+// por eso DESCARGA va antes que CARGADO ('DESCARGADO' contiene 'CARGADO').
+const REGLAS_ESTATUS = [
+  { estado: ESTADO_TALLER, claves: ['TALLER', 'MANTENIMIENTO', 'MECANICO', 'LAVADO', 'REPARACION'] },
+  { estado: ESTADO_NO_DISPONIBLE, claves: ['NO DISPONIBLE', 'FUERA DE OPERACION', 'FUERA DE SERVICIO', 'BAJA', 'VACACION', 'INCAPACIDAD', 'INVENTARIO', 'AUDITORIA'] },
+  { estado: ESTADO_COMPLETADO, claves: ['COMPLETADO', 'COMPLETAR', 'FINALIZADO', 'FINALIZ', 'CERRADO', 'CERRAD', 'ENTREGADO', 'ENTREGA REALIZADA', 'LIQUIDADO', 'CONCLUIDO'] },
+  { estado: ESTADO_RETORNO, claves: ['RETORNO', 'REGRESO', 'REGRESANDO', 'VUELTA'] },
+  { estado: ESTADO_RETRASADO, claves: ['RETRASADO', 'RETRASO', 'DEMORA', 'DETERIORADO'] },
+  { estado: ESTADO_ESPERA_DESCARGA, claves: ['ESPERA DESCARGA', 'ESPERA', 'ESPERANDO', 'EN COLA', 'ACHACASO', 'ACACHO'] },
+  { estado: ESTADO_DESCARGANDO, claves: ['DESCARGA', 'DESCARGANDO', 'DESCARGADO', 'DESCARGUE', 'RAMPA'] },
+  { estado: ESTADO_EN_RUTA, claves: ['RUTA', 'TRANSITO', 'EN CAMINO', 'SALIO', 'SALIENDO', 'PARTIO', 'PARTIDA', 'SALIDA', 'DISTRIBUCION', 'TRASLADO'] },
+  { estado: ESTADO_CARGADO, claves: ['CASETA', 'CARGADO', 'CARGADA', 'CARGA CERRADA'] },
+  { estado: ESTADO_COLOCADO, claves: ['COLOCADO', 'COLOCACION', 'ACOMODADO', 'POSICIONADO', 'LISTO PARA CARGA', 'CORTINA'] }
+];
+
+// Compara estatus sin acentos, mayúsculas ni espacios extra
+const normalizeEstatus = (value) => String(value === null || value === undefined ? '' : value)
+  .trim()
+  .toUpperCase()
+  .normalize('NFD')
+  .replace(/[\u0300-\u036f]/g, '')
+  .replace(/\s+/g, ' ');
+
+// Mapeador de Estatus Oficial BAZ.
+// Devuelve los tres estatus canónicos y `conocido` para avisar en la previsualización
+// cuando el archivo trae un valor que ninguna regla reconoce.
 export const parseEstatusBaz = (rawEstatus) => {
-  const norm = String(rawEstatus || '').trim().toUpperCase();
-  if (!norm || norm === 'PENDIENTE') {
-    return {
-      estatusPlaneacion: 'PENDIENTE',
-      estatusPatio: 'Disponible',
-      estatusSupervisor: 'Pendiente'
-    };
-  }
-  if (norm.includes('CASETA') || norm.includes('CARGADO')) {
-    return {
-      estatusPlaneacion: 'CARGADO',
-      estatusPatio: 'Cargado',
-      estatusSupervisor: 'Cargado'
-    };
-  }
-  if (norm.includes('COLOCAD')) {
-    return {
-      estatusPlaneacion: 'COLOCADO',
-      estatusPatio: 'Colocado p/ Carga',
-      estatusSupervisor: 'Pendiente'
-    };
-  }
-  if (norm.includes('RUTA') || norm.includes('TRANSITO')) {
-    return {
-      estatusPlaneacion: 'CARGADO',
-      estatusPatio: 'En Ruta',
-      estatusSupervisor: 'En Ruta'
-    };
-  }
-  if (norm.includes('TALLER')) {
-    return {
-      estatusPlaneacion: 'PENDIENTE',
-      estatusPatio: 'Taller',
-      estatusSupervisor: 'No Disponible'
-    };
-  }
-  if (norm.includes('DESCARGA') || norm.includes('RAMPA')) {
-    return {
-      estatusPlaneacion: 'CARGADO',
-      estatusPatio: 'Descargando',
-      estatusSupervisor: 'Descargando'
-    };
-  }
-  if (norm.includes('RETORNO')) {
-    return {
-      estatusPlaneacion: 'RETORNO',
-      estatusPatio: 'Disponible',
-      estatusSupervisor: 'Retorno'
-    };
+  const norm = normalizeEstatus(rawEstatus);
+  if (!norm) return { ...ESTADO_PENDIENTE, conocido: true };
+
+  const exacto = ESTATUS_EXACTOS[norm];
+  if (exacto) return { ...exacto, conocido: true };
+
+  for (const regla of REGLAS_ESTATUS) {
+    for (const clave of regla.claves) {
+      if (norm.includes(clave)) return { ...regla.estado, conocido: true };
+    }
   }
 
-  return {
-    estatusPlaneacion: 'PENDIENTE',
-    estatusPatio: 'Disponible',
-    estatusSupervisor: 'Pendiente'
-  };
+  return { ...ESTADO_PENDIENTE, conocido: false };
+};
+
+// Dos estatus son equivalentes cuando la app los mostraría igual. Sirve para saber
+// si una fila sin unidad es una parada del viaje actual o un viaje nuevo.
+export const estatusEquivalentes = (a, b) => {
+  if (!a || !b) return false;
+  return a.estatusPlaneacion === b.estatusPlaneacion && a.estatusSupervisor === b.estatusSupervisor;
+};
+
+// Clave de caché del libro ya leído en memoria
+const cacheKeyOf = (file) => `${file.name}|${file.size}|${file.lastModified || 0}`;
+
+// Libros ya leídos: cambiar de pestaña NO vuelve a descomprimir ni a reparsear el archivo
+const LIBROS_CACHE = new Map();
+const MAX_LIBROS_EN_CACHE = 3;
+
+// Lee el archivo UNA sola vez y guarda todas sus pestañas con sus filas crudas.
+// A partir de aquí, cambiar de día es solo un recorrido de memoria.
+const leerLibroCompleto = async (file) => {
+  const clave = cacheKeyOf(file);
+  const enCache = LIBROS_CACHE.get(clave);
+  if (enCache) return enCache;
+
+  const fileName = file.name.toLowerCase();
+  const esCsv = fileName.endsWith('.csv');
+  let hojas = [];
+  let activeTab = 0;
+
+  if (esCsv) {
+    const rows = parseCsvToRows(await file.text()).map(fila => (fila.some(v => v !== '') ? fila : []));
+    hojas = [{
+      index: 1,
+      id: '1',
+      name: 'Archivo CSV',
+      displayName: 'Archivo CSV',
+      dayNumber: null,
+      esDiaActual: false,
+      rowCount: rows.length,
+      rows
+    }];
+  } else {
+    const ExcelJSModule = await import('exceljs/dist/exceljs.min.js');
+    const ExcelJS = ExcelJSModule.default || ExcelJSModule;
+    const workbook = new ExcelJS.Workbook();
+    await workbook.xlsx.load(await file.arrayBuffer());
+
+    if (!workbook.worksheets || workbook.worksheets.length === 0) {
+      throw new Error('El archivo Excel no contiene hojas de cálculo legibles.');
+    }
+
+    activeTab = workbook.views?.[0]?.activeTab ?? 0;
+    const hoy = new Date().getDate();
+
+    // Pestañas diarias identificadas por su NOMBRE (ej: '26', '25', '08')
+    hojas = workbook.worksheets.map((ws, idx) => {
+      const tabName = String(ws.name || '').trim();
+      const numVal = parseInt(tabName, 10);
+      const isDayTab = !isNaN(numVal) && numVal >= 1 && numVal <= 31;
+      const rows = extractSheetRows(ws);
+
+      return {
+        index: idx + 1,
+        id: String(ws.id || idx + 1),
+        name: tabName || `Hoja ${idx + 1}`,
+        displayName: isDayTab ? `Día ${tabName}` : (tabName || `Hoja ${idx + 1}`),
+        dayNumber: isDayTab ? numVal : null,
+        esDiaActual: isDayTab && numVal === hoy,
+        rowCount: rows.length,
+        rows
+      };
+    });
+  }
+
+  const libro = { hojas, activeTab };
+  LIBROS_CACHE.set(clave, libro);
+  if (LIBROS_CACHE.size > MAX_LIBROS_EN_CACHE) {
+    LIBROS_CACHE.delete(LIBROS_CACHE.keys().next().value);
+  }
+  return libro;
+};
+
+// Elige la pestaña a importar: la que pidió el usuario, luego la que estaba activa
+// en Excel y, si no, la más cercana al día de hoy.
+const elegirHoja = (libro, preferredSheet) => {
+  const hojas = libro.hojas;
+  const pref = preferredSheet === null || preferredSheet === undefined ? '' : String(preferredSheet).trim();
+  let elegida = null;
+
+  if (pref) {
+    const prefLower = pref.toLowerCase();
+    const prefNum = parseInt(pref, 10);
+
+    elegida = hojas.find(h => h.name.toLowerCase() === prefLower) || null;
+
+    if (!elegida && !isNaN(prefNum)) {
+      elegida = hojas.find(h => h.dayNumber === prefNum) || null;
+    }
+
+    if (!elegida) {
+      elegida = hojas.find(h => h.name.toLowerCase().includes(prefLower)) || null;
+    }
+  }
+
+  if (!elegida && libro.activeTab > 0) {
+    elegida = hojas[libro.activeTab] || null;
+  }
+
+  const hoy = new Date().getDate();
+  if (!elegida) {
+    elegida = hojas.find(h => h.dayNumber === hoy) || null;
+  }
+
+  if (!elegida) {
+    const dias = hojas.filter(h => h.dayNumber !== null);
+    elegida = dias.length > 0
+      ? dias.reduce((mejor, h) => (Math.abs(h.dayNumber - hoy) < Math.abs(mejor.dayNumber - hoy) ? h : mejor))
+      : hojas[hojas.length - 1];
+  }
+
+  return elegida;
+};
+
+// Si la fecha del encabezado no corresponde al día de la pestaña, se corrige al día
+const ajustarFechaAlDia = (fechaIso, dayNumber) => {
+  if (!fechaIso || !dayNumber) return fechaIso;
+  const [anio, mes, dia] = fechaIso.split('-').map(Number);
+  if (!anio || !mes || !dia) return fechaIso;
+
+  const ultimoDiaDelMes = new Date(Date.UTC(anio, mes, 0)).getUTCDate();
+  const diaObjetivo = Math.min(dayNumber, ultimoDiaDelMes);
+  if (diaObjetivo === dia) return fechaIso;
+
+  return `${anio}-${String(mes).padStart(2, '0')}-${String(diaObjetivo).padStart(2, '0')}`;
 };
 
 /**
@@ -357,179 +601,22 @@ export const parsePlanningFile = async (
   catalogoSucursales = [], 
   preferredSheet = null
 ) => {
-  const fileName = file.name.toLowerCase();
-  const isCsv = fileName.endsWith('.csv');
+  const libro = await leerLibroCompleto(file);
+  const hoja = elegirHoja(libro, preferredSheet);
+  if (!hoja) throw new Error('El archivo seleccionado está vacío.');
 
-  let rows = [];
-  let sheetName = 'Hoja 1';
-  let targetWorksheetIndex = 1;
-  let allSheets = [];
+  return construirPlanDesdeFilas(hoja, libro, catalogoFlota, catalogoSucursales);
+};
 
-  if (isCsv) {
-    const text = await file.text();
-    rows = parseCsvToRows(text);
-    sheetName = 'Archivo CSV';
-    allSheets = [{ index: 1, name: 'Archivo CSV', rowCount: rows.length }];
-  } else {
-    // Excel con ExcelJS
-    const ExcelJSModule = await import('exceljs/dist/exceljs.min.js');
-    const ExcelJS = ExcelJSModule.default || ExcelJSModule;
-    const workbook = new ExcelJS.Workbook();
-    const arrayBuffer = await file.arrayBuffer();
-    await workbook.xlsx.load(arrayBuffer);
-
-    if (!workbook.worksheets || workbook.worksheets.length === 0) {
-      throw new Error('El archivo Excel no contiene hojas de cálculo legibles.');
-    }
-
-    // Listar todas las hojas disponibles en el libro identificadas por su NOMBRE de pestaña (ej: '26', '25', '08')
-    allSheets = workbook.worksheets.map((ws, idx) => {
-      const tabName = String(ws.name || '').trim();
-      const numVal = parseInt(tabName, 10);
-      const isDayTab = !isNaN(numVal) && numVal >= 1 && numVal <= 31;
-      const isToday = tabName === '26' || numVal === 26;
-
-      return {
-        index: idx + 1,
-        id: String(ws.id || idx + 1),
-        name: tabName || `Hoja ${idx + 1}`,
-        displayName: isDayTab ? `Día ${tabName}` : (tabName || `Hoja ${idx + 1}`),
-        dayNumber: isDayTab ? numVal : null,
-        isToday: isToday,
-        rowCount: ws.rowCount || 0
-      };
-    });
-
-    // Selección de la Hoja Objetivo (Prioridad Día 26 / Pestaña 26)
-    let targetWorksheet = null;
-    let targetWorksheetIndex = 1;
-
-    // 1. Si el usuario seleccionó una hoja específica desde la interfaz (por nombre de pestaña)
-    if (preferredSheet !== null && preferredSheet !== undefined && String(preferredSheet).trim() !== '') {
-      const prefStr = String(preferredSheet).trim();
-      const prefLower = prefStr.toLowerCase();
-      const prefNum = parseInt(prefStr, 10);
-
-      // Prioridad 1.1: Buscar por coincidencia exacta de nombre de pestaña (ej: "26", "08", "25")
-      let foundIdx = workbook.worksheets.findIndex(ws => {
-        const n = String(ws.name || '').trim();
-        return n.toLowerCase() === prefLower;
-      });
-
-      // Prioridad 1.2: Coincidencia numérica con el número del día (ej: "26" vs "26", o "8" vs "08")
-      if (foundIdx === -1 && !isNaN(prefNum)) {
-        foundIdx = workbook.worksheets.findIndex(ws => {
-          const n = String(ws.name || '').trim();
-          const nNum = parseInt(n, 10);
-          return !isNaN(nNum) && nNum === prefNum;
-        });
-      }
-
-      // Prioridad 1.3: Nombre que contenga el texto buscado
-      if (foundIdx === -1) {
-        foundIdx = workbook.worksheets.findIndex(ws => {
-          const n = String(ws.name || '').trim().toLowerCase();
-          return n.includes(prefLower);
-        });
-      }
-
-      if (foundIdx !== -1 && workbook.worksheets[foundIdx]) {
-        targetWorksheet = workbook.worksheets[foundIdx];
-        targetWorksheetIndex = foundIdx + 1;
-      }
-    }
-
-    // 2. Si no se especificó hoja, BUSCAR PRIORITARIAMENTE LA PESTAÑA "26"
-    if (!targetWorksheet) {
-      // Prioridad A: Pestaña cuyo nombre sea exactamente "26" o valor numérico 26
-      const idx26 = workbook.worksheets.findIndex(ws => {
-        const n = String(ws.name || '').trim().toLowerCase();
-        return n === '26' || parseInt(n, 10) === 26 || n.includes('26');
-      });
-
-      if (idx26 !== -1) {
-        targetWorksheet = workbook.worksheets[idx26];
-        targetWorksheetIndex = idx26 + 1;
-      }
-    }
-
-    // Prioridad B: Pestaña activa / seleccionada en el archivo Excel (en la imagen el usuario tiene seleccionada la 26)
-    if (!targetWorksheet && workbook.views && workbook.views.length > 0 && workbook.views[0]?.activeTab !== undefined) {
-      const activeIdx = workbook.views[0].activeTab;
-      if (workbook.worksheets[activeIdx]) {
-        targetWorksheet = workbook.worksheets[activeIdx];
-        targetWorksheetIndex = activeIdx + 1;
-      }
-    }
-
-    // Prioridad C: Pestaña correspondiente al día actual del mes
-    if (!targetWorksheet) {
-      const currentDay = new Date().getDate(); // 26
-      const idxCurrentDay = workbook.worksheets.findIndex(ws => {
-        const n = String(ws.name || '').trim();
-        return parseInt(n, 10) === currentDay;
-      });
-
-      if (idxCurrentDay !== -1) {
-        targetWorksheet = workbook.worksheets[idxCurrentDay];
-        targetWorksheetIndex = idxCurrentDay + 1;
-      }
-    }
-
-    // Prioridad D: La última pestaña del libro
-    if (!targetWorksheet) {
-      targetWorksheet = workbook.worksheets[workbook.worksheets.length - 1];
-      targetWorksheetIndex = workbook.worksheets.length;
-    }
-
-    sheetName = String(targetWorksheet.name || `Hoja ${targetWorksheetIndex}`).trim();
-
-    // 3. Extraer TODAS las filas de la hoja seleccionada con coordenadas absolutas
-    const maxRow = Math.max(targetWorksheet.rowCount || 0, targetWorksheet.actualRowCount || 0);
-    const totalColsInSheet = Math.max(targetWorksheet.columnCount || 0, targetWorksheet.actualColumnCount || 0, 35);
-
-    if (maxRow > 0) {
-      for (let r = 1; r <= maxRow; r++) {
-        const row = targetWorksheet.getRow(r);
-        const rowValues = [];
-        let hasAnyValueInRow = false;
-
-        for (let c = 1; c <= totalColsInSheet; c++) {
-          const cell = row.getCell(c);
-          const cellVal = extractExcelCellValue(cell);
-          rowValues[c - 1] = cellVal;
-          if (cellVal !== '' && cellVal !== null && cellVal !== undefined) {
-            hasAnyValueInRow = true;
-          }
-        }
-
-        // Mantener la fila para respetar los índices exactos de fila
-        rows.push(hasAnyValueInRow ? rowValues : []);
-      }
-    } else {
-      // Fallback con eachRow si rowCount reportó 0
-      targetWorksheet.eachRow({ includeEmpty: true }, (row, rowNumber) => {
-        const rowValues = [];
-        let hasAnyValueInRow = false;
-        const cellLimit = Math.max(row.cellCount || 0, 35);
-        for (let c = 1; c <= cellLimit; c++) {
-          const cell = row.getCell(c);
-          const cellVal = extractExcelCellValue(cell);
-          rowValues[c - 1] = cellVal;
-          if (cellVal !== '' && cellVal !== null && cellVal !== undefined) {
-            hasAnyValueInRow = true;
-          }
-        }
-        rows[rowNumber - 1] = hasAnyValueInRow ? rowValues : [];
-      });
-    }
-  }
-
+// Convierte las filas crudas de una pestaña en los viajes del plan.
+// Las filas ya están en memoria: este paso es el que corre al cambiar de día.
+const construirPlanDesdeFilas = (hoja, libro, catalogoFlota = [], catalogoSucursales = []) => {
+  const rows = hoja.rows || [];
   if (rows.length === 0) {
     throw new Error('El archivo seleccionado está vacío.');
   }
 
-  // 3. Detectar Fila de Encabezados (Buscar en las primeras 50 filas)
+  // 1. Detectar Fila de Encabezados (Buscar en las primeras 50 filas)
   let headerRowIndex = -1;
   let columnMap = {}; // { colIndex: 'canonicalKey' }
   let maxMatches = 0;
@@ -576,11 +663,20 @@ export const parsePlanningFile = async (
     throw new Error('No se encontraron los encabezados oficiales de planeación en el archivo. Verifica que contenga columnas como: NO. VIAJE, ECO UNIDAD, SUCURSAL, CARGA, OPERADOR.');
   }
 
-  // 4. Procesar TODAS las Filas de Datos sin omisiones
+  // 2. Índices de catálogo: buscar por eco, operador o sucursal deja de ser un barrido lineal
+  const indiceFlota = crearIndiceFlota(catalogoFlota);
+  const indiceSucursales = crearIndiceSucursales(catalogoSucursales);
+  const columnas = Object.entries(columnMap).map(([colIdx, key]) => [Number(colIdx), key]);
+
+  // 3. Procesar TODAS las Filas de Datos sin omisiones
   const parsedUnits = [];
+  const estatusSinReconocer = new Set();
   let currentUnit = null;
   const now = new Date().toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' });
-  const defaultDate = fileHeaderDate || new Date().toISOString().split('T')[0];
+  const defaultDate = ajustarFechaAlDia(
+    fileHeaderDate || new Date().toISOString().split('T')[0],
+    hoja.dayNumber
+  );
 
   for (let i = headerRowIndex + 1; i < rows.length; i++) {
     const rawRow = rows[i];
@@ -588,10 +684,10 @@ export const parsePlanningFile = async (
 
     // Extraer campos de la fila según columnMap
     const rowData = {};
-    Object.entries(columnMap).forEach(([colIdx, key]) => {
-      const val = rawRow[Number(colIdx)];
-      rowData[key] = val !== undefined && val !== null ? val : '';
-    });
+    for (let c = 0; c < columnas.length; c++) {
+      const val = rawRow[columnas[c][0]];
+      rowData[columnas[c][1]] = val === undefined || val === null ? '' : val;
+    }
 
     const eco = String(rowData.economico || '').trim();
     const noViaje = String(rowData.noViaje || '').trim();
@@ -622,7 +718,14 @@ export const parsePlanningFile = async (
     // 4. NO tiene cortina propia o coincide con la del viaje previo.
     // 5. NO tiene carga propia o coincide con la carga del viaje previo.
     // 6. NO tiene hora de colocación propia.
-    // 7. Y SÍ tiene sucursal o # sucursal.
+    // 7. Su estatus es vacío o equivalente al del viaje en curso (el estatus es del viaje, no de la fila).
+    // 8. Y SÍ tiene sucursal o # sucursal.
+    const estatusObj = parseEstatusBaz(estatusRaw);
+    if (estatusRaw && !estatusObj.conocido) estatusSinReconocer.add(estatusRaw);
+
+    const estatusCompatible = !estatusRaw || !currentUnit ||
+      estatusEquivalentes(estatusObj, currentUnit);
+
     const hasTripOwnershipMarkers = Boolean(
       eco || 
       noViaje || 
@@ -632,11 +735,12 @@ export const parsePlanningFile = async (
       (numCarga && currentUnit && numCarga !== currentUnit.numCarga) ||
       (bloque !== null && currentUnit && bloque !== currentUnit.bloque) ||
       (cortina && currentUnit && cortina !== currentUnit.cortina) ||
-      horaColocacion ||
-      (estatusRaw && estatusRaw.toUpperCase() !== 'PENDIENTE')
+      horaColocacion
     );
 
-    const isSecondaryStop = currentUnit && !hasTripOwnershipMarkers && (sucursal || numSucursal);
+    const isSecondaryStop = Boolean(
+      currentUnit && !hasTripOwnershipMarkers && estatusCompatible && (sucursal || numSucursal)
+    );
 
     if (isSecondaryStop) {
       const parada = {
@@ -649,7 +753,7 @@ export const parsePlanningFile = async (
       };
 
       // Si la sucursal secundaria existe en catálogo, autocompletar clóster
-      const sucInfo = buscarSucursal(numSucursal || sucursal, catalogoSucursales);
+      const sucInfo = buscarSucursalIndexada(numSucursal || sucursal, indiceSucursales);
       if (sucInfo) {
         parada.closter = sucInfo.closter || '';
         if (!parada.destino) parada.destino = sucInfo.nombre;
@@ -662,50 +766,26 @@ export const parsePlanningFile = async (
 
     // VIAJE NUEVO / INDEPENDIENTE (incluso si aún no tiene ECO asignado, como viajes programados en cortina)
     const unitDate = parseDateValue(rowData.fecha, defaultDate);
-    const estatusObj = parseEstatusBaz(estatusRaw);
 
     // Auto-completar datos con catálogo de flota
-    const fleetMaster = eco ? buscarUnidadPorEco(eco, catalogoFlota) : null;
+    const fleetMaster = eco ? indiceFlota.porEco.get(claveEco(eco)) || null : null;
     const finalPlacas = placas || fleetMaster?.placas || '';
     const finalCap = Number(rowData.capUnidad || fleetMaster?.capUnidad) || 18;
     const finalLinea = linea || fleetMaster?.linea || 'LTI - VHS';
     const finalOperador = operador || fleetMaster?.operador || '';
-    const finalIdOperador = finalOperador ? buscarIdOperadorPorNombre(finalOperador, catalogoFlota) : (fleetMaster?.idOperador || '');
+    const finalIdOperador = finalOperador
+      ? (indiceFlota.idOperadorPorNombre.get(claveEco(finalOperador)) || '')
+      : (fleetMaster?.idOperador || '');
 
     // Auto-completar datos con catálogo de sucursales
-    const sucInfo = buscarSucursal(numSucursal || sucursal, catalogoSucursales);
+    const sucInfo = buscarSucursalIndexada(numSucursal || sucursal, indiceSucursales);
     const finalDestino = sucursal || (sucInfo ? sucInfo.nombre : '');
     const finalNumSuc = numSucursal || (sucInfo ? String(sucInfo.id) : '');
     const finalCloster = sucInfo ? (sucInfo.closter || '') : 'HUB-VHSA';
     const finalCapMax = sucInfo ? (sucInfo.capMax || '') : '';
 
-    // Inferir F/L: primero del catálogo de sucursales, luego por keywords del destino
-    const inferirFL = (destName = '', numSuc = '', sucInfoData = null) => {
-      // Si el catálogo tiene el dato, usarlo directamente
-      if (sucInfoData?.fl && sucInfoData.fl !== 'LOCAL') return sucInfoData.fl;
-      if (sucInfoData?.fl === 'LOCAL') return 'LOCAL';
-      // Inferir por nombre del destino o número de sucursal
-      const d = (destName || '').toLowerCase();
-      const KEYWORDS_FORANEO = [
-        'chiapas', 'tuxtla', 'san cristobal', 'tapachula', 'comitan', 'ocosingo', 'palenque',
-        'villaflores', 'arriaga', 'tonala', 'cintalapa', 'jiquipilas', 'pichucalco',
-        'veracruz', 'coatzacoalcos', 'minatitlan', 'acayucan', 'san andres', 'texistepec', 'oluta',
-        'oaxaca', 'tabasco' // Nota: tabasco sin ciudad específica puede ser foráneo
-      ];
-      const KEYWORDS_LOCAL = [
-        'villahermosa', 'cunduacan', 'cárdenas', 'cardenas', 'comalcalco', 
-        'paraiso', 'paraíso', 'macuspana', 'balancán', 'balancan', 'tenosique',
-        'huimanguillo', 'jalpa', 'jonuta', 'nacajuca', 'centla', 'tab', 'vhsa'
-      ];
-      for (const kw of KEYWORDS_LOCAL) {
-        if (d.includes(kw)) return 'LOCAL';
-      }
-      for (const kw of KEYWORDS_FORANEO) {
-        if (d.includes(kw)) return 'FORANEO';
-      }
-      return 'LOCAL'; // default
-    };
     const finalFL = inferirFL(finalDestino, finalNumSuc, sucInfo);
+
     const newUnit = {
       id: (typeof crypto !== 'undefined' && crypto.randomUUID) 
         ? crypto.randomUUID() 
@@ -747,6 +827,7 @@ export const parsePlanningFile = async (
       estatusPatio: estatusObj.estatusPatio,
       estatusPlaneacion: estatusObj.estatusPlaneacion,
       estatusSupervisor: estatusObj.estatusSupervisor,
+      estatusOrigen: estatusRaw,
       observaciones: '',
       actualizadoEn: now
     };
@@ -763,9 +844,18 @@ export const parsePlanningFile = async (
     units: parsedUnits,
     totalViajes: parsedUnits.length,
     fechaDetectada: defaultDate,
-    nombreHoja: sheetName,
-    indiceHoja: targetWorksheetIndex,
-    hojasDisponibles: allSheets,
+    nombreHoja: hoja.name,
+    indiceHoja: hoja.index,
+    hojasDisponibles: libro.hojas.map(h => ({
+      index: h.index,
+      id: h.id,
+      name: h.name,
+      displayName: h.displayName,
+      dayNumber: h.dayNumber,
+      esDiaActual: h.esDiaActual,
+      rowCount: h.rowCount
+    })),
+    estatusSinReconocer: [...estatusSinReconocer],
     columnasDetectadas: Object.values(columnMap)
   };
 };

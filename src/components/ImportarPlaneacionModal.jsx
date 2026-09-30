@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useMemo } from 'react';
 import { 
   UploadCloud, 
   FileSpreadsheet, 
@@ -35,6 +35,67 @@ export const ImportarPlaneacionModal = () => {
   const [importMode, setImportMode] = useState('replace'); // 'replace' | 'merge'
   const [previewSearch, setPreviewSearch] = useState('');
   const fileInputRef = useRef(null);
+
+  // Techo de filas renderizadas: la tabla es solo previsualización
+  const MAX_FILAS_PREVIEW = 400;
+
+  // Métricas y filtrado en una sola pasada por los viajes leídos
+  const { resumen, filtrados } = useMemo(() => {
+    const unidades = parsedData?.units || [];
+    const q = previewSearch.toLowerCase().trim();
+
+    const metricas = {
+      SecondaryStops: 0,
+      operadores: 0,
+      cargados: 0,
+      colocados: 0,
+      pendientes: 0,
+      retornos: 0,
+      completados: 0,
+      sinUnidad: 0,
+      porEstatus: new Map()
+    };
+
+    const coincide = (u) => {
+      if (!q) return true;
+      return (
+        String(u.economico || '').toLowerCase().includes(q) ||
+        String(u.noViaje || '').toLowerCase().includes(q) ||
+        String(u.operador || '').toLowerCase().includes(q) ||
+        String(u.destino || '').toLowerCase().includes(q) ||
+        String(u.numCarga || '').toLowerCase().includes(q) ||
+        String(u.cortina || '').toLowerCase().includes(q) ||
+        String(u.numSucursal || '').toLowerCase().includes(q) ||
+        String(u.bloque || '').toLowerCase().includes(q)
+      );
+    };
+
+    const filtrados = [];
+    unidades.forEach(u => {
+      metricas.SecondaryStops += u.destinosSecundarios?.length || 0;
+      if (u.operador && u.operador.trim()) metricas.operadores++;
+      if (!String(u.economico || '').trim()) metricas.sinUnidad++;
+
+      switch (u.estatusPlaneacion || 'PENDIENTE') {
+        case 'CARGADO': metricas.cargados++; break;
+        case 'COLOCADO': metricas.colocados++; break;
+        case 'RETORNO': metricas.retornos++; break;
+        case 'COMPLETADO': metricas.completados++; break;
+        default: metricas.pendientes++;
+      }
+
+      const origen = String(u.estatusOrigen || '').trim() || 'VACÍO';
+      metricas.porEstatus.set(origen, (metricas.porEstatus.get(origen) || 0) + 1);
+
+      if (coincide(u)) filtrados.push(u);
+    });
+
+    const porEstatus = [...metricas.porEstatus.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 6);
+
+    return { resumen: { ...metricas, porEstatus }, filtrados };
+  }, [parsedData, previewSearch]);
 
   if (!isImportModalOpen) return null;
 
@@ -133,28 +194,8 @@ export const ImportarPlaneacionModal = () => {
     }
   };
 
-  // Métricas calculadas del archivo subido
-  const totalSecondaryStops = parsedData?.units?.reduce((acc, u) => acc + (u.destinosSecundarios?.length || 0), 0) || 0;
-  const totalOperadores = parsedData?.units?.filter(u => u.operador && u.operador.trim()).length || 0;
-  const totalEnCaseta = parsedData?.units?.filter(u => u.estatusPlaneacion === 'CARGADO' || u.estatusPatio === 'Cargado').length || 0;
-  const totalColocados = parsedData?.units?.filter(u => u.estatusPlaneacion === 'COLOCADO').length || 0;
-  const totalPendientes = parsedData?.units?.filter(u => (u.estatusPlaneacion || 'PENDIENTE') === 'PENDIENTE').length || 0;
-
-  // Filtrado en vivo de la tabla de previsualización
-  const filteredUnits = (parsedData?.units || []).filter(u => {
-    if (!previewSearch.trim()) return true;
-    const q = previewSearch.toLowerCase().trim();
-    return (
-      String(u.economico || '').toLowerCase().includes(q) ||
-      String(u.noViaje || '').toLowerCase().includes(q) ||
-      String(u.operador || '').toLowerCase().includes(q) ||
-      String(u.destino || '').toLowerCase().includes(q) ||
-      String(u.numCarga || '').toLowerCase().includes(q) ||
-      String(u.cortina || '').toLowerCase().includes(q) ||
-      String(u.numSucursal || '').toLowerCase().includes(q) ||
-      String(u.bloque || '').toLowerCase().includes(q)
-    );
-  });
+  // Solo las primeras filas se pintan: la previsualización no es el tablero
+  const filasVisibles = filtrados.slice(0, MAX_FILAS_PREVIEW);
 
   return (
     <div className="modal-overlay" style={{ zIndex: 1200 }}>
@@ -401,6 +442,11 @@ export const ImportarPlaneacionModal = () => {
                   <div style={{ fontSize: '1.6rem', fontWeight: 800, color: '#fff', marginTop: '0.2rem', fontFamily: 'var(--font-mono)' }}>
                     {parsedData.totalViajes}
                   </div>
+                  {resumen.sinUnidad > 0 && (
+                    <div style={{ fontSize: '0.7rem', color: '#fbbf24', marginTop: '0.15rem' }}>
+                      {resumen.sinUnidad} sin unidad asignada
+                    </div>
+                  )}
                 </div>
 
                 <div style={{ background: '#101b30', padding: '0.75rem 1rem', borderRadius: '8px', border: '1px solid rgba(56, 189, 248, 0.3)' }}>
@@ -409,7 +455,7 @@ export const ImportarPlaneacionModal = () => {
                     <span>PARADAS CONSOLIDADAS</span>
                   </div>
                   <div style={{ fontSize: '1.6rem', fontWeight: 800, color: '#fff', marginTop: '0.2rem', fontFamily: 'var(--font-mono)' }}>
-                    {totalSecondaryStops}
+                    {resumen.SecondaryStops}
                   </div>
                 </div>
 
@@ -419,7 +465,7 @@ export const ImportarPlaneacionModal = () => {
                     <span>OPERADORES</span>
                   </div>
                   <div style={{ fontSize: '1.6rem', fontWeight: 800, color: '#fff', marginTop: '0.2rem', fontFamily: 'var(--font-mono)' }}>
-                    {totalOperadores}
+                    {resumen.operadores}
                   </div>
                 </div>
 
@@ -435,15 +481,64 @@ export const ImportarPlaneacionModal = () => {
 
                 <div style={{ background: '#101b30', padding: '0.75rem 1rem', borderRadius: '8px', border: '1px solid rgba(148, 163, 184, 0.3)' }}>
                   <div style={{ fontSize: '0.72rem', color: '#94a3b8', fontWeight: 700, textTransform: 'uppercase' }}>
-                    ESTATUS DETECTADOS
+                    ESTATUS EN PLANIFICACIÓN
                   </div>
                   <div style={{ fontSize: '0.72rem', color: '#cbd5e1', marginTop: '0.35rem', display: 'flex', flexDirection: 'column', gap: '0.15rem' }}>
-                    <span>🟡 <strong>{totalEnCaseta}</strong> en Caseta</span>
-                    <span>🔵 <strong>{totalColocados}</strong> Colocados</span>
-                    <span>⚪ <strong>{totalPendientes}</strong> Pendientes</span>
+                    <span>🟡 <strong>{resumen.cargados}</strong> Cargados / En Ruta</span>
+                    <span>🔵 <strong>{resumen.colocados}</strong> Colocados</span>
+                    <span>⚪ <strong>{resumen.pendientes}</strong> Pendientes</span>
+                    <span>🔁 <strong>{resumen.retornos}</strong> Retorno</span>
+                    <span>✅ <strong>{resumen.completados}</strong> Completados</span>
                   </div>
                 </div>
+
+                {parsedData.estatusSinReconocer?.length > 0 && (
+                  <div style={{
+                    gridColumn: '1 / -1',
+                    background: 'rgba(250, 204, 21, 0.08)',
+                    border: '1px solid rgba(250, 204, 21, 0.35)',
+                    borderRadius: '8px',
+                    padding: '0.6rem 0.9rem',
+                    fontSize: '0.76rem',
+                    color: '#fde68a'
+                  }}>
+                    <strong>Estatus sin interpretar:</strong> {parsedData.estatusSinReconocer.join(', ')}.
+                    Se importaron como Pendientes.
+                  </div>
+                )}
               </div>
+
+              {/* Desglose de los valores exactos leídos en la columna ESTATUS */}
+              {resumen.porEstatus.length > 0 && (
+                <div style={{
+                  background: '#0d1527',
+                  border: '1px solid rgba(255, 255, 255, 0.05)',
+                  borderRadius: '8px',
+                  padding: '0.6rem 0.9rem',
+                  marginBottom: '1.25rem',
+                  display: 'flex',
+                  flexWrap: 'wrap',
+                  gap: '0.4rem',
+                  alignItems: 'center'
+                }}>
+                  <span style={{ fontSize: '0.74rem', color: '#94a3b8', fontWeight: 700, marginRight: '0.2rem' }}>
+                    Valores en la columna ESTATUS:
+                  </span>
+                  {resumen.porEstatus.map(([valor, count]) => (
+                    <span key={valor} style={{
+                      background: 'rgba(56, 189, 248, 0.12)',
+                      border: '1px solid rgba(56, 189, 248, 0.25)',
+                      color: '#bae6fd',
+                      borderRadius: '4px',
+                      padding: '0.1rem 0.45rem',
+                      fontSize: '0.72rem',
+                      fontWeight: 700
+                    }}>
+                      {valor} · {count}
+                    </span>
+                  ))}
+                </div>
+              )}
 
               {/* Selector de Hoja / Día del Mes (para libros multi-hoja con 26 días) */}
               {parsedData.hojasDisponibles && parsedData.hojasDisponibles.length > 1 && (
@@ -474,8 +569,8 @@ export const ImportarPlaneacionModal = () => {
                     </div>
                     <div>
                       <div style={{ fontWeight: 800, color: '#fff', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '0.45rem', flexWrap: 'wrap' }}>
-                        <span>Pestaña Activa: <strong style={{ color: '#22d3ee' }}>Pestaña {parsedData.nombreHoja} ({parsedData.nombreHoja === '26' ? 'Día 26' : `Día ${parsedData.nombreHoja}`})</strong></span>
-                        {(parsedData.nombreHoja === '26' || parseInt(parsedData.nombreHoja, 10) === 26) && (
+                        <span>Viajes de: <strong style={{ color: '#22d3ee' }}>{parsedData.hojasDisponibles.find(h => h.name === parsedData.nombreHoja)?.displayName || `Pestaña ${parsedData.nombreHoja}`}</strong></span>
+                        {parsedData.hojasDisponibles.find(h => h.name === parsedData.nombreHoja)?.esDiaActual && (
                           <span style={{
                             background: '#10b981',
                             color: '#fff',
@@ -484,12 +579,12 @@ export const ImportarPlaneacionModal = () => {
                             padding: '0.15rem 0.5rem',
                             borderRadius: '4px'
                           }}>
-                            ✓ DÍA 26 (SELECCIONADA)
+                            ✓ DÍA DE HOY
                           </span>
                         )}
                       </div>
                       <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>
-                        El libro contiene {parsedData.hojasDisponibles.length} pestañas diarias ({parsedData.hojasDisponibles.map(h => h.name).join(', ')}). Puedes cambiar de día aquí:
+                        El libro trae {parsedData.hojasDisponibles.length} pestañas. El archivo ya está leído en memoria, cambiar de día es inmediato.
                       </div>
                     </div>
                   </div>
@@ -517,7 +612,7 @@ export const ImportarPlaneacionModal = () => {
                     >
                       {parsedData.hojasDisponibles.map(sh => (
                         <option key={sh.id || sh.name} value={sh.name}>
-                          Pestaña {sh.name} ({sh.displayName}) {sh.isToday ? '★ [DÍA 26 - ACTIVA]' : ''}
+                          {sh.displayName} · {sh.rowCount} filas{sh.esDiaActual ? ' ★ hoy' : ''}
                         </option>
                       ))}
                     </select>
@@ -632,7 +727,7 @@ export const ImportarPlaneacionModal = () => {
                   )}
                   {previewSearch && (
                     <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
-                      (Mostrando {filteredUnits.length} de {parsedData.totalViajes})
+                      (Mostrando {filtrados.length} de {parsedData.totalViajes})
                     </span>
                   )}
                 </div>
@@ -687,14 +782,14 @@ export const ImportarPlaneacionModal = () => {
                     </tr>
                   </thead>
                   <tbody>
-                    {filteredUnits.length === 0 ? (
+                    {filtrados.length === 0 ? (
                       <tr>
                         <td colSpan="11" style={{ padding: '1.5rem', textAlign: 'center', color: '#94a3b8' }}>
                           No se encontraron viajes que coincidan con &quot;{previewSearch}&quot;
                         </td>
                       </tr>
                     ) : (
-                      filteredUnits.map((u, idx) => (
+                      filasVisibles.map((u, idx) => (
                         <tr key={u.id || idx} style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.04)' }}>
                           <td style={{ padding: '0.45rem 0.6rem', fontFamily: 'var(--font-mono)', fontWeight: 700, color: '#38bdf8' }}>
                             {u.noViaje || '—'}
@@ -750,11 +845,15 @@ export const ImportarPlaneacionModal = () => {
                               borderRadius: '4px',
                               fontSize: '0.68rem',
                               fontWeight: 700,
-                              background: u.estatusPlaneacion === 'CARGADO' ? 'rgba(234, 179, 8, 0.2)' : u.estatusPlaneacion === 'COLOCADO' ? 'rgba(6, 182, 212, 0.2)' : 'rgba(148, 163, 184, 0.2)',
-                              color: u.estatusPlaneacion === 'CARGADO' ? '#facc15' : u.estatusPlaneacion === 'COLOCADO' ? '#22d3ee' : '#cbd5e1'
+                              background: u.estatusPlaneacion === 'CARGADO' ? 'rgba(234, 179, 8, 0.2)' : u.estatusPlaneacion === 'COLOCADO' ? 'rgba(6, 182, 212, 0.2)' : u.estatusPlaneacion === 'RETORNO' ? 'rgba(16, 185, 129, 0.2)' : u.estatusPlaneacion === 'COMPLETADO' ? 'rgba(148, 163, 184, 0.2)' : 'rgba(148, 163, 184, 0.2)',
+                              color: u.estatusPlaneacion === 'CARGADO' ? '#facc15' : u.estatusPlaneacion === 'COLOCADO' ? '#22d3ee' : u.estatusPlaneacion === 'RETORNO' ? '#34d399' : '#cbd5e1'
                             }}>
                               {u.estatusPlaneacion === 'CARGADO' ? 'EN CASETA' : u.estatusPlaneacion}
                             </span>
+                            <div style={{ fontSize: '0.66rem', color: '#64748b', marginTop: '0.2rem', whiteSpace: 'nowrap' }}>
+                              {u.estatusOrigen ? `archivo: ${u.estatusOrigen}` : 'archivo: (vacío)'}
+                              {u.estatusSupervisor !== 'Pendiente' ? ` · ${u.estatusSupervisor}` : ''}
+                            </div>
                           </td>
                         </tr>
                       ))
@@ -765,6 +864,12 @@ export const ImportarPlaneacionModal = () => {
             </div>
           )}
         </div>
+
+        {parsedData && filasVisibles.length < filtrados.length && (
+          <div style={{ fontSize: '0.74rem', color: '#64748b', textAlign: 'center', marginTop: '0.6rem' }}>
+            Previsualización limitada a {MAX_FILAS_PREVIEW} de {filtrados.length} filas. Se importarán los {parsedData.totalViajes} viajes.
+          </div>
+        )}
 
         {/* Pie del Modal con Acciones */}
         <div style={{
