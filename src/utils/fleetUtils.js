@@ -266,20 +266,132 @@ export const evaluarDisponibilidadManana = (unitOrTrips, catalogoFlota = []) => 
     };
   }
 
-  // La unidad ya salió del CEDIS en un viaje largo (rabón, automática o full)
-  // con destino foráneo: esos viajes son de 36 h, así que vuelve a estar
-  // operable mañana. Las camionetas se excluyen porque regresan dentro del
-  // mismo día, y los viajes locales también, porque regresan en el día.
+  // Diccionario de duraciones oficiales en horas (Total de Ida y Vuelta + tiempos)
+  const DURACION_VIAJES_HORAS = {
+    'BANCOS CHIAPAS': 84.31,
+    'BANCOS OAXACA': 68.54,
+    'ITALIKA LERMA': 53.54,
+    'TOLUCA': 53.54,
+    'BANCOS VERACRUZ': 52.38,
+    'RIO GRANDE': 48.55,
+    'PUERTO ESCONDIDO': 47.08,
+    'POCHUTLA': 44.95,
+    'HUATULCO': 43.75,
+    'CIUDAD HIDALGO': 36.27,
+    'MOTOZINTLA': 35.47,
+    'TAPACHULA': 35.07,
+    'HUIXTLA': 33.82,
+    'MATIAS ROMERO': 33.08,
+    'MAPASTEPEC': 31.96,
+    'SALINA CRUZ': 31.35,
+    'COMALAPA': 30.98,
+    'TEHUANTEPEC': 30.92,
+    'COMITAN': 30.92,
+    'PIJIJIAPAN': 30.62,
+    'TONALA': 22.30,
+    'ARRIAGA': 21.88,
+    'SAN CRISTOBAL DE LAS CASAS': 21.15,
+    'SAN CRISTOBAL': 21.15,
+    'CINTALAPA': 19.98,
+    'TUXTLA GUTIERREZ': 19.18,
+    'SAN ANDRES TUXTLA': 17.87,
+    'BENEMERITO': 16.13,
+    'OCOSINGO': 15.65,
+    'ACAYUCAN': 15.25,
+    'HUB TUXTLA': 15.09,
+    'MINATITLAN': 13.79,
+    'COATZACOALCOS': 13.25,
+    'YAJALON': 10.78,
+    'LAS CHOAPAS': 9.02,
+    'TENOSIQUE': 8.95,
+    'AGUA DULCE': 8.03,
+    'PALENQUE': 8.45,
+    'LA VENTA': 8.31,
+    'BALANCAN': 8.25,
+    'JONUTA': 7.27,
+    'EMILIANO ZAPATA': 6.96,
+    'PARAISO': 5.12,
+    'SALTO DE AGUA': 5.03,
+    'HUIMANGUILLO': 4.96,
+    'PICHUCALCO': 4.92,
+    'FRONTERA': 4.65,
+    'COMALCALCO': 4.59,
+    'CARDENAS': 4.33,
+    'TEAPA': 4.28,
+    'REFORMA': 4.12,
+    'MACUSPANA': 4.01,
+    'JALAPA': 3.85,
+    'JALPA DE MENDEZ': 3.50,
+    'CUNDUACAN': 3.55,
+    'CENTRO': 2.76,
+    'CANDELARIA': 8.32,
+    'JUCHITAN': 0.0,
+  };
+
+  const getDuracionViajeHrs = (destinoStr) => {
+    if (!destinoStr) return 0;
+    const dest = String(destinoStr).toUpperCase().trim();
+    // Búsqueda directa o parcial
+    if (DURACION_VIAJES_HORAS[dest]) return DURACION_VIAJES_HORAS[dest];
+    for (const [key, hrs] of Object.entries(DURACION_VIAJES_HORAS)) {
+      if (dest.includes(key)) return hrs;
+    }
+    return 0;
+  };
+
+  // La unidad ya salió del CEDIS en un viaje. 
+  // Para viajes foráneos calculamos si por la duración de horas regresará antes de mañana a las 22:00.
   const hayForaneoPartido = trips.some(trip => yaPartioDeRuta(trip) && esViajeForaneo(trip));
-  if (trips.every(yaPartioDeRuta) && hayForaneoPartido && regresaMananaDeViajeLargo(units, fleetUnit)) {
-    return {
-      disponible: true,
-      regresaManana: true,
-      badge: 'REGRESA MAÑANA',
-      motivo: 'Regresa de viaje foráneo',
-      detalle: 'Viaje foráneo de 36 h en curso; la unidad queda libre para mañana',
-      color: '#38bdf8'
-    };
+  
+  // Si todos sus viajes asignados ya partieron, evaluamos su ETA.
+  if (trips.every(yaPartioDeRuta) && regresaMananaDeViajeLargo(units, fleetUnit)) {
+    const trip = trips.find(t => esViajeForaneo(t)) || trips[0]; // Usar el viaje foráneo principal
+    
+    // Determinar la duración del viaje en horas (priorizando el tiempo estimado cargado, o el diccionario)
+    let duracion = Number(trip.tiempoEstimadoHrs) || 0;
+    if (!duracion && trip.destino) {
+      duracion = getDuracionViajeHrs(trip.destino);
+    }
+
+    if (hayForaneoPartido && duracion > 0) {
+      // Calcular a qué hora termina el viaje tomando en cuenta la hora de salida de hoy
+      const horaSalida = trip.horaCaseta || trip.horaSalida || '08:00';
+      const [h, m] = horaSalida.split(':').map(Number);
+      const horasSaliendoHoy = (h || 8) + (m || 0) / 60; // Horas transcurridas de hoy al salir
+      const horaRegresoTotal = horasSaliendoHoy + duracion;
+
+      // 46 horas significa las 22:00 hrs de mañana (24 de hoy + 22 de mañana).
+      // Si el viaje sobrepasa eso, no estará disponible mañana.
+      if (horaRegresoTotal > 46) {
+        return {
+          disponible: false,
+          regresaManana: false,
+          badge: 'NO DISPONIBLE',
+          motivo: 'Viaje foráneo extenso',
+          detalle: `Duración de ${duracion} hrs. No alcanza a regresar mañana.`,
+          color: '#f59e0b' // Ámbar
+        };
+      } else {
+        return {
+          disponible: true,
+          regresaManana: true,
+          badge: 'REGRESA MAÑANA',
+          motivo: 'Regresa de viaje foráneo',
+          detalle: `Duración: ${duracion} hrs. Retorno estimado antes de mañana en la noche.`,
+          color: '#38bdf8'
+        };
+      }
+    } else if (hayForaneoPartido) {
+      // Si es foráneo pero no tenemos horas específicas, usamos el caso base (36h default)
+      return {
+        disponible: true,
+        regresaManana: true,
+        badge: 'REGRESA MAÑANA',
+        motivo: 'Regresa de viaje foráneo',
+        detalle: 'Viaje foráneo en curso; la unidad queda libre mañana',
+        color: '#38bdf8'
+      };
+    }
   }
 
   const tripCount = trips.length;

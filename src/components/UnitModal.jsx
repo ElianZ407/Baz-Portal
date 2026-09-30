@@ -370,7 +370,7 @@ const UnitModalForm = () => {
                 <Wrench size={18} color="#ef4444" style={{ flexShrink: 0 }} />
                 <div>
                   <strong style={{ display: 'block', color: '#fff', marginBottom: '0.2rem' }}>
-                    ⛔ UNIDAD EN TALLER MECÁNICO (NO PROGRAMABLE):
+                    ⛔ UNIDAD EN TALLER (NO PROGRAMABLE):
                   </strong>
                   La unidad <strong>ECO {formData.economico}</strong> está en <strong>Taller Mecánico</strong>. No puede ser programada en Planeación hasta que esté disponible en Patio.
                 </div>
