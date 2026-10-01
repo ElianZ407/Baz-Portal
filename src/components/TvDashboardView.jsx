@@ -80,15 +80,22 @@ export const TvDashboardView = () => {
     [unitsForFilter, catalogoFlota]
   );
 
+  const unassignedTripsCount = useMemo(
+    () => units.filter(u => !String(u.economico || '').trim()).length,
+    [units]
+  );
+
   // Filtrar según el estado seleccionado, búsqueda y F/L
   const filteredUnits = unitsForFilter.filter(unit => {
+    const ecoStr = String(unit.economico || '').trim();
     const matchesSearch = 
-      (unit.economico && unit.economico.toLowerCase().includes(searchQuery.toLowerCase())) ||
+      (ecoStr && ecoStr.toLowerCase().includes(searchQuery.toLowerCase())) ||
       (unit.operador && unit.operador.toLowerCase().includes(searchQuery.toLowerCase())) ||
       (unit.destino && unit.destino.toLowerCase().includes(searchQuery.toLowerCase())) ||
       (unit.numCarga && unit.numCarga.toLowerCase().includes(searchQuery.toLowerCase())) ||
       (unit.cortina && unit.cortina.toLowerCase().includes(searchQuery.toLowerCase())) ||
-      (unit.closter && unit.closter.toLowerCase().includes(searchQuery.toLowerCase()));
+      (unit.closter && unit.closter.toLowerCase().includes(searchQuery.toLowerCase())) ||
+      (unit.noViaje && String(unit.noViaje).toLowerCase().includes(searchQuery.toLowerCase()));
 
     if (!matchesSearch) return false;
 
@@ -128,10 +135,15 @@ export const TvDashboardView = () => {
       return availabilityByUnitId.get(String(unit.id))?.regresaManana || false;
     }
     if (filterStatus === 'POR_CONFIRMAR') {
-      return Boolean(String(unit.economico || '').trim()) && availabilityByUnitId.get(String(unit.id))?.badge === 'POR CONFIRMAR';
+      return Boolean(ecoStr) && availabilityByUnitId.get(String(unit.id))?.badge === 'POR CONFIRMAR';
     }
     if (filterStatus === 'SIN_UNIDAD') {
-      return !String(unit.economico || '').trim();
+      return !ecoStr;
+    }
+
+    // Por defecto en la pantalla de TV: solo mostrar unidades físicas con ECO asignado
+    if (!ecoStr) {
+      return false;
     }
 
     return true;
@@ -353,7 +365,9 @@ export const TvDashboardView = () => {
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
             <h2>
               <Tv size={20} color="var(--accent-cyan)" />
-              Flota y Embarques del Día ({filteredEcosCount} Unidades)
+              {filterStatus === 'SIN_UNIDAD' 
+                ? `Viajes Pendientes de Asignar (${filteredUnits.length} Viajes)`
+                : `Flota y Embarques del Día (${filteredEcosCount} Unidades)`}
             </h2>
             {filterStatus !== 'ALL' && (
               <button 
@@ -361,7 +375,7 @@ export const TvDashboardView = () => {
                 style={{ background: 'rgba(239, 68, 68, 0.2)', borderColor: 'rgba(239, 68, 68, 0.4)', color: '#f87171' }}
                 onClick={() => setFilterStatus('ALL')}
               >
-                Limpiar Filtro de KPI (X)
+                Limpiar Filtro ({filterStatus === 'SIN_UNIDAD' ? 'Sin Asignar' : 'KPI'}) ×
               </button>
             )}
             {filterCapType !== 'ALL' && (
@@ -375,27 +389,48 @@ export const TvDashboardView = () => {
             )}
 
             {/* Selector Rápido F/L para TV */}
-            <div style={{ display: 'flex', gap: '0.35rem', marginLeft: '0.5rem' }}>
+            <div style={{ display: 'flex', gap: '0.35rem', marginLeft: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
               <button 
-                className={`pill-btn ${filterFL === 'ALL' ? 'active' : ''}`}
-                onClick={() => setFilterFL('ALL')}
+                className={`pill-btn ${filterFL === 'ALL' && filterStatus !== 'SIN_UNIDAD' ? 'active' : ''}`}
+                onClick={() => {
+                  setFilterFL('ALL');
+                  if (filterStatus === 'SIN_UNIDAD') setFilterStatus('ALL');
+                }}
               >
                 Todas
               </button>
               <button 
-                className={`pill-btn ${filterFL === 'LOCAL' ? 'active' : ''}`}
-                onClick={() => setFilterFL('LOCAL')}
-                style={filterFL === 'LOCAL' ? { background: 'rgba(16, 185, 129, 0.25)', borderColor: '#10b981', color: '#34d399' } : {}}
+                className={`pill-btn ${filterFL === 'LOCAL' && filterStatus !== 'SIN_UNIDAD' ? 'active' : ''}`}
+                onClick={() => {
+                  setFilterFL('LOCAL');
+                  if (filterStatus === 'SIN_UNIDAD') setFilterStatus('ALL');
+                }}
+                style={filterFL === 'LOCAL' && filterStatus !== 'SIN_UNIDAD' ? { background: 'rgba(16, 185, 129, 0.25)', borderColor: '#10b981', color: '#34d399' } : {}}
               >
                 Locales (Tabasco)
               </button>
               <button 
-                className={`pill-btn ${filterFL === 'FORANEO' ? 'active' : ''}`}
-                onClick={() => setFilterFL('FORANEO')}
-                style={filterFL === 'FORANEO' ? { background: 'rgba(168, 85, 247, 0.25)', borderColor: '#a855f7', color: '#c084fc' } : {}}
+                className={`pill-btn ${filterFL === 'FORANEO' && filterStatus !== 'SIN_UNIDAD' ? 'active' : ''}`}
+                onClick={() => {
+                  setFilterFL('FORANEO');
+                  if (filterStatus === 'SIN_UNIDAD') setFilterStatus('ALL');
+                }}
+                style={filterFL === 'FORANEO' && filterStatus !== 'SIN_UNIDAD' ? { background: 'rgba(168, 85, 247, 0.25)', borderColor: '#a855f7', color: '#c084fc' } : {}}
               >
                 Foráneos (Rutas)
               </button>
+              {unassignedTripsCount > 0 && (
+                <button 
+                  className={`pill-btn ${filterStatus === 'SIN_UNIDAD' ? 'active' : ''}`}
+                  onClick={() => setFilterStatus(prev => prev === 'SIN_UNIDAD' ? 'ALL' : 'SIN_UNIDAD')}
+                  style={filterStatus === 'SIN_UNIDAD' 
+                    ? { background: 'rgba(234, 179, 8, 0.3)', borderColor: '#eab308', color: '#fde047', fontWeight: 700 } 
+                    : { borderColor: 'rgba(234, 179, 8, 0.4)', color: '#facc15' }}
+                  title="Ver viajes importados que aún no tienen una unidad (ECO) asignada"
+                >
+                  ⚠️ Sin Asignar ({unassignedTripsCount})
+                </button>
+              )}
             </div>
           </div>
 
