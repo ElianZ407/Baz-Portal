@@ -412,33 +412,29 @@ export const evaluarDisponibilidadManana = (unitOrTrips, catalogoFlota = []) => 
     duracion = esViajeForaneo(trip) ? 36 : 6;
   }
 
-  // Calcular a qué hora termina el viaje tomando en cuenta la hora de salida planificada o real de hoy
-  const horaSalida = trip.horaCaseta || trip.horaSalida || trip.horaColocacion || '08:00';
-  const [h, m] = horaSalida.split(':').map(Number);
-  const horasSaliendoHoy = (h || 8) + (m || 0) / 60; // Horas transcurridas de hoy al momento de salir
-  const horaRegresoTotal = horasSaliendoHoy + duracion;
-
-  // 46 horas significa las 22:00 hrs de mañana (24 hrs de hoy + 22 hrs de mañana).
-  // Si el tiempo total estimado supera las 46 horas, la unidad NO estará disponible mañana.
-  if (horaRegresoTotal > 46) {
+  // Regla del negocio: Viajes de más de 36 horas son foráneos largos que se toman varios días (no regresan mañana)
+  if (duracion > 36) {
+    const diasEstimados = Math.round((duracion / 24) * 10) / 10;
+    const diasEnteros = Math.ceil(duracion / 24);
     return {
       disponible: false,
       regresaManana: false,
       badge: 'NO DISPONIBLE',
-      motivo: esViajeForaneo(trip) ? 'Viaje foráneo extenso' : 'Ruta larga',
-      detalle: `Duración de ${duracion} hrs. No alcanza a regresar mañana.`,
+      motivo: `Viaje largo (${diasEnteros} días)`,
+      detalle: `Duración de ${duracion} hrs (~${diasEstimados} días en ruta). No alcanza a regresar mañana.`,
       color: '#f59e0b' // Ámbar
     };
   } 
 
-  // Si el viaje es corto y terminará antes de mañana en la noche, SÍ contamos con la unidad para mañana.
+  // Si el viaje dura 36 horas o menos, SÍ regresa mañana
   const isEnRuta = yaPartioDeRuta(trip);
+  const diasEstimados = Math.round((duracion / 24) * 10) / 10;
   return {
     disponible: true,
     regresaManana: true,
     badge: 'REGRESA MAÑANA',
     motivo: isEnRuta ? 'En ruta' : 'Ruta programada',
-    detalle: `Duración: ${duracion} hrs. Retorno estimado antes de mañana en la noche.`,
+    detalle: `Duración: ${duracion} hrs (~${diasEstimados} días). Retorno estimado para mañana.`,
     color: '#38bdf8'
   };
 };
