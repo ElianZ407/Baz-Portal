@@ -5,9 +5,7 @@ import {
   Radio, 
   Tv, 
   PlusCircle, 
-  Maximize, 
   Clock, 
-  HelpCircle, 
   FileSpreadsheet,
   Save,
   History,
@@ -64,18 +62,6 @@ export const Header = () => {
   const handleOpenNewUnit = () => {
     setSelectedUnit(null);
     setIsModalOpen(true);
-  };
-
-  const toggleFullScreen = () => {
-    if (!document.fullscreenElement) {
-      document.documentElement.requestFullscreen().catch(err => {
-        console.error("Error al activar pantalla completa", err);
-      });
-    } else {
-      if (document.exitFullscreen) {
-        document.exitFullscreen();
-      }
-    }
   };
 
   const timeString = headerTime.toLocaleTimeString('es-MX', {
@@ -240,27 +226,6 @@ export const Header = () => {
             <span className="btn-label-text" style={{ fontWeight: 700 }}>{getExportButtonLabel()}</span>
           </button>
         )}
-
-        <button 
-          className="btn btn-secondary btn-header-action" 
-          style={{ border: '1px solid rgba(6, 182, 212, 0.35)' }}
-          onClick={() => {
-            const btn = document.querySelector('.floating-help-btn');
-            if (btn) btn.click();
-          }}
-          title="Manual de Usuario y Flujo Operativo"
-        >
-          <HelpCircle size={15} color="var(--accent-cyan)" />
-          <span className="btn-label-text">Ayuda</span>
-        </button>
-
-        <button 
-          className="btn btn-secondary btn-icon-only" 
-          onClick={toggleFullScreen}
-          title="Pantalla Completa (Modo Sala de Monitoreo)"
-        >
-          <Maximize size={16} />
-        </button>
       </div>
     </header>
   );

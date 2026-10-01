@@ -369,24 +369,6 @@ export const TvDashboardView = () => {
                 ? `Viajes Pendientes de Asignar (${filteredUnits.length} Viajes)`
                 : `Flota y Embarques del Día (${filteredEcosCount} Unidades)`}
             </h2>
-            {filterStatus !== 'ALL' && (
-              <button 
-                className="pill-btn"
-                style={{ background: 'rgba(239, 68, 68, 0.2)', borderColor: 'rgba(239, 68, 68, 0.4)', color: '#f87171' }}
-                onClick={() => setFilterStatus('ALL')}
-              >
-                Limpiar Filtro ({filterStatus === 'SIN_UNIDAD' ? 'Sin Asignar' : 'KPI'}) ×
-              </button>
-            )}
-            {filterCapType !== 'ALL' && (
-              <button
-                className="pill-btn"
-                style={{ background: 'rgba(239, 68, 68, 0.2)', borderColor: 'rgba(239, 68, 68, 0.4)', color: '#f87171' }}
-                onClick={() => setFilterCapType('ALL')}
-              >
-                Limpiar tipo ({filterCapType === 'CAMIONETA' ? 'Camionetas' : filterCapType === 'RABON' ? 'Rabones' : 'Fulles'}) ×
-              </button>
-            )}
 
             {/* Selector Rápido F/L para TV */}
             <div style={{ display: 'flex', gap: '0.35rem', marginLeft: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
