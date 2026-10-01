@@ -562,30 +562,68 @@ export const PlaneacionView = () => {
                       {isFirstTripForEco && (
                         <tr className="planeacion-eco-group-row">
                           <td colSpan="8" style={{ padding: 0 }}>
-                            <button
-                              className="planeacion-eco-group-toggle"
-                              type="button"
-                              aria-expanded={isTripGroupExpanded}
-                              onClick={() => setExpandedTripGroups(previous => {
-                                const next = new Set(previous);
-                                if (next.has(ecoKey)) next.delete(ecoKey);
-                                else next.add(ecoKey);
-                                return next;
-                              })}
-                              title={isTripGroupExpanded ? 'Contraer viajes del ECO' : 'Desglosar viajes del ECO'}
-                            >
-                              {isTripGroupExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
-                              <strong>ECO {ecoKey}</strong>
-                              <span className="planeacion-eco-group-count">{tripGroup.tripCount} viajes</span>
-                              {tripGroup.tripNumbers.length > 0 && <span className="planeacion-eco-group-meta">Folios: {tripGroup.tripNumbers.join(', ')}</span>}
-                              {tripGroup.destinations.length > 0 && <span className="planeacion-eco-group-destinations">Destinos: {tripGroup.destinations.slice(0, 3).join(' → ')}{tripGroup.destinations.length > 3 ? ` +${tripGroup.destinations.length - 3}` : ''}</span>}
-                            </button>
+                            <div className="planeacion-eco-group-wrapper">
+                              <button
+                                className={`planeacion-eco-group-toggle ${isTripGroupExpanded ? 'is-expanded' : ''}`}
+                                type="button"
+                                aria-expanded={isTripGroupExpanded}
+                                onClick={() => setExpandedTripGroups(previous => {
+                                  const next = new Set(previous);
+                                  if (next.has(ecoKey)) next.delete(ecoKey);
+                                  else next.add(ecoKey);
+                                  return next;
+                                })}
+                                title={isTripGroupExpanded ? 'Contraer desglose de viajes del ECO' : 'Desglosar viajes asignados del ECO'}
+                              >
+                                <div className="planeacion-eco-group-left">
+                                  <div className="planeacion-eco-group-icon">
+                                    {isTripGroupExpanded ? <ChevronDown size={18} /> : <ChevronRight size={18} />}
+                                  </div>
+                                  <span className="planeacion-eco-group-badge-eco">
+                                    ECO {ecoKey}
+                                  </span>
+                                  <span className="planeacion-eco-group-count">
+                                    <Layers size={14} />
+                                    {tripGroup.tripCount} Viajes Programados
+                                  </span>
+
+                                  {tripGroup.tripNumbers.length > 0 && (
+                                    <div className="planeacion-eco-group-meta">
+                                      <span className="meta-label">Folios:</span>
+                                      <span className="meta-value">#{tripGroup.tripNumbers.join(' · #')}</span>
+                                    </div>
+                                  )}
+                                </div>
+
+                                <div className="planeacion-eco-group-center">
+                                  {tripGroup.destinations.length > 0 && (
+                                    <div className="planeacion-eco-group-destinations">
+                                      <span className="dest-label">Secuencia:</span>
+                                      <div className="dest-sequence">
+                                        {tripGroup.destinations.map((dest, i) => (
+                                          <React.Fragment key={i}>
+                                            {i > 0 && <span className="dest-arrow">➔</span>}
+                                            <span className="dest-chip">{dest}</span>
+                                          </React.Fragment>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+
+                                <div className="planeacion-eco-group-right">
+                                  <span className="action-tag">
+                                    {isTripGroupExpanded ? '▲ Ocultar Desglose' : '▼ Ver Desglose de Viajes'}
+                                  </span>
+                                </div>
+                              </button>
+                            </div>
                           </td>
                         </tr>
                       )}
                       {(!isRepeatedEco || isTripGroupExpanded) && (
                       <React.Fragment>
-                      <tr className="planeacion-data-row"
+                      <tr className={`planeacion-data-row ${isRepeatedEco ? 'multi-trip-subrow' : ''}`}
                         style={{
                         background: isEnTaller 
                           ? 'rgba(239, 68, 68, 0.06)' 
@@ -608,6 +646,8 @@ export const PlaneacionView = () => {
                           ? '4px solid #eab308' 
                           : isColocado 
                           ? '4px solid #06b6d4' 
+                          : isRepeatedEco
+                          ? '4px solid #0284c7'
                           : 'none',
                         opacity: isEnTaller ? 0.85 : 1
                       }}
@@ -615,9 +655,16 @@ export const PlaneacionView = () => {
                       {/* ECO UNIDAD */}
                       <td>
                         {unit.economico ? (
-                          <span className="eco-pill" style={{ fontSize: '0.88rem' }}>
-                            {unit.economico}
-                          </span>
+                          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+                            <span className="eco-pill" style={{ fontSize: '0.88rem' }}>
+                              {unit.economico}
+                            </span>
+                            {isRepeatedEco && (
+                              <span className="multi-trip-step-badge">
+                                Viaje {tripsByEco.get(ecoKey).findIndex(t => t.id === unit.id) + 1} de {tripGroup.tripCount}
+                              </span>
+                            )}
+                          </div>
                         ) : (
                           <span style={{ 
                             fontSize: '0.72rem', 
