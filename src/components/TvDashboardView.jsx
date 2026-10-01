@@ -19,6 +19,7 @@ export const TvDashboardView = () => {
   } = useFleet();
 
   const [filterFL, setFilterFL] = useState('ALL'); // 'ALL' | 'LOCAL' | 'FORANEO'
+  const [filterCapType, setFilterCapType] = useState('ALL'); // 'ALL' | 'CAMIONETA' | 'RABON' | 'FULL'
   const [currentDate, setCurrentDate] = useState(() => {
     return new Date().toLocaleDateString('es-MX', {
       day: '2-digit',
@@ -94,6 +95,14 @@ export const TvDashboardView = () => {
     // Filtro F/L
     if (filterFL !== 'ALL' && (unit.fl || 'LOCAL') !== filterFL) {
       return false;
+    }
+
+    // Filtro por tipo de unidad (Camioneta / Rabon / Full)
+    if (filterCapType !== 'ALL') {
+      const cap = Number(unit.capUnidad || 0);
+      if (filterCapType === 'CAMIONETA' && cap !== 18) return false;
+      if (filterCapType === 'RABON' && ![40, 50].includes(cap)) return false;
+      if (filterCapType === 'FULL' && ![90, 110, 180].includes(cap)) return false;
     }
 
     // Filtros de estado por KPI
@@ -206,7 +215,7 @@ export const TvDashboardView = () => {
       {/* 4 KPIs Superiores de Telemetría */}
       <KpiBar filterFL={filterFL} setFilterFL={setFilterFL} />
 
-      {/* Resumen de Flota por Tipo de Unidad */}
+      {/* Resumen de Flota por Tipo de Unidad — clicables como filtro */}
       {(() => {
         const CAP_CAMIONETA = [18];
         const CAP_RABON = [40, 50];
@@ -214,44 +223,73 @@ export const TvDashboardView = () => {
         const flota = catalogoFlota || [];
 
         const countByType = (caps) => {
-          const activas = flota.filter(u => caps.includes(Number(u.capUnidad)) && String(u.estatus || 'ACTIVO').toUpperCase() !== 'BAJA').length;
-          const taller = flota.filter(u => caps.includes(Number(u.capUnidad)) && (String(u.estatus || '').toUpperCase().includes('TALLER') || String(u.estatus || '').toUpperCase().includes('SINIESTRO'))).length;
-          return { activas: activas - taller, taller, total: activas };
+          const nonBaja = flota.filter(u => caps.includes(Number(u.capUnidad)) && String(u.estatus || 'ACTIVO').toUpperCase() !== 'BAJA');
+          const taller = nonBaja.filter(u => String(u.estatus || '').toUpperCase().includes('TALLER') || String(u.estatus || '').toUpperCase().includes('SINIESTRO')).length;
+          return { activas: nonBaja.length - taller, taller, total: nonBaja.length };
         };
 
         const camionetas = countByType(CAP_CAMIONETA);
         const rabones = countByType(CAP_RABON);
         const fulles = countByType(CAP_FULL);
 
-        const cardStyle = (color) => ({
-          flex: 1,
-          background: `linear-gradient(135deg, ${color}18 0%, rgba(13,22,38,0.95) 100%)`,
-          border: `1px solid ${color}40`,
-          borderRadius: '12px',
-          padding: '0.9rem 1.3rem',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: '1rem',
-          boxShadow: `0 4px 18px rgba(0,0,0,0.3), inset 0 1px 0 ${color}20`
-        });
+        const handleCardClick = (typeKey) => {
+          setFilterCapType(prev => prev === typeKey ? 'ALL' : typeKey);
+        };
+
+        const cardStyle = (color, typeKey) => {
+          const isActive = filterCapType === typeKey;
+          return {
+            flex: 1,
+            background: isActive
+              ? `linear-gradient(135deg, ${color}35 0%, ${color}18 100%)`
+              : `linear-gradient(135deg, ${color}10 0%, rgba(13,22,38,0.95) 100%)`,
+            border: `2px solid ${isActive ? color : color + '35'}`,
+            borderRadius: '12px',
+            padding: '0.85rem 1.3rem',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: '1rem',
+            cursor: 'pointer',
+            transition: 'all 0.2s ease',
+            boxShadow: isActive
+              ? `0 0 0 3px ${color}30, 0 6px 24px rgba(0,0,0,0.4)`
+              : `0 4px 14px rgba(0,0,0,0.25)`,
+            transform: isActive ? 'translateY(-2px)' : 'none'
+          };
+        };
 
         const statBox = (label, value, color) => (
           <div style={{ textAlign: 'center' }}>
             <div style={{ fontSize: '1.45rem', fontWeight: 900, color, lineHeight: 1 }}>{value}</div>
-            <div style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', marginTop: '0.2rem' }}>{label}</div>
+            <div style={{ fontSize: '0.67rem', color: '#64748b', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', marginTop: '0.2rem' }}>{label}</div>
           </div>
         );
 
         const divider = <div style={{ width: '1px', height: '36px', background: 'rgba(255,255,255,0.08)' }} />;
 
+        const activeIndicator = (color) => (
+          <div style={{
+            width: '8px', height: '8px', borderRadius: '50%',
+            background: color, boxShadow: `0 0 8px ${color}`,
+            flexShrink: 0
+          }} />
+        );
+
         return (
           <div style={{ display: 'flex', gap: '0.85rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
             {/* Camionetas */}
-            <div style={cardStyle('#10b981')}>
-              <div>
-                <div style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em' }}>Camionetas</div>
-                <div style={{ fontSize: '0.8rem', color: '#94a3b8', marginTop: '0.1rem' }}>Cap. 18 m³</div>
+            <div
+              style={cardStyle('#10b981', 'CAMIONETA')}
+              onClick={() => handleCardClick('CAMIONETA')}
+              title="Clic para filtrar la tabla por Camionetas (Cap. 18 m³)"
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                {filterCapType === 'CAMIONETA' && activeIndicator('#34d399')}
+                <div>
+                  <div style={{ fontSize: '0.72rem', color: filterCapType === 'CAMIONETA' ? '#34d399' : '#64748b', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em' }}>Camionetas</div>
+                  <div style={{ fontSize: '0.78rem', color: '#94a3b8', marginTop: '0.1rem' }}>Cap. 18 m³ {filterCapType === 'CAMIONETA' ? '— Filtrando ✓' : '· Clic para filtrar'}</div>
+                </div>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
                 {statBox('Activas', camionetas.activas, '#34d399')}
@@ -263,10 +301,17 @@ export const TvDashboardView = () => {
             </div>
 
             {/* Rabones */}
-            <div style={cardStyle('#06b6d4')}>
-              <div>
-                <div style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em' }}>Rabones</div>
-                <div style={{ fontSize: '0.8rem', color: '#94a3b8', marginTop: '0.1rem' }}>Cap. 40–50 m³</div>
+            <div
+              style={cardStyle('#06b6d4', 'RABON')}
+              onClick={() => handleCardClick('RABON')}
+              title="Clic para filtrar la tabla por Rabones (Cap. 40–50 m³)"
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                {filterCapType === 'RABON' && activeIndicator('#22d3ee')}
+                <div>
+                  <div style={{ fontSize: '0.72rem', color: filterCapType === 'RABON' ? '#22d3ee' : '#64748b', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em' }}>Rabones</div>
+                  <div style={{ fontSize: '0.78rem', color: '#94a3b8', marginTop: '0.1rem' }}>Cap. 40–50 m³ {filterCapType === 'RABON' ? '— Filtrando ✓' : '· Clic para filtrar'}</div>
+                </div>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
                 {statBox('Activas', rabones.activas, '#22d3ee')}
@@ -278,10 +323,17 @@ export const TvDashboardView = () => {
             </div>
 
             {/* Fulles / Tractos */}
-            <div style={cardStyle('#a855f7')}>
-              <div>
-                <div style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em' }}>Fulles / Tractos</div>
-                <div style={{ fontSize: '0.8rem', color: '#94a3b8', marginTop: '0.1rem' }}>Cap. 90–180 m³</div>
+            <div
+              style={cardStyle('#a855f7', 'FULL')}
+              onClick={() => handleCardClick('FULL')}
+              title="Clic para filtrar la tabla por Fulles/Tractos (Cap. 90–180 m³)"
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                {filterCapType === 'FULL' && activeIndicator('#c084fc')}
+                <div>
+                  <div style={{ fontSize: '0.72rem', color: filterCapType === 'FULL' ? '#c084fc' : '#64748b', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em' }}>Fulles / Tractos</div>
+                  <div style={{ fontSize: '0.78rem', color: '#94a3b8', marginTop: '0.1rem' }}>Cap. 90–180 m³ {filterCapType === 'FULL' ? '— Filtrando ✓' : '· Clic para filtrar'}</div>
+                </div>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
                 {statBox('Activas', fulles.activas, '#c084fc')}
@@ -310,6 +362,15 @@ export const TvDashboardView = () => {
                 onClick={() => setFilterStatus('ALL')}
               >
                 Limpiar Filtro de KPI (X)
+              </button>
+            )}
+            {filterCapType !== 'ALL' && (
+              <button
+                className="pill-btn"
+                style={{ background: 'rgba(239, 68, 68, 0.2)', borderColor: 'rgba(239, 68, 68, 0.4)', color: '#f87171' }}
+                onClick={() => setFilterCapType('ALL')}
+              >
+                Limpiar tipo ({filterCapType === 'CAMIONETA' ? 'Camionetas' : filterCapType === 'RABON' ? 'Rabones' : 'Fulles'}) ×
               </button>
             )}
 
