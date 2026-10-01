@@ -973,28 +973,28 @@ export const PlaneacionView = () => {
                       return (
                         <tr
                           key={parada.id || `${unit.id}-sub-${pIdx}`}
-                          className="subrow-multistop"
+                          className={`subrow-multistop ${isVtex ? 'subrow-multistop-vtex' : ''}`}
                           style={{
-                            background: isVtex ? 'rgba(250, 204, 21, 0.08)' : 'rgba(15, 23, 42, 0.45)',
-                            borderLeft: isVtex ? '4px solid #facc15' : '4px solid rgba(56, 189, 248, 0.35)',
-                            borderBottom: '1px solid rgba(255, 255, 255, 0.05)'
+                            borderLeft: isVtex ? '4px solid #facc15' : '4px solid #38bdf8'
                           }}
                         >
                           {/* ECO UNIDAD */}
-                          <td style={{ fontSize: '0.78rem', color: isVtex ? '#facc15' : 'var(--accent-cyan)' }}>
-                            <span title={`Entrega #${pIdx + 2}`} style={{ marginRight: '0.35rem', fontWeight: 700 }}>↳</span>
-                            <span style={{ fontSize: '0.74rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>
-                              {unit.economico ? `(ECO ${unit.economico})` : '—'}
-                            </span>
+                          <td style={{ fontSize: '0.82rem', color: isVtex ? '#facc15' : 'var(--accent-cyan)' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', paddingLeft: '0.5rem' }}>
+                              <span style={{ fontWeight: 800, color: 'var(--accent-cyan)', fontSize: '0.9rem' }}>↳</span>
+                              <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>
+                                {unit.economico ? `ECO ${unit.economico}` : '—'}
+                              </span>
+                            </div>
                           </td>
 
                           {/* CAP UNIDAD */}
-                          <td style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.75rem' }}>
+                          <td style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.78rem' }}>
                             —
                           </td>
 
                           {/* OPERADOR */}
-                          <td style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>
+                          <td style={{ fontSize: '0.78rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>
                             {unit.operador ? `(Mismo operador)` : '—'}
                           </td>
 
@@ -1002,11 +1002,12 @@ export const PlaneacionView = () => {
                           <td>
                             <span style={{ 
                               fontFamily: 'var(--font-mono)', 
-                              fontSize: '0.75rem', 
-                              background: 'rgba(255,255,255,0.03)', 
-                              padding: '0.15rem 0.35rem', 
+                              fontSize: '0.78rem', 
+                              background: 'rgba(255, 255, 255, 0.05)', 
+                              padding: '0.2rem 0.55rem', 
                               borderRadius: '4px',
-                              color: '#cbd5e1'
+                              color: '#cbd5e1',
+                              border: '1px solid rgba(255, 255, 255, 0.08)'
                             }}>
                               {parada.numCarga || unit.numCarga || '—'}
                             </span>
@@ -1018,31 +1019,33 @@ export const PlaneacionView = () => {
                               <div style={{
                                 display: 'inline-flex',
                                 alignItems: 'center',
-                                gap: '0.4rem',
+                                gap: '0.45rem',
                                 background: 'rgba(250, 204, 21, 0.15)',
                                 border: '1px solid rgba(250, 204, 21, 0.4)',
                                 color: '#fef08a',
-                                padding: '0.2rem 0.55rem',
-                                borderRadius: '4px',
+                                padding: '0.25rem 0.65rem',
+                                borderRadius: '6px',
                                 fontWeight: 700,
-                                fontSize: '0.82rem',
+                                fontSize: '0.84rem',
                                 fontFamily: 'var(--font-mono)'
                               }}>
-                                <Package size={13} color="#facc15" />
+                                <Package size={14} color="#facc15" />
                                 <span>{vtexLabel}</span>
                               </div>
                             ) : (
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                                <span style={{ color: 'var(--accent-cyan)', fontSize: '0.75rem' }}>📍</span>
-                                <span style={{ fontWeight: 600, color: '#e2e8f0', fontSize: '0.82rem' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                <span style={{ color: 'var(--accent-cyan)', fontSize: '0.85rem' }}>📍</span>
+                                <span style={{ fontWeight: 700, color: '#f1f5f9', fontSize: '0.85rem' }}>
                                   {parada.destino || 'Sin definir'}
                                 </span>
                                 <span style={{ 
-                                  fontSize: '0.68rem', 
-                                  color: 'var(--text-muted)',
-                                  background: 'rgba(255, 255, 255, 0.05)',
-                                  padding: '0.08rem 0.35rem',
-                                  borderRadius: '3px'
+                                  fontSize: '0.72rem', 
+                                  fontWeight: 700,
+                                  color: '#38bdf8',
+                                  background: 'rgba(56, 189, 248, 0.12)',
+                                  border: '1px solid rgba(56, 189, 248, 0.3)',
+                                  padding: '0.12rem 0.45rem',
+                                  borderRadius: '4px'
                                 }}>
                                   Parada #{pIdx + 2}
                                 </span>
@@ -1052,7 +1055,7 @@ export const PlaneacionView = () => {
 
                           {/* CLÓSTER & TIPO */}
                           <td>
-                            <span className="badge-closter" style={{ fontSize: '0.7rem', opacity: 0.85 }}>
+                            <span className="badge-closter" style={{ fontSize: '0.74rem', padding: '0.15rem 0.5rem' }}>
                               {parada.closter || unit.closter || 'HUB-VHSA'}
                             </span>
                           </td>
@@ -1060,13 +1063,14 @@ export const PlaneacionView = () => {
                           {/* ESTATUS */}
                           <td style={{ textAlign: 'center' }}>
                             <span style={{
-                              fontSize: '0.7rem',
+                              fontSize: '0.74rem',
+                              fontWeight: 700,
                               color: 'var(--text-muted)',
                               fontFamily: 'var(--font-mono)',
-                              padding: '0.15rem 0.45rem',
+                              padding: '0.2rem 0.55rem',
                               borderRadius: '4px',
-                              background: 'rgba(255, 255, 255, 0.04)',
-                              border: '1px dashed rgba(255, 255, 255, 0.1)'
+                              background: 'rgba(255, 255, 255, 0.05)',
+                              border: '1px dashed rgba(255, 255, 255, 0.12)'
                             }}>
                               {supConfig ? (
                                 <span style={{ color: supConfig.color, fontWeight: 700 }}>

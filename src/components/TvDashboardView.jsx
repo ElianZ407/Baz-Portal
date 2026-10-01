@@ -380,21 +380,34 @@ export const TvDashboardView = () => {
                           <span>{unit.destino ? unit.destino.replace(/\s*\(Retorno\)/gi, '').trim() : 'Sin definir'}</span>
                         </div>
                         {unit.destinosSecundarios && unit.destinosSecundarios.length > 0 && (
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', marginTop: '0.25rem', flexWrap: 'wrap' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginTop: '0.35rem', flexWrap: 'wrap' }}>
                             <span style={{
-                              fontSize: '0.7rem',
+                              fontSize: '0.74rem',
                               background: 'rgba(6, 182, 212, 0.18)',
                               color: '#38bdf8',
                               border: '1px solid rgba(56, 189, 248, 0.35)',
-                              padding: '0.08rem 0.4rem',
+                              padding: '0.12rem 0.5rem',
                               borderRadius: '4px',
                               fontWeight: 700
                             }}>
                               +{unit.destinosSecundarios.length} Entrega{unit.destinosSecundarios.length > 1 ? 's' : ''}:
                             </span>
-                            <span style={{ fontSize: '0.74rem', color: '#94a3b8', fontFamily: 'var(--font-sans)' }}>
-                              {unit.destinosSecundarios.map(p => p.esVtex ? (p.destino?.startsWith('VTEX') ? p.destino : `VTEX (S-${p.numSucursal || ''})`) : (p.destino || `#${p.numSucursal}`)).join(' ➔ ')}
-                            </span>
+                            {unit.destinosSecundarios.map((p, pIdx) => (
+                              <span key={pIdx} style={{
+                                fontSize: '0.74rem',
+                                color: p.esVtex ? '#fef08a' : '#e2e8f0',
+                                background: p.esVtex ? 'rgba(250, 204, 21, 0.15)' : 'rgba(255, 255, 255, 0.06)',
+                                border: '1px solid ' + (p.esVtex ? 'rgba(250, 204, 21, 0.35)' : 'rgba(255, 255, 255, 0.12)'),
+                                padding: '0.12rem 0.5rem',
+                                borderRadius: '4px',
+                                fontWeight: 600,
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '0.25rem'
+                              }}>
+                                📍 {p.esVtex ? (p.destino?.startsWith('VTEX') ? p.destino : `VTEX (S-${p.numSucursal || ''})`) : (p.destino || `#${p.numSucursal}`)}
+                              </span>
+                            ))}
                           </div>
                         )}
                         <div style={{ display: 'flex', gap: '0.4rem', marginTop: '0.25rem', alignItems: 'center' }}>
