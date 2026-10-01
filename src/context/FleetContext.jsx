@@ -521,10 +521,11 @@ export const FleetProvider = ({ children }) => {
         : [fullUnit, ...prev];
     });
 
-    // Guardar en Supabase si está configurado
+    // Guardar en Supabase si está configurado y forzar sincronía inmediata en todos los dispositivos
     if (isSupabaseConfigured() && fullUnit) {
       try {
         await upsertViajeDb(fullUnit);
+        await reloadCloudData();
       } catch (err) {
         console.error('Error al persistir unidad en Supabase:', err);
       }
@@ -546,6 +547,7 @@ export const FleetProvider = ({ children }) => {
     if (isSupabaseConfigured()) {
       try {
         await deleteViajeDb(id);
+        await reloadCloudData();
       } catch (err) {
         console.error('Error al eliminar unidad en Supabase:', err);
       }
@@ -567,6 +569,7 @@ export const FleetProvider = ({ children }) => {
       await retireFleetUnitDb(eco);
       setUnits(prev => prev.filter(current => String(current.economico || '').trim() !== eco));
       setCatalogoFlota(prev => prev.filter(current => String(current.eco || '').trim() !== eco));
+      await reloadCloudData();
       return true;
     } catch (error) {
       console.error('Error al dar de baja la unidad:', error);
@@ -716,10 +719,11 @@ export const FleetProvider = ({ children }) => {
       } catch {}
     }
 
-    // Sincronizar actualización en Supabase
+    // Sincronizar actualización en Supabase y forzar refresco en todos los dispositivos
     if (isSupabaseConfigured()) {
       try {
         await upsertViajeDb(updated);
+        await reloadCloudData();
       } catch (err) {
         console.error('Error al actualizar estatus en Supabase:', err);
       }
