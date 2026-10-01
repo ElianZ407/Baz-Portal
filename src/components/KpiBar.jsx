@@ -1,165 +1,189 @@
 import React from 'react';
-import { CheckCircle2, Navigation, Wrench, Sunrise } from 'lucide-react';
+import { CheckCircle2, Navigation, Wrench, Sunrise, RotateCcw, AlertTriangle, HelpCircle } from 'lucide-react';
 import { useFleet } from '../context/FleetContext';
 
 export const KpiBar = () => {
   const { kpis, filterStatus, setFilterStatus } = useFleet();
 
+  const isMananaActive = ['DISP_MANANA', 'REGRESAN_MANANA', 'POR_CONFIRMAR', 'SIN_UNIDAD'].includes(filterStatus);
+
   return (
-    <section className="kpi-grid">
-      {/* 1. Disponibles en Patio */}
-      <div 
-        className={`kpi-card disponible ${filterStatus === 'DISPONIBLE_PATIO' ? 'active-filter' : ''}`}
-        onClick={() => setFilterStatus(filterStatus === 'DISPONIBLE_PATIO' ? 'ALL' : 'DISPONIBLE_PATIO')}
-        style={{ cursor: 'pointer' }}
-        title="Unidades disponibles actualmente en patio listas para asignar (Clic para filtrar)"
-      >
-        <div className="kpi-info">
-          <h3>Disponibles Patio</h3>
-          <div className="kpi-value">{kpis.disponiblesPatio}</div>
-        </div>
-        <div className="kpi-icon-wrapper">
-          <CheckCircle2 size={28} />
-        </div>
-      </div>
-
-      {/* 2. En Ruta */}
-      <div 
-        className={`kpi-card transito ${filterStatus === 'EN_TRANSITO' ? 'active-filter' : ''}`}
-        onClick={() => setFilterStatus(filterStatus === 'EN_TRANSITO' ? 'ALL' : 'EN_TRANSITO')}
-        style={{ cursor: 'pointer' }}
-        title="Unidades actualmente en tránsito hacia su destino (Clic para filtrar)"
-      >
-        <div className="kpi-info">
-          <h3>En Ruta</h3>
-          <div className="kpi-value">{kpis.enTransito}</div>
-        </div>
-        <div className="kpi-icon-wrapper">
-          <Navigation size={28} />
-        </div>
-      </div>
-
-      {/* 3. En Taller */}
-      <div 
-        className={`kpi-card taller ${filterStatus === 'EN_TALLER' ? 'active-filter' : ''}`}
-        onClick={() => setFilterStatus(filterStatus === 'EN_TALLER' ? 'ALL' : 'EN_TALLER')}
-        style={{ cursor: 'pointer' }}
-        title="Unidades en taller mecánico fuera de servicio (Clic para filtrar)"
-      >
-        <div className="kpi-info">
-          <h3>En Taller</h3>
-          <div className="kpi-value">{kpis.enTaller}</div>
-        </div>
-        <div className="kpi-icon-wrapper">
-          <Wrench size={28} />
-        </div>
-      </div>
-
-      {/* 4. Disponibilidad estimada para mañana */}
-      <div 
-        className={`kpi-card manana ${filterStatus === 'DISP_MANANA' ? 'active-filter' : ''}`}
-        onClick={() => setFilterStatus(filterStatus === 'DISP_MANANA' ? 'ALL' : 'DISP_MANANA')}
-        style={{ 
-          cursor: 'pointer',
-          background: filterStatus === 'DISP_MANANA' ? 'rgba(16, 185, 129, 0.22)' : undefined,
-          borderColor: filterStatus === 'DISP_MANANA' ? '#10b981' : undefined
-        }}
-        title="Libres en patio + unidades que regresan de viaje foráneo largo. No incluye camionetas ni viajes locales, que regresan en el mismo día."
-      >
-        <div className="kpi-info" style={{ width: '100%' }}>
-          <h3>Disponibles Mañana</h3>
-          <div className="kpi-value" style={{ color: '#34d399' }}>{kpis.disponiblesManana}</div>
-          <span style={{ display: 'block', marginTop: '0.2rem', color: '#94a3b8', fontSize: '0.78rem', fontWeight: 600 }}>
-            {kpis.libresManana} libres · {kpis.regresanManana} regresan
-          </span>
-
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem', marginTop: '0.45rem' }}>
-            <button
-              type="button"
-              onClick={event => {
-                event.stopPropagation();
-                setFilterStatus(filterStatus === 'REGRESAN_MANANA' ? 'ALL' : 'REGRESAN_MANANA');
-              }}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.35rem',
-                padding: '0.25rem 0.55rem',
-                borderRadius: '4px',
-                background: filterStatus === 'REGRESAN_MANANA' ? 'rgba(56, 189, 248, 0.28)' : 'rgba(56, 189, 248, 0.12)',
-                border: '1px solid ' + (filterStatus === 'REGRESAN_MANANA' ? '#38bdf8' : 'rgba(56, 189, 248, 0.3)'),
-                color: '#38bdf8',
-                fontSize: '0.78rem',
-                fontWeight: 700,
-                cursor: 'pointer',
-                textAlign: 'left',
-                transition: 'all 0.15s ease',
-                boxShadow: filterStatus === 'REGRESAN_MANANA' ? '0 0 8px rgba(56, 189, 248, 0.3)' : 'none'
-              }}
-              title="Ver unidades en viaje foráneo largo que regresan mañana (Clic para filtrar)"
-            >
-              <span>{kpis.regresanManana} regresan de viaje foráneo</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={event => {
-                event.stopPropagation();
-                setFilterStatus(filterStatus === 'POR_CONFIRMAR' ? 'ALL' : 'POR_CONFIRMAR');
-              }}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.35rem',
-                padding: '0.25rem 0.55rem',
-                borderRadius: '4px',
-                background: filterStatus === 'POR_CONFIRMAR' ? 'rgba(251, 191, 36, 0.28)' : 'rgba(251, 191, 36, 0.12)',
-                border: '1px solid ' + (filterStatus === 'POR_CONFIRMAR' ? '#fbbf24' : 'rgba(251, 191, 36, 0.3)'),
-                color: '#fbbf24',
-                fontSize: '0.78rem',
-                fontWeight: 700,
-                cursor: 'pointer',
-                textAlign: 'left',
-                transition: 'all 0.15s ease',
-                boxShadow: filterStatus === 'POR_CONFIRMAR' ? '0 0 8px rgba(251, 191, 36, 0.3)' : 'none'
-              }}
-              title="Ver unidades que necesitan confirmar hora de salida o duración (Clic para filtrar)"
-            >
-              <span>{kpis.porConfirmarManana} por confirmar</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={event => {
-                event.stopPropagation();
-                setFilterStatus(filterStatus === 'SIN_UNIDAD' ? 'ALL' : 'SIN_UNIDAD');
-              }}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.35rem',
-                padding: '0.25rem 0.55rem',
-                borderRadius: '4px',
-                background: filterStatus === 'SIN_UNIDAD' ? 'rgba(148, 163, 184, 0.25)' : 'rgba(148, 163, 184, 0.08)',
-                border: '1px solid ' + (filterStatus === 'SIN_UNIDAD' ? '#94a3b8' : 'rgba(148, 163, 184, 0.2)'),
-                color: '#cbd5e1',
-                fontSize: '0.78rem',
-                fontWeight: 600,
-                cursor: 'pointer',
-                textAlign: 'left',
-                transition: 'all 0.15s ease',
-                boxShadow: filterStatus === 'SIN_UNIDAD' ? '0 0 8px rgba(148, 163, 184, 0.3)' : 'none'
-              }}
-              title="Ver viajes sin económico asignado (Clic para filtrar)"
-            >
-              <span>{kpis.viajesSinUnidadAsignada} sin unidad asignada</span>
-            </button>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem', marginBottom: '1.5rem' }}>
+      <section className="kpi-grid" style={{ marginBottom: 0 }}>
+        {/* 1. Disponibles en Patio */}
+        <div 
+          className={`kpi-card disponible ${filterStatus === 'DISPONIBLE_PATIO' ? 'active-filter' : ''}`}
+          onClick={() => setFilterStatus(filterStatus === 'DISPONIBLE_PATIO' ? 'ALL' : 'DISPONIBLE_PATIO')}
+          style={{ cursor: 'pointer' }}
+          title="Unidades disponibles actualmente en patio listas para asignar (Clic para filtrar)"
+        >
+          <div className="kpi-info">
+            <h3>Disponibles Patio</h3>
+            <div className="kpi-value">{kpis.disponiblesPatio}</div>
+          </div>
+          <div className="kpi-icon-wrapper">
+            <CheckCircle2 size={28} />
           </div>
         </div>
-        <div className="kpi-icon-wrapper" style={{ color: '#34d399' }}>
-          <Sunrise size={28} />
+
+        {/* 2. En Ruta */}
+        <div 
+          className={`kpi-card transito ${filterStatus === 'EN_TRANSITO' ? 'active-filter' : ''}`}
+          onClick={() => setFilterStatus(filterStatus === 'EN_TRANSITO' ? 'ALL' : 'EN_TRANSITO')}
+          style={{ cursor: 'pointer' }}
+          title="Unidades actualmente en tránsito hacia su destino (Clic para filtrar)"
+        >
+          <div className="kpi-info">
+            <h3>En Ruta</h3>
+            <div className="kpi-value">{kpis.enTransito}</div>
+          </div>
+          <div className="kpi-icon-wrapper">
+            <Navigation size={28} />
+          </div>
         </div>
-      </div>
-    </section>
+
+        {/* 3. En Taller */}
+        <div 
+          className={`kpi-card taller ${filterStatus === 'EN_TALLER' ? 'active-filter' : ''}`}
+          onClick={() => setFilterStatus(filterStatus === 'EN_TALLER' ? 'ALL' : 'EN_TALLER')}
+          style={{ cursor: 'pointer' }}
+          title="Unidades en taller mecánico fuera de servicio (Clic para filtrar)"
+        >
+          <div className="kpi-info">
+            <h3>En Taller</h3>
+            <div className="kpi-value">{kpis.enTaller}</div>
+          </div>
+          <div className="kpi-icon-wrapper">
+            <Wrench size={28} />
+          </div>
+        </div>
+
+        {/* 4. Disponibilidad estimada para mañana */}
+        <div 
+          className={`kpi-card manana ${isMananaActive ? 'active-filter' : ''}`}
+          onClick={() => setFilterStatus(isMananaActive ? 'ALL' : 'DISP_MANANA')}
+          style={{ 
+            cursor: 'pointer',
+            background: isMananaActive ? 'rgba(16, 185, 129, 0.18)' : undefined,
+            borderColor: isMananaActive ? '#10b981' : undefined
+          }}
+          title="Libres en patio + unidades que regresan de viaje foráneo largo. Clic para ver opciones de filtro."
+        >
+          <div className="kpi-info">
+            <h3>Disponibles Mañana</h3>
+            <div className="kpi-value" style={{ color: '#34d399' }}>{kpis.disponiblesManana}</div>
+            <span style={{ display: 'block', marginTop: '0.3rem', color: '#94a3b8', fontSize: '0.8rem', fontWeight: 600 }}>
+              {kpis.libresManana} libres · {kpis.regresanManana} regresan mañana
+            </span>
+          </div>
+          <div className="kpi-icon-wrapper" style={{ color: '#34d399' }}>
+            <Sunrise size={28} />
+          </div>
+        </div>
+      </section>
+
+      {/* Barra de Sub-filtros amplia y clara para Disponibles Mañana */}
+      {isMananaActive && (
+        <div style={{
+          background: 'linear-gradient(135deg, #0d1a30 0%, #091324 100%)',
+          border: '1px solid rgba(6, 182, 212, 0.4)',
+          borderRadius: '12px',
+          padding: '0.85rem 1.4rem',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: '1rem',
+          flexWrap: 'wrap',
+          boxShadow: '0 8px 24px rgba(0, 0, 0, 0.4)'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: '#38bdf8', fontWeight: 800, fontSize: '0.88rem' }}>
+              <Sunrise size={18} />
+              <span>Filtrar Disponibilidad Mañana:</span>
+            </div>
+
+            <button
+              type="button"
+              className="btn"
+              onClick={() => setFilterStatus('DISP_MANANA')}
+              style={{
+                fontSize: '0.84rem',
+                padding: '0.45rem 1rem',
+                fontWeight: 700,
+                background: filterStatus === 'DISP_MANANA' ? 'linear-gradient(135deg, #10b981, #059669)' : 'rgba(16, 185, 129, 0.12)',
+                color: filterStatus === 'DISP_MANANA' ? '#fff' : '#34d399',
+                border: '1px solid ' + (filterStatus === 'DISP_MANANA' ? '#10b981' : 'rgba(16, 185, 129, 0.35)'),
+                boxShadow: filterStatus === 'DISP_MANANA' ? '0 4px 12px rgba(16, 185, 129, 0.3)' : 'none'
+              }}
+            >
+              <span>Todas Disponibles ({kpis.disponiblesManana})</span>
+            </button>
+
+            <button
+              type="button"
+              className="btn"
+              onClick={() => setFilterStatus('REGRESAN_MANANA')}
+              style={{
+                fontSize: '0.84rem',
+                padding: '0.45rem 1rem',
+                fontWeight: 700,
+                background: filterStatus === 'REGRESAN_MANANA' ? 'linear-gradient(135deg, #0284c7, #0369a1)' : 'rgba(56, 189, 248, 0.12)',
+                color: filterStatus === 'REGRESAN_MANANA' ? '#fff' : '#38bdf8',
+                border: '1px solid ' + (filterStatus === 'REGRESAN_MANANA' ? '#38bdf8' : 'rgba(56, 189, 248, 0.35)'),
+                boxShadow: filterStatus === 'REGRESAN_MANANA' ? '0 4px 12px rgba(56, 189, 248, 0.3)' : 'none'
+              }}
+              title="Ver unidades que están en viaje foráneo largo y regresan mañana a CEDIS"
+            >
+              <RotateCcw size={14} />
+              <span>Regresan de Viaje Foráneo ({kpis.regresanManana})</span>
+            </button>
+
+            <button
+              type="button"
+              className="btn"
+              onClick={() => setFilterStatus('POR_CONFIRMAR')}
+              style={{
+                fontSize: '0.84rem',
+                padding: '0.45rem 1rem',
+                fontWeight: 700,
+                background: filterStatus === 'POR_CONFIRMAR' ? 'linear-gradient(135deg, #d97706, #b45309)' : 'rgba(251, 191, 36, 0.12)',
+                color: filterStatus === 'POR_CONFIRMAR' ? '#fff' : '#fbbf24',
+                border: '1px solid ' + (filterStatus === 'POR_CONFIRMAR' ? '#fbbf24' : 'rgba(251, 191, 36, 0.35)'),
+                boxShadow: filterStatus === 'POR_CONFIRMAR' ? '0 4px 12px rgba(251, 191, 36, 0.3)' : 'none'
+              }}
+            >
+              <AlertTriangle size={14} />
+              <span>Por Confirmar ({kpis.porConfirmarManana})</span>
+            </button>
+
+            <button
+              type="button"
+              className="btn"
+              onClick={() => setFilterStatus('SIN_UNIDAD')}
+              style={{
+                fontSize: '0.84rem',
+                padding: '0.45rem 1rem',
+                fontWeight: 600,
+                background: filterStatus === 'SIN_UNIDAD' ? 'rgba(148, 163, 184, 0.25)' : 'rgba(148, 163, 184, 0.08)',
+                color: filterStatus === 'SIN_UNIDAD' ? '#fff' : '#cbd5e1',
+                border: '1px solid ' + (filterStatus === 'SIN_UNIDAD' ? '#cbd5e1' : 'rgba(148, 163, 184, 0.25)')
+              }}
+            >
+              <HelpCircle size={14} />
+              <span>Sin Unidad Asignada ({kpis.viajesSinUnidadAsignada})</span>
+            </button>
+          </div>
+
+          <button
+            type="button"
+            className="btn btn-secondary"
+            onClick={() => setFilterStatus('ALL')}
+            style={{ fontSize: '0.8rem', padding: '0.35rem 0.75rem', color: '#f87171', borderColor: 'rgba(239, 68, 68, 0.3)' }}
+          >
+            ✕ Ver Todos los Viajes
+          </button>
+        </div>
+      )}
+    </div>
   );
 };

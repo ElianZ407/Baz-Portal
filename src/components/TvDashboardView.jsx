@@ -265,6 +265,40 @@ export const TvDashboardView = () => {
           </div>
         </div>
 
+        {/* Banner Informativo con lista de unidades cuando se filtra por Disponibilidad Mañana */}
+        {['REGRESAN_MANANA', 'DISP_MANANA'].includes(filterStatus) && (
+          <div style={{
+            background: 'linear-gradient(135deg, rgba(2, 132, 199, 0.2), rgba(15, 23, 42, 0.95))',
+            borderBottom: '1px solid rgba(56, 189, 248, 0.35)',
+            padding: '0.65rem 1.5rem',
+            color: '#38bdf8',
+            fontSize: '0.86rem',
+            fontWeight: 700,
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.6rem',
+            flexWrap: 'wrap'
+          }}>
+            <span>🔄 Unidades que regresan mañana de viaje foráneo ({filteredEcosCount}):</span>
+            <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap', alignItems: 'center' }}>
+              {Array.from(new Set(filteredUnits.map(u => String(u.economico || '').trim()).filter(Boolean))).map((eco, idx) => (
+                <span key={idx} style={{
+                  fontSize: '0.78rem',
+                  fontFamily: 'var(--font-mono)',
+                  background: 'rgba(56, 189, 248, 0.2)',
+                  color: '#ffffff',
+                  border: '1px solid rgba(56, 189, 248, 0.4)',
+                  padding: '0.12rem 0.5rem',
+                  borderRadius: '4px',
+                  fontWeight: 800
+                }}>
+                  ECO {eco}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+
         <div className="table-wrapper">
           <table className="data-table tv-data-table">
             <thead>
@@ -410,13 +444,18 @@ export const TvDashboardView = () => {
                             ))}
                           </div>
                         )}
-                        <div style={{ display: 'flex', gap: '0.4rem', marginTop: '0.25rem', alignItems: 'center' }}>
+                        <div style={{ display: 'flex', gap: '0.4rem', marginTop: '0.35rem', alignItems: 'center', flexWrap: 'wrap' }}>
                           <span className={unit.fl === 'FORANEO' ? 'badge-fl-foraneo' : 'badge-fl-local'}>
                             {unit.fl === 'FORANEO' ? 'FORÁNEO' : 'LOCAL'}
                           </span>
                           <span className="badge-closter">
                             {unit.closter || 'HUB-VHSA'}
                           </span>
+                          {availabilityByUnitId.get(String(unit.id))?.regresaManana && (
+                            <span className="badge-fl-foraneo" style={{ background: 'rgba(56, 189, 248, 0.25)', color: '#38bdf8', border: '1px solid #38bdf8', fontWeight: 800 }}>
+                              🔄 REGRESA MAÑANA
+                            </span>
+                          )}
                         </div>
                       </td>
 
@@ -442,38 +481,11 @@ export const TvDashboardView = () => {
                       <td style={{ textAlign: 'center' }}>
                         {(() => {
                           const opStatus = getUnitOperationalStatus(unit);
-                          const mananaStatus = availabilityByUnitId.get(String(unit.id)) || {};
-                          const showManana = filterStatus === 'DISP_MANANA' ||
-                            filterStatus === 'POR_CONFIRMAR' ||
-                            filterStatus === 'REGRESAN_MANANA';
-                          const mananaColor = mananaStatus.badge === 'POR CONFIRMAR'
-                            ? '#fbbf24'
-                            : mananaStatus.regresaManana ? '#38bdf8' : '#34d399';
-                          const mananaBackground = mananaStatus.badge === 'POR CONFIRMAR'
-                            ? 'rgba(245, 158, 11, 0.15)'
-                            : mananaStatus.regresaManana ? 'rgba(56, 189, 248, 0.15)' : 'rgba(16, 185, 129, 0.15)';
-                          const mananaBorder = mananaStatus.badge === 'POR CONFIRMAR'
-                            ? '1px solid rgba(245, 158, 11, 0.3)'
-                            : mananaStatus.regresaManana ? '1px solid rgba(56, 189, 248, 0.35)' : '1px solid rgba(16, 185, 129, 0.3)';
                           return (
-                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.25rem' }}>
-                              <span className={`status-badge ${opStatus.badgeClass}`}>
+                            <div style={{ display: 'flex', justifyContent: 'center' }}>
+                              <span className={`status-badge ${opStatus.badgeClass}`} style={{ fontSize: '0.92rem', padding: '0.35rem 0.85rem' }}>
                                 {opStatus.text}
                               </span>
-                              {showManana && mananaStatus.badge && (
-                                <span style={{
-                                  fontSize: '0.7rem',
-                                  color: mananaColor,
-                                  background: mananaBackground,
-                                  border: mananaBorder,
-                                  padding: '0.15rem 0.4rem',
-                                  borderRadius: '4px',
-                                  fontWeight: 700,
-                                  whiteSpace: 'nowrap'
-                                }} title={mananaStatus.detalle}>
-                                  {mananaStatus.regresaManana ? '🌄' : '🌅'} {mananaStatus.motivo}
-                                </span>
-                              )}
                             </div>
                           );
                         })()}
