@@ -2,10 +2,22 @@ import React from 'react';
 import { CheckCircle2, Navigation, Wrench, Sunrise, RotateCcw, AlertTriangle, HelpCircle } from 'lucide-react';
 import { useFleet } from '../context/FleetContext';
 
-export const KpiBar = () => {
+export const KpiBar = ({ filterFL = 'ALL', setFilterFL }) => {
   const { kpis, filterStatus, setFilterStatus } = useFleet();
 
+  const handleSelectStatus = (status) => {
+    const nextStatus = filterStatus === status ? 'ALL' : status;
+    setFilterStatus(nextStatus);
+    if (setFilterFL) setFilterFL('ALL');
+  };
+
   const isMananaActive = ['DISP_MANANA', 'REGRESAN_MANANA', 'POR_CONFIRMAR', 'SIN_UNIDAD'].includes(filterStatus);
+
+  const regresanLabel = filterFL === 'FORANEO' 
+    ? 'Regresan de Viaje Foráneo' 
+    : filterFL === 'LOCAL' 
+    ? 'Regresan de Viaje Local' 
+    : 'Regresan de Viaje';
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem', marginBottom: '1.5rem' }}>
@@ -13,7 +25,7 @@ export const KpiBar = () => {
         {/* 1. Disponibles en Patio */}
         <div 
           className={`kpi-card disponible ${filterStatus === 'DISPONIBLE_PATIO' ? 'active-filter' : ''}`}
-          onClick={() => setFilterStatus(filterStatus === 'DISPONIBLE_PATIO' ? 'ALL' : 'DISPONIBLE_PATIO')}
+          onClick={() => handleSelectStatus('DISPONIBLE_PATIO')}
           style={{ cursor: 'pointer' }}
           title="Unidades disponibles actualmente en patio listas para asignar (Clic para filtrar)"
         >
@@ -29,7 +41,7 @@ export const KpiBar = () => {
         {/* 2. En Ruta */}
         <div 
           className={`kpi-card transito ${filterStatus === 'EN_TRANSITO' ? 'active-filter' : ''}`}
-          onClick={() => setFilterStatus(filterStatus === 'EN_TRANSITO' ? 'ALL' : 'EN_TRANSITO')}
+          onClick={() => handleSelectStatus('EN_TRANSITO')}
           style={{ cursor: 'pointer' }}
           title="Unidades actualmente en tránsito hacia su destino (Clic para filtrar)"
         >
@@ -45,7 +57,7 @@ export const KpiBar = () => {
         {/* 3. En Taller */}
         <div 
           className={`kpi-card taller ${filterStatus === 'EN_TALLER' ? 'active-filter' : ''}`}
-          onClick={() => setFilterStatus(filterStatus === 'EN_TALLER' ? 'ALL' : 'EN_TALLER')}
+          onClick={() => handleSelectStatus('EN_TALLER')}
           style={{ cursor: 'pointer' }}
           title="Unidades en taller mecánico fuera de servicio (Clic para filtrar)"
         >
@@ -61,13 +73,13 @@ export const KpiBar = () => {
         {/* 4. Disponibilidad estimada para mañana */}
         <div 
           className={`kpi-card manana ${isMananaActive ? 'active-filter' : ''}`}
-          onClick={() => setFilterStatus(isMananaActive ? 'ALL' : 'DISP_MANANA')}
+          onClick={() => handleSelectStatus('DISP_MANANA')}
           style={{ 
             cursor: 'pointer',
             background: isMananaActive ? 'rgba(16, 185, 129, 0.18)' : undefined,
             borderColor: isMananaActive ? '#10b981' : undefined
           }}
-          title="Libres en patio + unidades que regresan de viaje foráneo largo. Clic para ver opciones de filtro."
+          title="Libres en patio + unidades que regresan de viaje. Clic para ver opciones de filtro."
         >
           <div className="kpi-info">
             <h3>Disponibles Mañana</h3>
@@ -105,7 +117,7 @@ export const KpiBar = () => {
             <button
               type="button"
               className="btn"
-              onClick={() => setFilterStatus('DISP_MANANA')}
+              onClick={() => handleSelectStatus('DISP_MANANA')}
               style={{
                 fontSize: '0.84rem',
                 padding: '0.45rem 1rem',
@@ -122,7 +134,7 @@ export const KpiBar = () => {
             <button
               type="button"
               className="btn"
-              onClick={() => setFilterStatus('REGRESAN_MANANA')}
+              onClick={() => handleSelectStatus('REGRESAN_MANANA')}
               style={{
                 fontSize: '0.84rem',
                 padding: '0.45rem 1rem',
@@ -132,16 +144,16 @@ export const KpiBar = () => {
                 border: '1px solid ' + (filterStatus === 'REGRESAN_MANANA' ? '#38bdf8' : 'rgba(56, 189, 248, 0.35)'),
                 boxShadow: filterStatus === 'REGRESAN_MANANA' ? '0 4px 12px rgba(56, 189, 248, 0.3)' : 'none'
               }}
-              title="Ver unidades que están en viaje foráneo largo y regresan mañana a CEDIS"
+              title="Ver unidades que están en viaje y regresan mañana a CEDIS"
             >
               <RotateCcw size={14} />
-              <span>Regresan de Viaje Foráneo ({kpis.regresanManana})</span>
+              <span>{regresanLabel} ({kpis.regresanManana})</span>
             </button>
 
             <button
               type="button"
               className="btn"
-              onClick={() => setFilterStatus('POR_CONFIRMAR')}
+              onClick={() => handleSelectStatus('POR_CONFIRMAR')}
               style={{
                 fontSize: '0.84rem',
                 padding: '0.45rem 1rem',
@@ -159,7 +171,7 @@ export const KpiBar = () => {
             <button
               type="button"
               className="btn"
-              onClick={() => setFilterStatus('SIN_UNIDAD')}
+              onClick={() => handleSelectStatus('SIN_UNIDAD')}
               style={{
                 fontSize: '0.84rem',
                 padding: '0.45rem 1rem',
@@ -177,7 +189,7 @@ export const KpiBar = () => {
           <button
             type="button"
             className="btn btn-secondary"
-            onClick={() => setFilterStatus('ALL')}
+            onClick={() => handleSelectStatus('ALL')}
             style={{ fontSize: '0.8rem', padding: '0.35rem 0.75rem', color: '#f87171', borderColor: 'rgba(239, 68, 68, 0.3)' }}
           >
             ✕ Ver Todos los Viajes

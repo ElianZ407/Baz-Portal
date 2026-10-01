@@ -204,7 +204,7 @@ export const TvDashboardView = () => {
       </div>
 
       {/* 4 KPIs Superiores de Telemetría */}
-      <KpiBar />
+      <KpiBar filterFL={filterFL} setFilterFL={setFilterFL} />
 
 
 
