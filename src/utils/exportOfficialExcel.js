@@ -8,9 +8,13 @@
  * - Cuadrícula de bordes negros delgados y tipografía Arial
  */
 
-export const exportOfficialExcel = async (units = [], selectedDate = null) => {
+const getExcelJS = async () => {
   const ExcelJSModule = await import('exceljs/dist/exceljs.min.js');
-  const ExcelJS = ExcelJSModule.default || ExcelJSModule;
+  return ExcelJSModule.default || ExcelJSModule;
+};
+
+export const exportOfficialExcel = async (units = [], selectedDate = null) => {
+  const ExcelJS = await getExcelJS();
   const workbook = new ExcelJS.Workbook();
   workbook.creator = 'BAZ Entregas CD Villahermosa';
   workbook.created = new Date();
@@ -342,6 +346,7 @@ export const exportOfficialExcel = async (units = [], selectedDate = null) => {
 // 2. EXPORTADOR DE CONTROL DE PATIO
 // ====================================================================
 export const exportPatioExcel = async (units = [], selectedDate = null) => {
+  const ExcelJS = await getExcelJS();
   const workbook = new ExcelJS.Workbook();
   workbook.creator = 'BAZ Entregas CD Villahermosa';
   workbook.created = new Date();
@@ -454,6 +459,7 @@ export const exportPatioExcel = async (units = [], selectedDate = null) => {
 // 3. EXPORTADOR DE SUPERVISOR / MONITOREO EN RUTA
 // ====================================================================
 export const exportSupervisorExcel = async (units = [], selectedDate = null) => {
+  const ExcelJS = await getExcelJS();
   const workbook = new ExcelJS.Workbook();
   workbook.creator = 'BAZ Entregas CD Villahermosa';
   workbook.created = new Date();
@@ -580,6 +586,7 @@ export const exportSupervisorExcel = async (units = [], selectedDate = null) => 
 // 4. EXPORTADOR DE TABLERO EN VIVO (SALA DE CONTROL / TV)
 // ====================================================================
 export const exportTvExcel = async (units = [], selectedDate = null) => {
+  const ExcelJS = await getExcelJS();
   const workbook = new ExcelJS.Workbook();
   workbook.creator = 'BAZ Entregas CD Villahermosa';
   workbook.created = new Date();
