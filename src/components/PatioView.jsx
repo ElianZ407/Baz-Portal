@@ -56,7 +56,12 @@ export const PatioView = () => {
   // Unidades activas mapeadas por número económico
   const activeUnitsMap = consolidarUnidadesPatioPorEconomico(units || []);
 
-  // Consolidar toda la flota para Patio:
+  // Helper de clasificación por tipo según catálogo oficial BAZ
+  const isCamioneta = (u) => Number(u.capUnidad) === 18 || String(u.tipo || '').toLowerCase().includes('camioneta');
+  const isRabon = (u) => [40, 50].includes(Number(u.capUnidad)) || String(u.tipo || '').toLowerCase().includes('rango medio') || String(u.tipo || '').toLowerCase().includes('rabon');
+  const isFull = (u) => [90, 110, 180].includes(Number(u.capUnidad)) || String(u.tipo || '').toLowerCase().includes('tracto') || String(u.tipo || '').toLowerCase().includes('full');
+
+  // Consolidar toda la flota física para Patio:
   // Toda unidad de la flota que no tenga viaje activo ni taller está DISPONIBLE en patio
   const fullPatioUnits = flotaList.map(f => {
     const ecoKey = String(f.eco);
@@ -97,9 +102,10 @@ export const PatioView = () => {
     };
   });
 
-  // Agregar cualquier unidad registrada en 'units' que no esté en el catálogo
+  // Agregar cualquier unidad física registrada en 'units' con ECO que no esté en el catálogo
   (units || []).forEach(u => {
-    if (!u.economico || !flotaList.some(f => String(f.eco) === String(u.economico))) {
+    const eco = String(u.economico || '').trim();
+    if (eco && !flotaList.some(f => String(f.eco) === eco)) {
       fullPatioUnits.push(u);
     }
   });
@@ -115,7 +121,11 @@ export const PatioView = () => {
       (u.noViaje && String(u.noViaje).toLowerCase().includes(q)) ||
       (u.placas && u.placas.toLowerCase().includes(q));
 
-    const matchesTipo = filterTipo === 'ALL' || u.tipo === filterTipo;
+    let matchesTipo = true;
+    if (filterTipo === 'CAMIONETA') matchesTipo = isCamioneta(u);
+    else if (filterTipo === 'RABON') matchesTipo = isRabon(u);
+    else if (filterTipo === 'FULL') matchesTipo = isFull(u);
+
     return matchesSearch && matchesTipo;
   });
 
@@ -222,7 +232,6 @@ export const PatioView = () => {
             </button>
           </div>
 
-          {/* Filtro por Tipo de Vehículo */}
           <div className="filter-pills" style={{ display: 'flex', gap: '0.35rem', alignItems: 'center' }}>
             <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>Tipo:</span>
             <button 
@@ -232,16 +241,25 @@ export const PatioView = () => {
               Todos
             </button>
             <button 
-              className={`pill-btn ${filterTipo === 'Sencillo' ? 'active' : ''}`}
-              onClick={() => setFilterTipo('Sencillo')}
+              className={`pill-btn ${filterTipo === 'CAMIONETA' ? 'active' : ''}`}
+              onClick={() => setFilterTipo(filterTipo === 'CAMIONETA' ? 'ALL' : 'CAMIONETA')}
+              style={filterTipo === 'CAMIONETA' ? { background: 'rgba(16, 185, 129, 0.25)', borderColor: '#10b981', color: '#34d399', fontWeight: 800 } : {}}
             >
-              Sencillos ({allPatioUnits.filter(u => u.tipo === 'Sencillo').length})
+              Camionetas ({allPatioUnits.filter(isCamioneta).length})
             </button>
             <button 
-              className={`pill-btn ${filterTipo === 'Tracto' ? 'active' : ''}`}
-              onClick={() => setFilterTipo('Tracto')}
+              className={`pill-btn ${filterTipo === 'RABON' ? 'active' : ''}`}
+              onClick={() => setFilterTipo(filterTipo === 'RABON' ? 'ALL' : 'RABON')}
+              style={filterTipo === 'RABON' ? { background: 'rgba(6, 182, 212, 0.25)', borderColor: '#06b6d4', color: '#22d3ee', fontWeight: 800 } : {}}
             >
-              Tractos ({allPatioUnits.filter(u => u.tipo === 'Tracto').length})
+              Rabones ({allPatioUnits.filter(isRabon).length})
+            </button>
+            <button 
+              className={`pill-btn ${filterTipo === 'FULL' ? 'active' : ''}`}
+              onClick={() => setFilterTipo(filterTipo === 'FULL' ? 'ALL' : 'FULL')}
+              style={filterTipo === 'FULL' ? { background: 'rgba(168, 85, 247, 0.25)', borderColor: '#a855f7', color: '#c084fc', fontWeight: 800 } : {}}
+            >
+              Tractos / Fulles ({allPatioUnits.filter(isFull).length})
             </button>
           </div>
         </div>
