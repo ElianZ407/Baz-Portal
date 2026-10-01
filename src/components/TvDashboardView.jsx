@@ -589,6 +589,11 @@ export const TvDashboardView = () => {
                               🔄 REGRESA MAÑANA
                             </span>
                           )}
+                          {availabilityByUnitId.get(String(unit.id))?.noRegresaManana && (
+                            <span className="badge-fl-foraneo" style={{ background: 'rgba(245, 158, 11, 0.25)', color: '#fbbf24', border: '1px solid #f59e0b', fontWeight: 800 }}>
+                              ⏳ NO REGRESA MAÑANA ({availabilityByUnitId.get(String(unit.id))?.dias} DÍAS)
+                            </span>
+                          )}
                         </div>
                       </td>
 

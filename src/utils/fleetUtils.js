@@ -491,6 +491,9 @@ export const evaluarDisponibilidadManana = (unitOrTrips, catalogoFlota = []) => 
     return {
       disponible: false,
       regresaManana: false,
+      noRegresaManana: true,
+      dias: diasMatriz,
+      horas: duracion,
       badge: 'NO DISPONIBLE',
       motivo: `Viaje largo (${diasMatriz} días)`,
       detalle: `Duración de ${duracion} hrs (${diasMatriz} días según matriz). No alcanza a regresar mañana.`,
