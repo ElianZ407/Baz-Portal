@@ -72,6 +72,7 @@ export const PatioView = () => {
     }
     return {
       id: `fleet-${ecoKey}`,
+      soloCatalogo: true,
       economico: ecoKey,
       placas: f.placas || '',
       tipo: f.tipo || 'Camioneta',

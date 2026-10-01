@@ -6,7 +6,7 @@ import {
 } from 'lucide-react';
 import { useFleet } from '../context/FleetContext';
 import { KpiBar } from './KpiBar';
-import { evaluarDisponibilidadMananaPorUnidad } from '../utils/fleetUtils';
+import { evaluarDisponibilidadMananaPorUnidad, tieneRutaAsignada } from '../utils/fleetUtils';
 
 export const TvDashboardView = () => {
   const { 
@@ -50,6 +50,7 @@ export const TvDashboardView = () => {
       const isWorkshop = status.includes('TALLER');
       return {
         id: `catalog-${eco}`,
+        soloCatalogo: true,
         economico: eco,
         noViaje: '',
         placas: unit.placas || '',
@@ -109,7 +110,7 @@ export const TvDashboardView = () => {
       return unit.estatusPatio === 'Taller' || unit.estatus === 'TALLER';
     }
     if (filterStatus === 'DISPONIBLE_PATIO' || filterStatus === 'DISPONIBLES') {
-      return unit.estatusPatio === 'Disponible';
+      return unit.estatusPatio === 'Disponible' && !tieneRutaAsignada(unit);
     }
     if (filterStatus === 'DISP_MANANA') {
       return availabilityByUnitId.get(String(unit.id))?.disponible || false;

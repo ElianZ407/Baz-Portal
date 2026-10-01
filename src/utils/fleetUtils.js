@@ -219,6 +219,17 @@ export const regresaMananaDeViajeLargo = (units, fleetUnit) => {
   return registros.some(yaPartioDeRuta);
 };
 
+// Filas del catálogo sin viaje (sintetizadas en Patio/TV) traen `operador` del padrón
+// y no son un viaje: por eso se marcan con `soloCatalogo`.
+const isViajeProgramadoConOperador = (unit) => {
+  if (unit.soloCatalogo) return false;
+  const operador = String(unit.operador || '').trim();
+  const idOperador = String(unit.idOperador || '').trim();
+  if (!operador && !idOperador) return false;
+  const destino = String(unit.destino || '').trim().toUpperCase();
+  return !destino || ['SIN DEFINIR', 'SIN DESTINO', 'POR ASIGNAR'].includes(destino);
+};
+
 export const tieneRutaAsignada = (unit) => {
   if (!unit) return false;
   const planningStatus = String(unit.estatusPlaneacion || '').trim().toUpperCase();
@@ -235,7 +246,8 @@ export const tieneRutaAsignada = (unit) => {
     ['COLOCADO P/ CARGA', 'CARGADO', 'EN RUTA', 'EN SUCURSAL', 'DESCARGANDO'].includes(patioStatus) ||
     ['EN RUTA', 'ESPERA DESCARGA', 'DESCARGANDO', 'RETORNO', 'RETRASADO'].includes(supervisorStatus) ||
     Boolean(destination && !['SIN DEFINIR', 'SIN DESTINO', 'POR ASIGNAR'].includes(destination)) ||
-    Boolean(cargo && !['—', '-', '0', 'POR ASIGNAR'].includes(cargo));
+    Boolean(cargo && !['—', '-', '0', 'POR ASIGNAR'].includes(cargo)) ||
+    isViajeProgramadoConOperador(unit);
 };
 
 export const consolidarUnidadesPatioPorEconomico = (units = []) => {
