@@ -184,6 +184,9 @@ export const TvDashboardView = () => {
     }
 
     // 2. Estados de patio / planeación
+    if (estatusPlan === 'NO SE CUBRE' || estatusPlan === 'CANCELADO') {
+      return { text: 'NO SE CUBRE', badgeClass: 'status-nosecubre' };
+    }
     if (estatusPlan === 'CARGADO' || estatusPlan === 'EN CASETA' || estatusSup === 'Cargado' || unit.estatusPatio === 'Cargado') {
       return { text: 'EN CASETA (SALIDA)', badgeClass: 'status-encaseta' };
     }

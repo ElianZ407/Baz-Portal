@@ -143,6 +143,8 @@ export const PlaneacionView = () => {
       matchesEstatus = !String(u.economico || '').trim();
     } else if (filterEstatus === 'TALLER') {
       matchesEstatus = isTaller;
+    } else if (filterEstatus === 'NO_SE_CUBRE') {
+      matchesEstatus = !isTaller && String(u.estatusPlaneacion || '').trim().toUpperCase() === 'NO SE CUBRE';
     } else if (filterEstatus === 'CARGADO') {
       matchesEstatus = !isTaller && ((u.estatusPlaneacion || 'PENDIENTE') === 'CARGADO' || isSupervisorActive);
     } else if (filterEstatus === 'COLOCADO') {
@@ -186,6 +188,7 @@ export const PlaneacionView = () => {
   const colocadoCount = fleetStatusCounts.colocadas;
   const pendienteCount = fleetStatusCounts.pendientes;
   const tallerCount = fleetStatusCounts.taller;
+  const noSeCubreCount = planeacionBaseUnits.filter(u => String(u.estatusPlaneacion || '').trim().toUpperCase() === 'NO SE CUBRE').length;
   const disponiblesPatioCount = kpis?.disponiblesPatio ?? fleetStatusCounts.disponibles;
   const viajesSinUnidadAsignadaCount = contarViajesSinUnidadAsignada(planeacionBaseUnits);
 
@@ -394,6 +397,14 @@ export const PlaneacionView = () => {
               style={filterEstatus === 'PENDIENTE' ? { background: 'rgba(148, 163, 184, 0.25)', borderColor: '#94a3b8', color: '#cbd5e1', fontWeight: 800 } : {}}
             >
               PENDIENTE ({pendienteCount})
+            </button>
+            <button 
+              className={`pill-btn ${filterEstatus === 'NO_SE_CUBRE' ? 'active' : ''}`}
+              onClick={() => setFilterEstatus(filterEstatus === 'NO_SE_CUBRE' ? 'ALL' : 'NO_SE_CUBRE')}
+              style={filterEstatus === 'NO_SE_CUBRE' ? { background: 'rgba(239, 68, 68, 0.25)', borderColor: '#ef4444', color: '#f87171', fontWeight: 800 } : {}}
+              title="Viajes cancelados o que no se cubrirán en la jornada de hoy"
+            >
+              NO SE CUBRE ({noSeCubreCount})
             </button>
             <button 
               className={`pill-btn ${filterEstatus === 'TALLER' ? 'active' : ''}`}
@@ -817,6 +828,10 @@ export const PlaneacionView = () => {
                             {supConfig.icon}
                             <span>{supConfig.label}</span>
                           </span>
+                        ) : estatusPlan === 'NO SE CUBRE' ? (
+                          <span className="status-badge" style={{ background: 'rgba(239, 68, 68, 0.18)', color: '#f87171', border: '1px solid rgba(239, 68, 68, 0.4)', fontWeight: 800 }}>
+                            NO SE CUBRE
+                          </span>
                         ) : (
                           <span className={`status-badge ${
                             isCargado ? 'status-encaseta' :
@@ -872,6 +887,27 @@ export const PlaneacionView = () => {
                               <CheckCircle2 size={12} />
                               <span>Viaje Completado</span>
                             </span>
+                          ) : estatusPlan === 'NO SE CUBRE' ? (
+                            <button
+                              className="btn"
+                              style={{
+                                padding: '0.28rem 0.6rem',
+                                fontSize: '0.72rem',
+                                background: 'rgba(148, 163, 184, 0.2)',
+                                color: '#cbd5e1',
+                                border: '1px solid rgba(148, 163, 184, 0.35)',
+                                fontWeight: 700,
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '0.3rem',
+                                cursor: 'pointer'
+                              }}
+                              onClick={() => handleStatusChange(unit.id, 'PENDIENTE')}
+                              title="Reactivar este viaje a estado Pendiente"
+                            >
+                              <RotateCcw size={11} />
+                              <span>Reactivar</span>
+                            </button>
                           ) : isSupervisorActive ? (
                             <span style={{
                               fontSize: '0.72rem',
@@ -891,31 +927,49 @@ export const PlaneacionView = () => {
                           ) : (
                             <>
                               {estatusPlan === 'PENDIENTE' && (
-                                <button 
-                                  className="btn"
-                                  style={{ 
-                                    padding: '0.28rem 0.55rem', 
-                                    fontSize: '0.72rem',
-                                    background: canColocarOCargar ? 'var(--accent-cyan)' : 'rgba(51, 65, 85, 0.4)',
-                                    color: canColocarOCargar ? '#0a0f1d' : '#94a3b8',
-                                    border: canColocarOCargar ? 'none' : '1px dashed rgba(148, 163, 184, 0.4)',
-                                    fontWeight: 700,
-                                    display: 'inline-flex',
-                                    alignItems: 'center',
-                                    gap: '0.3rem',
-                                    cursor: 'pointer'
-                                  }}
-                                  onClick={() => handleStatusChange(unit.id, 'COLOCADO')}
-                                  title={canColocarOCargar 
-                                    ? "Colocar unidad en cortina para carga" 
-                                    : `⚠️ Requiere ${getFaltantesMsg()} para poder colocar`}
-                                >
-                                  <DoorOpen size={12} />
-                                  <span>Colocar</span>
-                                  {!canColocarOCargar && (
-                                    <AlertTriangle size={11} style={{ color: '#fbbf24', marginLeft: '1px' }} />
-                                  )}
-                                </button>
+                                <div style={{ display: 'flex', gap: '0.25rem', alignItems: 'center' }}>
+                                  <button 
+                                    className="btn"
+                                    style={{ 
+                                      padding: '0.28rem 0.55rem', 
+                                      fontSize: '0.72rem',
+                                      background: canColocarOCargar ? 'var(--accent-cyan)' : 'rgba(51, 65, 85, 0.4)',
+                                      color: canColocarOCargar ? '#0a0f1d' : '#94a3b8',
+                                      border: canColocarOCargar ? 'none' : '1px dashed rgba(148, 163, 184, 0.4)',
+                                      fontWeight: 700,
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      gap: '0.3rem',
+                                      cursor: 'pointer'
+                                    }}
+                                    onClick={() => handleStatusChange(unit.id, 'COLOCADO')}
+                                    title={canColocarOCargar 
+                                      ? "Colocar unidad en cortina para carga" 
+                                      : `⚠️ Requiere ${getFaltantesMsg()} para poder colocar`}
+                                  >
+                                    <DoorOpen size={12} />
+                                    <span>Colocar</span>
+                                    {!canColocarOCargar && (
+                                      <AlertTriangle size={11} style={{ color: '#fbbf24', marginLeft: '1px' }} />
+                                    )}
+                                  </button>
+                                  <button
+                                    className="btn"
+                                    style={{
+                                      padding: '0.28rem 0.45rem',
+                                      fontSize: '0.72rem',
+                                      background: 'rgba(239, 68, 68, 0.12)',
+                                      color: '#f87171',
+                                      border: '1px solid rgba(239, 68, 68, 0.3)',
+                                      fontWeight: 700,
+                                      cursor: 'pointer'
+                                    }}
+                                    onClick={() => handleStatusChange(unit.id, 'NO SE CUBRE')}
+                                    title="Marcar como 'No se cubre' (no se operará hoy)"
+                                  >
+                                    <span>No Cubre</span>
+                                  </button>
+                                </div>
                               )}
                               {estatusPlan === 'COLOCADO' && (
                                 <button 

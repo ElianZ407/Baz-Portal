@@ -619,7 +619,8 @@ body {
 }
 
 .status-retrasado,
-.status-taller {
+.status-taller,
+.status-nosecubre {
   background: var(--status-red-bg);
   border-color: var(--status-red-border);
   color: var(--status-red-text);

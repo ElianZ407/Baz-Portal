@@ -373,6 +373,7 @@ const ESTADO_RETORNO = { estatusPlaneacion: 'RETORNO', estatusPatio: 'Disponible
 const ESTADO_COMPLETADO = { estatusPlaneacion: 'COMPLETADO', estatusPatio: 'Disponible', estatusSupervisor: 'Completado' };
 const ESTADO_TALLER = { estatusPlaneacion: 'PENDIENTE', estatusPatio: 'Taller', estatusSupervisor: 'No Disponible' };
 const ESTADO_NO_DISPONIBLE = { estatusPlaneacion: 'PENDIENTE', estatusPatio: 'No Disponible', estatusSupervisor: 'No Disponible' };
+const ESTADO_NO_SE_CUBRE = { estatusPlaneacion: 'NO SE CUBRE', estatusPatio: 'Disponible', estatusSupervisor: 'No Disponible' };
 
 // Valores literales que emite BAZ (y el export oficial de la app)
 const ESTATUS_EXACTOS = {
@@ -381,6 +382,10 @@ const ESTATUS_EXACTOS = {
   'NO ASIGNADO': ESTADO_PENDIENTE,
   'PLAN DE COLOCACION': ESTADO_PENDIENTE,
   'PROGRAMADO': ESTADO_PENDIENTE,
+  'NO SE CUBRE': ESTADO_NO_SE_CUBRE,
+  'NO CUBRE': ESTADO_NO_SE_CUBRE,
+  'SIN CUBRIR': ESTADO_NO_SE_CUBRE,
+  'CANCELADO': ESTADO_NO_SE_CUBRE,
   'COLOCADO': ESTADO_COLOCADO,
   'EN COLOCACION': ESTADO_COLOCADO,
   'ACOMODADO': ESTADO_COLOCADO,

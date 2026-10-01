@@ -675,6 +675,10 @@ export const FleetProvider = ({ children }) => {
         updated.area = 'planeacion';
         updated.estatusPatio = 'Disponible';
         updated.estatusSupervisor = 'Pendiente';
+      } else if (newStatus === 'NO SE CUBRE') {
+        updated.area = 'planeacion';
+        updated.estatusPatio = 'Disponible';
+        updated.estatusSupervisor = 'No Disponible';
       }
     } else if (area === 'supervisor') {
       updated.estatusSupervisor = newStatus;

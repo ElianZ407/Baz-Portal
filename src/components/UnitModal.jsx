@@ -239,6 +239,9 @@ const UnitModalForm = () => {
         if (updated.estatusSupervisor === 'No Disponible') {
           updated.estatusSupervisor = 'Pendiente';
         }
+      } else if (value === 'NO SE CUBRE') {
+        updated.estatusPatio = 'Disponible';
+        updated.estatusSupervisor = 'No Disponible';
       }
     }
 
@@ -971,6 +974,7 @@ const UnitModalForm = () => {
                       { value: 'PENDIENTE', label: 'PENDIENTE', color: '#94a3b8' },
                       { value: 'COLOCADO',  label: 'COLOCADO',  color: '#22d3ee' },
                       { value: 'CARGADO',   label: 'CARGADO',   color: '#facc15' },
+                      { value: 'NO SE CUBRE', label: 'NO SE CUBRE', color: '#ef4444' },
                     ]}
                   />
                   {!isPatioMode && (formData.estatusPlaneacion === 'COLOCADO' || formData.estatusPlaneacion === 'CARGADO') && !checkTieneViajeYOperador(formData).valid && (

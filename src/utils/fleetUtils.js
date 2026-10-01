@@ -235,7 +235,7 @@ export const tieneRutaAsignada = (unit) => {
   const planningStatus = String(unit.estatusPlaneacion || '').trim().toUpperCase();
   const patioStatus = String(unit.estatusPatio || '').trim().toUpperCase();
   const supervisorStatus = String(unit.estatusSupervisor || '').trim().toUpperCase();
-  if (planningStatus === 'COMPLETADO' || supervisorStatus === 'COMPLETADO') return false;
+  if (planningStatus === 'COMPLETADO' || supervisorStatus === 'COMPLETADO' || planningStatus === 'NO SE CUBRE' || planningStatus === 'CANCELADO') return false;
   const destination = String(unit.destino || '').trim().toUpperCase();
   const cargo = String(unit.numCarga || '').trim().toUpperCase();
   const hasSecondaryStops = Array.isArray(unit.destinosSecundarios) && unit.destinosSecundarios.length > 0;
@@ -299,7 +299,11 @@ export const evaluarDisponibilidadManana = (unitOrTrips, catalogoFlota = []) => 
     };
   }
 
-  const isCompleted = unit => unit.estatusSupervisor === 'Completado' || unit.estatusPlaneacion === 'COMPLETADO';
+  const isCompleted = unit => 
+    unit.estatusSupervisor === 'Completado' || 
+    unit.estatusPlaneacion === 'COMPLETADO' || 
+    unit.estatusPlaneacion === 'NO SE CUBRE' ||
+    unit.estatusPlaneacion === 'CANCELADO';
   const activeTripsById = new Map();
   units.filter(unit => !isCompleted(unit) && tieneRutaAsignada(unit)).forEach(unit => {
     const tripNumber = String(unit.noViaje || '').trim();
@@ -587,6 +591,8 @@ export const contarViajesSinUnidadAsignada = (units = []) => {
   const tripKeys = new Set();
   units.forEach(unit => {
     if (String(unit.economico || '').trim()) return;
+    const planStatus = String(unit.estatusPlaneacion || '').trim().toUpperCase();
+    if (planStatus === 'NO SE CUBRE' || planStatus === 'CANCELADO') return;
     const noViaje = String(unit.noViaje || '').trim();
     const hasTripNumber = noViaje && !['—', '-', '0', 'SIN VIAJE', 'POR ASIGNAR'].includes(noViaje.toUpperCase());
     tripKeys.add(hasTripNumber ? `viaje-${noViaje}` : `id-${unit.id}`);
