@@ -206,7 +206,94 @@ export const TvDashboardView = () => {
       {/* 4 KPIs Superiores de Telemetría */}
       <KpiBar filterFL={filterFL} setFilterFL={setFilterFL} />
 
+      {/* Resumen de Flota por Tipo de Unidad */}
+      {(() => {
+        const CAP_CAMIONETA = [18];
+        const CAP_RABON = [40, 50];
+        const CAP_FULL = [90, 110, 180];
+        const flota = catalogoFlota || [];
 
+        const countByType = (caps) => {
+          const activas = flota.filter(u => caps.includes(Number(u.capUnidad)) && String(u.estatus || 'ACTIVO').toUpperCase() !== 'BAJA').length;
+          const taller = flota.filter(u => caps.includes(Number(u.capUnidad)) && (String(u.estatus || '').toUpperCase().includes('TALLER') || String(u.estatus || '').toUpperCase().includes('SINIESTRO'))).length;
+          return { activas: activas - taller, taller, total: activas };
+        };
+
+        const camionetas = countByType(CAP_CAMIONETA);
+        const rabones = countByType(CAP_RABON);
+        const fulles = countByType(CAP_FULL);
+
+        const cardStyle = (color) => ({
+          flex: 1,
+          background: `linear-gradient(135deg, ${color}18 0%, rgba(13,22,38,0.95) 100%)`,
+          border: `1px solid ${color}40`,
+          borderRadius: '12px',
+          padding: '0.9rem 1.3rem',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: '1rem',
+          boxShadow: `0 4px 18px rgba(0,0,0,0.3), inset 0 1px 0 ${color}20`
+        });
+
+        const statBox = (label, value, color) => (
+          <div style={{ textAlign: 'center' }}>
+            <div style={{ fontSize: '1.45rem', fontWeight: 900, color, lineHeight: 1 }}>{value}</div>
+            <div style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', marginTop: '0.2rem' }}>{label}</div>
+          </div>
+        );
+
+        const divider = <div style={{ width: '1px', height: '36px', background: 'rgba(255,255,255,0.08)' }} />;
+
+        return (
+          <div style={{ display: 'flex', gap: '0.85rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
+            {/* Camionetas */}
+            <div style={cardStyle('#10b981')}>
+              <div>
+                <div style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em' }}>Camionetas</div>
+                <div style={{ fontSize: '0.8rem', color: '#94a3b8', marginTop: '0.1rem' }}>Cap. 18 m³</div>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
+                {statBox('Activas', camionetas.activas, '#34d399')}
+                {divider}
+                {statBox('Taller', camionetas.taller, '#f87171')}
+                {divider}
+                {statBox('Total', camionetas.total, '#e2e8f0')}
+              </div>
+            </div>
+
+            {/* Rabones */}
+            <div style={cardStyle('#06b6d4')}>
+              <div>
+                <div style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em' }}>Rabones</div>
+                <div style={{ fontSize: '0.8rem', color: '#94a3b8', marginTop: '0.1rem' }}>Cap. 40–50 m³</div>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
+                {statBox('Activas', rabones.activas, '#22d3ee')}
+                {divider}
+                {statBox('Taller', rabones.taller, '#f87171')}
+                {divider}
+                {statBox('Total', rabones.total, '#e2e8f0')}
+              </div>
+            </div>
+
+            {/* Fulles / Tractos */}
+            <div style={cardStyle('#a855f7')}>
+              <div>
+                <div style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em' }}>Fulles / Tractos</div>
+                <div style={{ fontSize: '0.8rem', color: '#94a3b8', marginTop: '0.1rem' }}>Cap. 90–180 m³</div>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
+                {statBox('Activas', fulles.activas, '#c084fc')}
+                {divider}
+                {statBox('Taller', fulles.taller, '#f87171')}
+                {divider}
+                {statBox('Total', fulles.total, '#e2e8f0')}
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Tabla Pizarra para TV Panorámica */}
       <div className="table-card">
