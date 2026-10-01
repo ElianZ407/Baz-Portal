@@ -552,8 +552,9 @@ export const resumirFlotaPorEstado = (units = [], catalogoFlota = []) => {
   ecoRoster.forEach(eco => {
     const records = unitsByEco.get(eco) || [];
     const master = fleetByEco.get(eco);
-    const isTaller = master?.estatus === 'TALLER' || (master?.estatus || '').toLowerCase().includes('taller') || records.some(unit =>
-      unit.estatusPatio === 'Taller' || unit.estatus === 'TALLER'
+    const masterStatusStr = String(master?.estatus || '').toLowerCase();
+    const isTaller = master?.estatus === 'TALLER' || masterStatusStr.includes('taller') || masterStatusStr.includes('siniestro') || records.some(unit =>
+      unit.estatusPatio === 'Taller' || unit.estatus === 'TALLER' || unit.estatus === 'SINIESTRO' || unit.estatusPatio === 'Siniestro'
     );
     const isCargada = records.some(unit =>
       unit.estatusPlaneacion === 'CARGADO' ||
