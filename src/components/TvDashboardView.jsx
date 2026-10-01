@@ -279,7 +279,13 @@ export const TvDashboardView = () => {
             gap: '0.6rem',
             flexWrap: 'wrap'
           }}>
-            <span>🔄 Unidades que regresan mañana de viaje foráneo ({filteredEcosCount}):</span>
+            <span>
+              {filterFL === 'FORANEO' 
+                ? `🔄 Unidades que regresan mañana de viaje foráneo (${filteredEcosCount}):`
+                : filterFL === 'LOCAL'
+                ? `🔄 Unidades locales que concluyen hoy y están listas mañana (${filteredEcosCount}):`
+                : `🔄 Unidades disponibles / retornando para mañana (${filteredEcosCount}):`}
+            </span>
             <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap', alignItems: 'center' }}>
               {Array.from(new Set(filteredUnits.map(u => String(u.economico || '').trim()).filter(Boolean))).map((eco, idx) => (
                 <span key={idx} style={{
