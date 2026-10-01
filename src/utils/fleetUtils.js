@@ -362,8 +362,8 @@ export const evaluarDisponibilidadManana = (unitOrTrips, catalogoFlota = []) => 
     'COATZACOALCOS': 13.25,
     'YAJALON': 10.78,
     'LAS CHOAPAS': 9.02,
-    'TENOSIQUE': 8.95,
-    'AGUA DULCE': 8.03,
+    'TENOSIQUE': 8.96,
+    'AGUA DULCE': 8.83,
     'PALENQUE': 8.45,
     'LA VENTA': 8.31,
     'BALANCAN': 8.25,
@@ -380,22 +380,94 @@ export const evaluarDisponibilidadManana = (unitOrTrips, catalogoFlota = []) => 
     'REFORMA': 4.12,
     'MACUSPANA': 4.01,
     'JALAPA': 3.85,
-    'JALPA DE MENDEZ': 3.50,
+    'JALPA DE MENDEZ': 3.58,
     'CUNDUACAN': 3.55,
     'CENTRO': 2.76,
     'CANDELARIA': 8.32,
-    'JUCHITAN': 0.0,
+    'JUCHITAN': 0.0
+  };
+
+  // Diccionario oficial de Duración en Días (Última columna de la matriz oficial BAZ)
+  const DURACION_VIAJES_DIAS = {
+    'BANCOS CHIAPAS': 3.51,
+    'BANCOS OAXACA': 2.86,
+    'ITALIKA LERMA': 2.23,
+    'TOLUCA': 2.23,
+    'BANCOS VERACRUZ': 2.18,
+    'RIO GRANDE': 2.02,
+    'PUERTO ESCONDIDO': 1.96,
+    'POCHUTLA': 1.87,
+    'HUATULCO': 1.82,
+    'CIUDAD HIDALGO': 1.51,
+    'MOTOZINTLA': 1.48,
+    'TAPACHULA': 1.46,
+    'HUIXTLA': 1.41,
+    'MATIAS ROMERO': 1.38,
+    'MAPASTEPEC': 1.33,
+    'SALINA CRUZ': 1.31,
+    'COMALAPA': 1.29,
+    'TEHUANTEPEC': 1.29,
+    'COMITAN': 1.29,
+    'PIJIJIAPAN': 1.28,
+    'TONALA': 0.93,
+    'ARRIAGA': 0.91,
+    'SAN CRISTOBAL DE LAS CASAS': 0.88,
+    'SAN CRISTOBAL': 0.88,
+    'CINTALAPA': 0.83,
+    'TUXTLA GUTIERREZ': 0.80,
+    'SAN ANDRES TUXTLA': 0.74,
+    'BENEMERITO': 0.67,
+    'OCOSINGO': 0.65,
+    'ACAYUCAN': 0.64,
+    'HUB TUXTLA': 0.63,
+    'MINATITLAN': 0.57,
+    'COATZACOALCOS': 0.55,
+    'YAJALON': 0.45,
+    'LAS CHOAPAS': 0.38,
+    'TENOSIQUE': 0.37,
+    'AGUA DULCE': 0.37,
+    'PALENQUE': 0.35,
+    'LA VENTA': 0.35,
+    'BALANCAN': 0.34,
+    'CANDELARIA': 0.35,
+    'JONUTA': 0.30,
+    'EMILIANO ZAPATA': 0.29,
+    'PARAISO': 0.21,
+    'SALTO DE AGUA': 0.21,
+    'HUIMANGUILLO': 0.21,
+    'PICHUCALCO': 0.20,
+    'FRONTERA': 0.19,
+    'COMALCALCO': 0.19,
+    'CARDENAS': 0.18,
+    'TEAPA': 0.18,
+    'REFORMA': 0.17,
+    'MACUSPANA': 0.17,
+    'JALAPA': 0.16,
+    'JALPA DE MENDEZ': 0.15,
+    'CUNDUACAN': 0.15,
+    'CENTRO': 0.12,
+    'JUCHITAN': 0.00
   };
 
   const getDuracionViajeHrs = (destinoStr) => {
     if (!destinoStr) return 0;
     const dest = String(destinoStr).toUpperCase().trim();
-    // Búsqueda directa o parcial
     if (DURACION_VIAJES_HORAS[dest]) return DURACION_VIAJES_HORAS[dest];
     for (const [key, hrs] of Object.entries(DURACION_VIAJES_HORAS)) {
       if (dest.includes(key)) return hrs;
     }
     return 0;
+  };
+
+  const getDuracionViajeDias = (destinoStr, duracionHrs) => {
+    if (!destinoStr && duracionHrs > 0) return Math.round((duracionHrs / 24) * 100) / 100;
+    if (!destinoStr) return 0;
+    const dest = String(destinoStr).toUpperCase().trim();
+    if (DURACION_VIAJES_DIAS[dest] !== undefined) return DURACION_VIAJES_DIAS[dest];
+    for (const [key, dias] of Object.entries(DURACION_VIAJES_DIAS)) {
+      if (dest.includes(key)) return dias;
+    }
+    return duracionHrs > 0 ? Math.round((duracionHrs / 24) * 100) / 100 : 0;
   };
 
   // Analizar la disponibilidad basada en el viaje asignado (sin importar si ya partió o está pendiente)
@@ -412,29 +484,28 @@ export const evaluarDisponibilidadManana = (unitOrTrips, catalogoFlota = []) => 
     duracion = esViajeForaneo(trip) ? 36 : 6;
   }
 
+  const diasMatriz = getDuracionViajeDias(trip.destino, duracion);
+
   // Regla del negocio: Viajes de más de 36 horas son foráneos largos que se toman varios días (no regresan mañana)
   if (duracion > 36) {
-    const diasEstimados = Math.round((duracion / 24) * 10) / 10;
-    const diasEnteros = Math.ceil(duracion / 24);
     return {
       disponible: false,
       regresaManana: false,
       badge: 'NO DISPONIBLE',
-      motivo: `Viaje largo (${diasEnteros} días)`,
-      detalle: `Duración de ${duracion} hrs (~${diasEstimados} días en ruta). No alcanza a regresar mañana.`,
+      motivo: `Viaje largo (${diasMatriz} días)`,
+      detalle: `Duración de ${duracion} hrs (${diasMatriz} días según matriz). No alcanza a regresar mañana.`,
       color: '#f59e0b' // Ámbar
     };
   } 
 
   // Si el viaje dura 36 horas o menos, SÍ regresa mañana
   const isEnRuta = yaPartioDeRuta(trip);
-  const diasEstimados = Math.round((duracion / 24) * 10) / 10;
   return {
     disponible: true,
     regresaManana: true,
     badge: 'REGRESA MAÑANA',
     motivo: isEnRuta ? 'En ruta' : 'Ruta programada',
-    detalle: `Duración: ${duracion} hrs (~${diasEstimados} días). Retorno estimado para mañana.`,
+    detalle: `Duración: ${duracion} hrs (${diasMatriz} días según matriz). Retorno estimado para mañana.`,
     color: '#38bdf8'
   };
 };
