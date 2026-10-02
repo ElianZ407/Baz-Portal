@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { 
   Tv, 
   MapPin, 
@@ -18,26 +18,8 @@ export const TvDashboardView = () => {
     catalogoFlota
   } = useFleet();
 
-  const [filterFL, setFilterFL] = useState('ALL'); // 'ALL' | 'LOCAL' | 'FORANEO'
-  const [filterCapType, setFilterCapType] = useState('ALL'); // 'ALL' | 'CAMIONETA' | 'RABON' | 'FULL'
-  const [currentDate, setCurrentDate] = useState(() => {
-    return new Date().toLocaleDateString('es-MX', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric'
-    });
-  });
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setCurrentDate(new Date().toLocaleDateString('es-MX', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric'
-      }));
-    }, 60000);
-    return () => clearInterval(interval);
-  }, []);
+  const [filterFL, setFilterFL] = useState('ALL');
+  const [filterCapType, setFilterCapType] = useState('ALL');
 
   const tripEcos = useMemo(
     () => new Set(units.map(unit => String(unit.economico || '').trim()).filter(Boolean)),
@@ -199,38 +181,8 @@ export const TvDashboardView = () => {
 
   return (
     <div className="tv-container">
-      {/* Banner Principal de Pizarra TV */}
-      <div className="tv-header-banner">
-        <div className="tv-title-area" style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
-          <div className="brand-logo-container tv-logo-box">
-            <img 
-              src="/baz-entregas-logo.png" 
-              alt="BAZ Entregas" 
-              style={{ height: '42px', width: 'auto', objectFit: 'contain' }} 
-            />
-          </div>
-          <div>
-            <h1>MONITOREO DE UNIDADES EN TIEMPO REAL</h1>
-            <p>Pizarra de Control de Flota y Embarques — CD Villahermosa</p>
-          </div>
-        </div>
-
-        <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
-          <div style={{ textAlign: 'right' }}>
-            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-              Fecha Operativa
-            </span>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', justifyContent: 'flex-end', color: 'var(--accent-cyan)', fontWeight: 700, fontFamily: 'var(--font-mono)', fontSize: '0.95rem' }}>
-              <span>{currentDate}</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* 4 KPIs Superiores de Telemetría */}
       <KpiBar filterFL={filterFL} setFilterFL={setFilterFL} />
 
-      {/* Resumen de Flota por Tipo de Unidad — clicables como filtro */}
       {(() => {
         const CAP_CAMIONETA = [18];
         const CAP_RABON = [40, 50];
@@ -247,133 +199,52 @@ export const TvDashboardView = () => {
         const rabones = countByType(CAP_RABON);
         const fulles = countByType(CAP_FULL);
 
-        const handleCardClick = (typeKey) => {
-          setFilterCapType(prev => prev === typeKey ? 'ALL' : typeKey);
-        };
-
-        const cardStyle = (color, typeKey) => {
-          const isActive = filterCapType === typeKey;
-          return {
-            flex: 1,
-            background: isActive
-              ? `linear-gradient(135deg, ${color}35 0%, ${color}18 100%)`
-              : `linear-gradient(135deg, ${color}10 0%, rgba(13,22,38,0.95) 100%)`,
-            border: `2px solid ${isActive ? color : color + '35'}`,
-            borderRadius: '12px',
-            padding: '0.85rem 1.3rem',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            gap: '1rem',
-            cursor: 'pointer',
-            transition: 'all 0.2s ease',
-            boxShadow: isActive
-              ? `0 0 0 3px ${color}30, 0 6px 24px rgba(0,0,0,0.4)`
-              : `0 4px 14px rgba(0,0,0,0.25)`,
-            transform: isActive ? 'translateY(-2px)' : 'none'
-          };
-        };
-
-        const statBox = (label, value, color) => (
-          <div style={{ textAlign: 'center' }}>
-            <div style={{ fontSize: '1.45rem', fontWeight: 900, color, lineHeight: 1 }}>{value}</div>
-            <div style={{ fontSize: '0.67rem', color: '#64748b', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', marginTop: '0.2rem' }}>{label}</div>
-          </div>
-        );
-
-        const divider = <div style={{ width: '1px', height: '36px', background: 'rgba(255,255,255,0.08)' }} />;
-
-        const activeIndicator = (color) => (
-          <div style={{
-            width: '8px', height: '8px', borderRadius: '50%',
-            background: color, boxShadow: `0 0 8px ${color}`,
-            flexShrink: 0
-          }} />
-        );
-
         return (
-          <div style={{ display: 'flex', gap: '0.85rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
-            {/* Camionetas */}
-            <div
-              style={cardStyle('#10b981', 'CAMIONETA')}
-              onClick={() => handleCardClick('CAMIONETA')}
-              title="Clic para filtrar la tabla por Camionetas (Cap. 18 m³)"
+          <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.85rem', flexWrap: 'wrap', alignItems: 'center' }}>
+            <span style={{ fontSize: '0.76rem', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              Tipo de Flota:
+            </span>
+            <button 
+              className={`pill-btn ${filterCapType === 'ALL' ? 'active' : ''}`}
+              onClick={() => setFilterCapType('ALL')}
             >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-                {filterCapType === 'CAMIONETA' && activeIndicator('#34d399')}
-                <div>
-                  <div style={{ fontSize: '0.72rem', color: filterCapType === 'CAMIONETA' ? '#34d399' : '#64748b', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em' }}>Camionetas</div>
-                  <div style={{ fontSize: '0.78rem', color: '#94a3b8', marginTop: '0.1rem' }}>Cap. 18 m³ {filterCapType === 'CAMIONETA' ? '— Filtrando ✓' : '· Clic para filtrar'}</div>
-                </div>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
-                {statBox('Activas', camionetas.activas, '#34d399')}
-                {divider}
-                {statBox('Taller', camionetas.taller, '#f87171')}
-                {divider}
-                {statBox('Total', camionetas.total, '#e2e8f0')}
-              </div>
-            </div>
-
-            {/* Rabones */}
-            <div
-              style={cardStyle('#06b6d4', 'RABON')}
-              onClick={() => handleCardClick('RABON')}
-              title="Clic para filtrar la tabla por Rabones (Cap. 40–50 m³)"
+              Todos ({flota.length})
+            </button>
+            <button 
+              className={`pill-btn ${filterCapType === 'CAMIONETA' ? 'active' : ''}`}
+              onClick={() => setFilterCapType(prev => prev === 'CAMIONETA' ? 'ALL' : 'CAMIONETA')}
+              style={filterCapType === 'CAMIONETA' ? { background: 'rgba(16, 185, 129, 0.25)', borderColor: '#10b981', color: '#34d399', fontWeight: 800 } : {}}
             >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-                {filterCapType === 'RABON' && activeIndicator('#22d3ee')}
-                <div>
-                  <div style={{ fontSize: '0.72rem', color: filterCapType === 'RABON' ? '#22d3ee' : '#64748b', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em' }}>Rabones</div>
-                  <div style={{ fontSize: '0.78rem', color: '#94a3b8', marginTop: '0.1rem' }}>Cap. 40–50 m³ {filterCapType === 'RABON' ? '— Filtrando ✓' : '· Clic para filtrar'}</div>
-                </div>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
-                {statBox('Activas', rabones.activas, '#22d3ee')}
-                {divider}
-                {statBox('Taller', rabones.taller, '#f87171')}
-                {divider}
-                {statBox('Total', rabones.total, '#e2e8f0')}
-              </div>
-            </div>
-
-            {/* Fulles / Tractos */}
-            <div
-              style={cardStyle('#a855f7', 'FULL')}
-              onClick={() => handleCardClick('FULL')}
-              title="Clic para filtrar la tabla por Fulles/Tractos (Cap. 90–180 m³)"
+              Camionetas ({camionetas.activas} activas · {camionetas.total} total)
+            </button>
+            <button 
+              className={`pill-btn ${filterCapType === 'RABON' ? 'active' : ''}`}
+              onClick={() => setFilterCapType(prev => prev === 'RABON' ? 'ALL' : 'RABON')}
+              style={filterCapType === 'RABON' ? { background: 'rgba(6, 182, 212, 0.25)', borderColor: '#06b6d4', color: '#22d3ee', fontWeight: 800 } : {}}
             >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-                {filterCapType === 'FULL' && activeIndicator('#c084fc')}
-                <div>
-                  <div style={{ fontSize: '0.72rem', color: filterCapType === 'FULL' ? '#c084fc' : '#64748b', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em' }}>Fulles / Tractos</div>
-                  <div style={{ fontSize: '0.78rem', color: '#94a3b8', marginTop: '0.1rem' }}>Cap. 90–180 m³ {filterCapType === 'FULL' ? '— Filtrando ✓' : '· Clic para filtrar'}</div>
-                </div>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
-                {statBox('Activas', fulles.activas, '#c084fc')}
-                {divider}
-                {statBox('Taller', fulles.taller, '#f87171')}
-                {divider}
-                {statBox('Total', fulles.total, '#e2e8f0')}
-              </div>
-            </div>
+              Rabones ({rabones.activas} activas · {rabones.total} total)
+            </button>
+            <button 
+              className={`pill-btn ${filterCapType === 'FULL' ? 'active' : ''}`}
+              onClick={() => setFilterCapType(prev => prev === 'FULL' ? 'ALL' : 'FULL')}
+              style={filterCapType === 'FULL' ? { background: 'rgba(168, 85, 247, 0.25)', borderColor: '#a855f7', color: '#c084fc', fontWeight: 800 } : {}}
+            >
+              Tractos / Fulles ({fulles.activas} activas · {fulles.total} total)
+            </button>
           </div>
         );
       })()}
 
-      {/* Tabla Pizarra para TV Panorámica */}
       <div className="table-card">
-        <div className="table-header-title" style={{ flexWrap: 'wrap', gap: '1rem' }}>
+        <div className="table-header-title" style={{ flexWrap: 'wrap', gap: '0.75rem', padding: '0.75rem 1rem' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
-            <h2>
-              <Tv size={20} color="var(--accent-cyan)" />
+            <h2 style={{ fontSize: '1.05rem', margin: 0 }}>
+              <Tv size={18} color="var(--accent-cyan)" />
               {filterStatus === 'SIN_UNIDAD' 
-                ? `Viajes Pendientes de Asignar (${filteredUnits.length} Viajes)`
-                : `Flota y Embarques del Día (${filteredEcosCount} Unidades)`}
+                ? `Viajes Pendientes de Asignar (${filteredUnits.length})`
+                : `Flota y Embarques del Día (${filteredEcosCount})`}
             </h2>
 
-            {/* Selector Rápido F/L para TV */}
             <div style={{ display: 'flex', gap: '0.35rem', marginLeft: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
               <button 
                 className={`pill-btn ${filterFL === 'ALL' && filterStatus !== 'SIN_UNIDAD' ? 'active' : ''}`}
@@ -420,12 +291,12 @@ export const TvDashboardView = () => {
           </div>
 
           <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
-            <div className="search-input-group" style={{ maxWidth: '320px' }}>
+            <div className="search-input-group" style={{ maxWidth: '280px' }}>
               <Search size={15} className="search-icon" />
               <input 
                 type="text"
                 className="search-input"
-                placeholder="Buscar en resumen general..."
+                placeholder="Buscar en resumen..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
@@ -433,35 +304,31 @@ export const TvDashboardView = () => {
           </div>
         </div>
 
-
-
         <div className="table-wrapper">
           <table className="data-table tv-data-table">
             <thead>
               <tr style={{ background: '#0b253a' }}>
                 <th style={{ textAlign: 'center', width: '60px' }}>VIAJE</th>
-                <th>ECO UNIDAD</th>
-                <th style={{ textAlign: 'center' }}>BLOQUE</th>
-                <th style={{ textAlign: 'center' }}>CORTINA</th>
+                <th style={{ width: '100px' }}>ECO UNIDAD</th>
                 <th>OPERADOR</th>
-                <th>LÍNEA</th>
-                <th># CARGA</th>
-                <th>DESTINO, CLÓSTER & TIPO</th>
-                <th>SALIDA</th>
-                <th>ETA</th>
-                <th style={{ textAlign: 'center' }}>ESTATUS</th>
+                <th style={{ width: '110px' }}># CARGA</th>
+                <th>DESTINO & RUTA</th>
+                <th style={{ textAlign: 'center', width: '85px' }}>SALIDA</th>
+                <th style={{ textAlign: 'center', width: '85px' }}>ETA</th>
+                <th style={{ textAlign: 'center', width: '170px' }}>ESTATUS</th>
               </tr>
             </thead>
             <tbody>
               {filteredUnits.length === 0 ? (
                 <tr>
-                  <td colSpan="11" style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-muted)' }}>
+                  <td colSpan="8" style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-muted)' }}>
                     No hay unidades con los filtros seleccionados.
                   </td>
                 </tr>
               ) : (
                 filteredUnits.map(unit => {
                   const isLate = unit.estatusSupervisor === 'Retrasado';
+                  const avail = availabilityByUnitId.get(String(unit.id));
                   return (
                     <tr 
                       key={unit.id}
@@ -470,7 +337,6 @@ export const TvDashboardView = () => {
                         borderLeft: isLate ? '5px solid #ef4444' : 'none'
                       }}
                     >
-                      {/* VIAJE */}
                       <td style={{ textAlign: 'center', fontFamily: 'var(--font-mono)', fontWeight: 700, fontSize: '1.05rem' }}>
                         {unit.noViaje ? (
                           <span style={{ background: 'rgba(255,255,255,0.08)', padding: '0.2rem 0.6rem', borderRadius: '4px' }}>
@@ -479,7 +345,6 @@ export const TvDashboardView = () => {
                         ) : '—'}
                       </td>
 
-                      {/* ECO UNIDAD */}
                       <td>
                         {unit.economico ? (
                           <span className="eco-pill">{unit.economico}</span>
@@ -495,136 +360,83 @@ export const TvDashboardView = () => {
                             borderRadius: '4px',
                             display: 'inline-block'
                           }}>
-                            SIN UNIDAD ASIGNADA
+                            SIN UNIDAD
                           </span>
                         )}
                       </td>
 
-                      {/* BLOQUE */}
-                      <td style={{ textAlign: 'center', fontFamily: 'var(--font-mono)', fontWeight: 600 }}>
-                        {unit.bloque ? `B-${unit.bloque}` : '—'}
-                      </td>
-
-                      {/* CORTINA */}
-                      <td style={{ textAlign: 'center' }}>
-                        <span style={{ 
-                          fontFamily: 'var(--font-mono)', 
-                          fontWeight: 700, 
-                          color: 'var(--accent-cyan)',
-                          background: 'rgba(6, 182, 212, 0.15)',
-                          padding: '0.2rem 0.5rem',
-                          borderRadius: '4px'
-                        }}>
-                          {unit.cortina || '—'}
-                        </span>
-                      </td>
-
-                      {/* OPERADOR */}
                       <td>
                         <div className="operator-cell">
-                          <span className="operator-name" style={{ fontSize: '0.98rem' }}>
+                          <span className="operator-name" style={{ fontSize: '0.95rem' }}>
                             {unit.operador || 'POR ASIGNAR'}
                           </span>
-                          <span className="operator-shift">
-                            {unit.placas ? `Placas: ${unit.placas}` : ''} {unit.capUnidad ? `• Cap: ${unit.capUnidad}` : ''}
+                          <span className="operator-shift" style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
+                            {unit.placas ? `Placas: ${unit.placas}` : ''} {unit.capUnidad ? `• Cap: ${unit.capUnidad} m³` : ''}
                           </span>
                         </div>
                       </td>
 
-                      {/* LINEA */}
-                      <td style={{ fontSize: '0.88rem', color: 'var(--text-secondary)' }}>
-                        {unit.linea || 'LINEA 1 - VHS'}
-                      </td>
-
-                      {/* # CARGA */}
                       <td>
                         <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.85rem', color: '#e2e8f0' }}>
                           {unit.numCarga || '—'}
                         </span>
                       </td>
 
-                      {/* DESTINO / SUCURSAL / CLÓSTER / F-L */}
                       <td>
-                        <div className="route-cell" style={{ fontSize: '0.98rem', fontWeight: 600 }}>
-                          <MapPin size={15} color="var(--accent-cyan)" />
-                          <span>{unit.destino ? unit.destino.replace(/\s*\(Retorno\)/gi, '').trim() : 'Sin definir'}</span>
-                        </div>
-                        {unit.destinosSecundarios && unit.destinosSecundarios.length > 0 && (
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginTop: '0.35rem', flexWrap: 'wrap' }}>
-                            <span style={{
-                              fontSize: '0.74rem',
-                              background: 'rgba(6, 182, 212, 0.18)',
-                              color: '#38bdf8',
-                              border: '1px solid rgba(56, 189, 248, 0.35)',
-                              padding: '0.12rem 0.5rem',
-                              borderRadius: '4px',
-                              fontWeight: 700
-                            }}>
-                              +{unit.destinosSecundarios.length} Entrega{unit.destinosSecundarios.length > 1 ? 's' : ''}:
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                          <div className="route-cell" style={{ fontSize: '0.95rem', fontWeight: 700, color: '#f8fafc' }}>
+                            <MapPin size={14} color="var(--accent-cyan)" />
+                            <span>{unit.destino ? unit.destino.replace(/\s*\(Retorno\)/gi, '').trim() : 'Sin definir'}</span>
+                          </div>
+                          <span className={unit.fl === 'FORANEO' ? 'badge-fl-foraneo' : 'badge-fl-local'}>
+                            {unit.fl === 'FORANEO' ? 'FORÁNEO' : 'LOCAL'}
+                          </span>
+                          {avail?.regresaManana && (
+                            <span style={{ fontSize: '0.72rem', color: '#38bdf8', background: 'rgba(56, 189, 248, 0.15)', border: '1px solid rgba(56, 189, 248, 0.3)', padding: '0.1rem 0.4rem', borderRadius: '4px', fontWeight: 700 }}>
+                              🔄 Regresa Mañana
                             </span>
+                          )}
+                          {avail?.noRegresaManana && (
+                            <span style={{ fontSize: '0.72rem', color: '#fbbf24', background: 'rgba(245, 158, 11, 0.15)', border: '1px solid rgba(245, 158, 11, 0.3)', padding: '0.1rem 0.4rem', borderRadius: '4px', fontWeight: 700 }}>
+                              ⏳ No regresa ({avail.dias}d)
+                            </span>
+                          )}
+                        </div>
+
+                        {unit.destinosSecundarios && unit.destinosSecundarios.length > 0 && (
+                          <div style={{ fontSize: '0.75rem', color: '#94a3b8', marginTop: '0.2rem', display: 'flex', gap: '0.35rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                            <span style={{ color: '#38bdf8', fontWeight: 600 }}>+{unit.destinosSecundarios.length} entrega{unit.destinosSecundarios.length > 1 ? 's' : ''}:</span>
                             {unit.destinosSecundarios.map((p, pIdx) => (
-                              <span key={pIdx} style={{
-                                fontSize: '0.74rem',
-                                color: p.esVtex ? '#fef08a' : '#e2e8f0',
-                                background: p.esVtex ? 'rgba(250, 204, 21, 0.15)' : 'rgba(255, 255, 255, 0.06)',
-                                border: '1px solid ' + (p.esVtex ? 'rgba(250, 204, 21, 0.35)' : 'rgba(255, 255, 255, 0.12)'),
-                                padding: '0.12rem 0.5rem',
-                                borderRadius: '4px',
-                                fontWeight: 600,
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                gap: '0.25rem'
-                              }}>
-                                📍 {p.esVtex ? (p.destino?.startsWith('VTEX') ? p.destino : `VTEX (S-${p.numSucursal || ''})`) : (p.destino || `#${p.numSucursal}`)}
+                              <span key={pIdx} style={{ color: p.esVtex ? '#fde047' : '#cbd5e1' }}>
+                                {p.esVtex ? (p.destino?.startsWith('VTEX') ? p.destino : `VTEX S-${p.numSucursal || ''}`) : (p.destino || `#${p.numSucursal}`)}{pIdx < unit.destinosSecundarios.length - 1 ? ' · ' : ''}
                               </span>
                             ))}
                           </div>
                         )}
-                        <div style={{ display: 'flex', gap: '0.4rem', marginTop: '0.35rem', alignItems: 'center', flexWrap: 'wrap' }}>
-                          <span className={unit.fl === 'FORANEO' ? 'badge-fl-foraneo' : 'badge-fl-local'}>
-                            {unit.fl === 'FORANEO' ? 'FORÁNEO' : 'LOCAL'}
-                          </span>
-                          <span className="badge-closter">
-                            {unit.closter || 'HUB-VHSA'}
-                          </span>
-                          {availabilityByUnitId.get(String(unit.id))?.regresaManana && (
-                            <span className="badge-fl-foraneo" style={{ background: 'rgba(56, 189, 248, 0.25)', color: '#38bdf8', border: '1px solid #38bdf8', fontWeight: 800 }}>
-                              🔄 REGRESA MAÑANA
-                            </span>
-                          )}
-                          {availabilityByUnitId.get(String(unit.id))?.noRegresaManana && (
-                            <span className="badge-fl-foraneo" style={{ background: 'rgba(245, 158, 11, 0.25)', color: '#fbbf24', border: '1px solid #f59e0b', fontWeight: 800 }}>
-                              ⏳ NO REGRESA MAÑANA ({availabilityByUnitId.get(String(unit.id))?.dias} DÍAS)
-                            </span>
-                          )}
-                        </div>
                       </td>
 
-                      {/* SALIDA */}
-                      <td className="eta-cell" style={{ fontSize: '1rem' }}>
-                        {unit.horaSalida}
+                      <td className="eta-cell" style={{ fontSize: '0.95rem', textAlign: 'center' }}>
+                        {unit.horaSalida || '—'}
                       </td>
 
-                      {/* ETA */}
-                      <td>
+                      <td style={{ textAlign: 'center' }}>
                         <span 
                           className="eta-cell" 
                           style={{ 
-                            fontSize: '1.05rem', 
+                            fontSize: '0.95rem', 
                             color: isLate ? '#f87171' : '#38bdf8' 
                           }}
                         >
-                          {unit.eta}
+                          {unit.eta || '—'}
                         </span>
                       </td>
 
-                      {/* ESTATUS */}
                       <td style={{ textAlign: 'center' }}>
                         {(() => {
                           const opStatus = getUnitOperationalStatus(unit);
                           return (
                             <div style={{ display: 'flex', justifyContent: 'center' }}>
-                              <span className={`status-badge ${opStatus.badgeClass}`} style={{ fontSize: '0.92rem', padding: '0.35rem 0.85rem' }}>
+                              <span className={`status-badge ${opStatus.badgeClass}`} style={{ fontSize: '0.85rem', padding: '0.3rem 0.75rem' }}>
                                 {opStatus.text}
                               </span>
                             </div>
