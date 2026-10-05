@@ -147,119 +147,123 @@ export const Header = () => {
       </nav>
 
       <div className="header-actions">
-        {activeArea === 'planeacion' && (
-          <>
-            <button 
-              className="btn btn-secondary btn-header-action"
-              style={{
-                borderColor: 'rgba(56, 189, 248, 0.45)',
-                background: 'rgba(56, 189, 248, 0.12)',
-                color: '#38bdf8'
-              }}
-              onClick={() => setIsImportModalOpen(true)}
-              title="Subir archivo de planeación Excel o CSV"
-            >
-              <UploadCloud size={15} color="#38bdf8" />
-              <span className="btn-label-text" style={{ fontWeight: 700 }}>Subir Excel</span>
-            </button>
+        <div className="header-action-buttons">
+          {activeArea === 'planeacion' && (
+            <>
+              <button 
+                className="btn btn-secondary btn-header-action"
+                style={{
+                  borderColor: 'rgba(56, 189, 248, 0.45)',
+                  background: 'rgba(56, 189, 248, 0.12)',
+                  color: '#38bdf8'
+                }}
+                onClick={() => setIsImportModalOpen(true)}
+                title="Subir archivo de planeación Excel o CSV"
+              >
+                <UploadCloud size={15} color="#38bdf8" />
+                <span className="btn-label-text" style={{ fontWeight: 700 }}>Subir Excel</span>
+              </button>
 
-            <button 
-              className="btn btn-primary btn-header-action"
-              onClick={handleOpenNewUnit}
-              title="Registrar nuevo viaje en planeación"
-            >
-              <PlusCircle size={16} />
-              <span className="btn-label-text">Nuevo Viaje</span>
-            </button>
-          </>
-        )}
-
-        <button 
-          className="btn btn-secondary btn-header-action" 
-          style={{ 
-            borderColor: 'rgba(6, 182, 212, 0.4)', 
-            background: 'rgba(6, 182, 212, 0.12)',
-            color: '#22d3ee'
-          }}
-          onClick={() => setIsSavePlanModalOpen(true)}
-          title="Guardar / Archivar el plan del día y opcionalmente comenzar nuevo día"
-        >
-          <Save size={15} color="#22d3ee" />
-          <span className="btn-label-text" style={{ fontWeight: 700 }}>Guardar Día</span>
-        </button>
-
-        <button 
-          className="btn btn-secondary btn-header-action" 
-          style={{ 
-            borderColor: 'rgba(168, 85, 247, 0.4)', 
-            background: 'rgba(168, 85, 247, 0.12)',
-            color: '#c084fc',
-            display: 'flex',
-            alignItems: 'center'
-          }}
-          onClick={() => setIsHistoryModalOpen(true)}
-          title="Consultar historial de planes guardados, exportar sus Excel o restaurarlos"
-        >
-          <History size={15} color="#c084fc" />
-          <span className="btn-label-text" style={{ fontWeight: 700 }}>Historial</span>
-          {savedPlans && savedPlans.length > 0 && (
-            <span className="history-badge">
-              {savedPlans.length}
-            </span>
+              <button 
+                className="btn btn-primary btn-header-action"
+                onClick={handleOpenNewUnit}
+                title="Registrar nuevo viaje en planeación"
+              >
+                <PlusCircle size={16} />
+                <span className="btn-label-text">Nuevo Viaje</span>
+              </button>
+            </>
           )}
-        </button>
 
-        {activeArea !== 'planeacion' && (
           <button 
             className="btn btn-secondary btn-header-action" 
             style={{ 
-              borderColor: 'rgba(34, 197, 94, 0.45)', 
-              background: 'rgba(34, 197, 94, 0.12)',
-              color: '#4ade80'
+              borderColor: 'rgba(6, 182, 212, 0.4)', 
+              background: 'rgba(6, 182, 212, 0.12)',
+              color: '#22d3ee'
             }}
-            onClick={handleExportExcel}
-            title={getExportButtonTitle()}
+            onClick={() => setIsSavePlanModalOpen(true)}
+            title="Guardar / Archivar el plan del día y opcionalmente comenzar nuevo día"
           >
-            <FileSpreadsheet size={15} color="#4ade80" />
-            <span className="btn-label-text" style={{ fontWeight: 700 }}>{getExportButtonLabel()}</span>
+            <Save size={15} color="#22d3ee" />
+            <span className="btn-label-text" style={{ fontWeight: 700 }}>Guardar Día</span>
           </button>
-        )}
+
+          <button 
+            className="btn btn-secondary btn-header-action" 
+            style={{ 
+              borderColor: 'rgba(168, 85, 247, 0.4)', 
+              background: 'rgba(168, 85, 247, 0.12)',
+              color: '#c084fc',
+              display: 'flex',
+              alignItems: 'center'
+            }}
+            onClick={() => setIsHistoryModalOpen(true)}
+            title="Consultar historial de planes guardados, exportar sus Excel o restaurarlos"
+          >
+            <History size={15} color="#c084fc" />
+            <span className="btn-label-text" style={{ fontWeight: 700 }}>Historial</span>
+            {savedPlans && savedPlans.length > 0 && (
+              <span className="history-badge">
+                {savedPlans.length}
+              </span>
+            )}
+          </button>
+
+          {activeArea !== 'planeacion' && (
+            <button 
+              className="btn btn-secondary btn-header-action" 
+              style={{ 
+                borderColor: 'rgba(34, 197, 94, 0.45)', 
+                background: 'rgba(34, 197, 94, 0.12)',
+                color: '#4ade80'
+              }}
+              onClick={handleExportExcel}
+              title={getExportButtonTitle()}
+            >
+              <FileSpreadsheet size={15} color="#4ade80" />
+              <span className="btn-label-text" style={{ fontWeight: 700 }}>{getExportButtonLabel()}</span>
+            </button>
+          )}
+        </div>
 
         <div className="header-actions-divider" />
 
-        {formattedPlanDate && (
-          <div 
-            className="plan-date-indicator"
-            title={historicalPlanView ? `Plan Histórico: ${formattedPlanDateLong}` : `Plan activo de embarques: ${formattedPlanDateLong}`}
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '0.45rem',
-              padding: '0.35rem 0.75rem',
-              borderRadius: '20px',
-              fontSize: '0.78rem',
-              fontWeight: 700,
-              fontFamily: 'var(--font-mono)',
-              background: historicalPlanView ? 'rgba(245, 158, 11, 0.16)' : 'rgba(6, 182, 212, 0.14)',
-              border: '1px solid ' + (historicalPlanView ? 'rgba(245, 158, 11, 0.4)' : 'rgba(6, 182, 212, 0.4)'),
-              color: historicalPlanView ? '#fbbf24' : '#22d3ee',
-              whiteSpace: 'nowrap',
-              boxShadow: historicalPlanView ? '0 2px 8px rgba(245, 158, 11, 0.2)' : '0 2px 8px rgba(6, 182, 212, 0.2)'
-            }}
-          >
-            <Calendar size={13} color={historicalPlanView ? '#fbbf24' : 'var(--accent-cyan)'} />
-            <span>
-              {historicalPlanView ? 'Historial: ' : (isPlanDateToday ? 'Plan de Hoy: ' : 'Plan: ')}
-              <strong style={{ color: '#fff', marginLeft: '0.2rem' }}>{formattedPlanDate}</strong>
-            </span>
-          </div>
-        )}
+        <div className="header-status-group">
+          {formattedPlanDate && (
+            <div 
+              className="plan-date-indicator"
+              title={historicalPlanView ? `Plan Histórico: ${formattedPlanDateLong}` : `Plan activo de embarques: ${formattedPlanDateLong}`}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.45rem',
+                padding: '0.35rem 0.75rem',
+                borderRadius: '20px',
+                fontSize: '0.78rem',
+                fontWeight: 700,
+                fontFamily: 'var(--font-mono)',
+                background: historicalPlanView ? 'rgba(245, 158, 11, 0.16)' : 'rgba(6, 182, 212, 0.14)',
+                border: '1px solid ' + (historicalPlanView ? 'rgba(245, 158, 11, 0.4)' : 'rgba(6, 182, 212, 0.4)'),
+                color: historicalPlanView ? '#fbbf24' : '#22d3ee',
+                whiteSpace: 'nowrap',
+                boxShadow: historicalPlanView ? '0 2px 8px rgba(245, 158, 11, 0.2)' : '0 2px 8px rgba(6, 182, 212, 0.2)'
+              }}
+            >
+              <Calendar size={13} color={historicalPlanView ? '#fbbf24' : 'var(--accent-cyan)'} />
+              <span>
+                {historicalPlanView ? 'Historial: ' : (isPlanDateToday ? 'Plan de Hoy: ' : 'Plan: ')}
+                <strong style={{ color: '#fff', marginLeft: '0.2rem' }}>{formattedPlanDate}</strong>
+              </span>
+            </div>
+          )}
 
-        <div className="live-clock" title="Hora de sistema sincronizada">
-          <span className="clock-dot"></span>
-          <Clock size={13} />
-          <span className="clock-full-text">{dateString.toUpperCase()} | {timeString}</span>
-          <span className="clock-short-text">{timeString}</span>
+          <div className="live-clock" title="Hora de sistema sincronizada">
+            <span className="clock-dot"></span>
+            <Clock size={13} />
+            <span className="clock-full-text">{dateString.toUpperCase()} | {timeString}</span>
+            <span className="clock-short-text">{timeString}</span>
+          </div>
         </div>
       </div>
     </header>

@@ -464,6 +464,20 @@ body {
   margin-left: auto;
 }
 
+.header-action-buttons {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex-shrink: 0;
+}
+
+.header-status-group {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex-shrink: 0;
+}
+
 .header-actions-divider {
   width: 1px;
   height: 24px;
@@ -476,6 +490,7 @@ body {
   padding: 0.4rem 0.72rem;
   font-size: 0.8rem;
   gap: 0.35rem;
+  white-space: nowrap;
 }
 
 .btn-label-text {
@@ -1681,43 +1696,9 @@ body {
    SISTEMA RESPONSIVE MULTI-DISPOSITIVO (Laptops 100% Zoom, Tablets, Móviles)
    ========================================================================== */
 
-/* 1. Laptops compactas y monitores medianos (1280px - 1440px al 100% zoom) */
-@media (max-width: 1440px) {
-  .top-header {
-    padding: 0.65rem 1.25rem;
-    gap: 0.85rem;
-  }
-  .brand-text h1 {
-    font-size: 1.1rem;
-  }
-  .brand-subtitle {
-    font-size: 0.7rem;
-  }
-  .nav-tab {
-    padding: 0.45rem 0.85rem;
-    font-size: 0.8rem;
-    gap: 0.35rem;
-  }
-  .btn-header-action {
-    padding: 0.4rem 0.7rem;
-    font-size: 0.78rem;
-  }
-}
-
-/* 2. Laptops estándar y tablets horizontales (1025px - 1280px) */
-@media (max-width: 1280px) {
-  .top-header {
-    gap: 0.65rem;
-    padding: 0.55rem 1rem;
-  }
+@media (max-width: 1500px) {
   .brand-subtitle {
     display: none;
-  }
-  .tab-full-text {
-    display: none;
-  }
-  .tab-short-text {
-    display: inline;
   }
   .clock-full-text {
     display: none;
@@ -1725,49 +1706,120 @@ body {
   .clock-short-text {
     display: inline;
   }
-  /* Ocultar etiquetas de botones secundarios para no colapsar la barra */
-  .btn-header-action:not(.btn-primary) .btn-label-text {
+  .tab-full-text {
     display: none;
   }
-  .btn-header-action {
-    padding: 0.45rem 0.65rem;
+  .tab-short-text {
+    display: inline;
   }
-  .kpi-grid {
-    grid-template-columns: repeat(2, 1fr);
+  .nav-tab {
+    padding: 0.45rem 0.75rem;
+    font-size: 0.8rem;
+    gap: 0.35rem;
+  }
+  .btn-header-action {
+    padding: 0.4rem 0.65rem;
+    font-size: 0.78rem;
   }
 }
 
-/* 3. Tablets verticales y pantallas intermedias (769px - 1024px) */
-@media (max-width: 1024px) {
-  .top-header {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 0.65rem;
-    padding: 0.65rem 1rem;
-  }
-
-  .top-header > .brand-section {
-    width: 100%;
-    justify-content: space-between;
-  }
-
-  /* Distribución en 2 filas limpias */
+@media (max-width: 1280px) {
   .top-header {
     display: grid;
     grid-template-columns: 1fr auto;
     grid-template-rows: auto auto;
     grid-template-areas: 
-      "brand actions"
-      "nav nav";
+      "brand status"
+      "nav actions";
+    gap: 0.5rem 0.75rem;
+    padding: 0.55rem 1rem;
+  }
+
+  .header-brand-divider,
+  .header-actions-divider {
+    display: none;
   }
 
   .top-header > .brand-section {
     grid-area: brand;
   }
 
-  .top-header > .header-actions {
-    grid-area: actions;
+  .header-actions {
+    display: contents;
+  }
+
+  .header-status-group {
+    grid-area: status;
+    display: flex;
+    align-items: center;
     justify-content: flex-end;
+    gap: 0.35rem;
+  }
+
+  .top-header > .nav-areas {
+    grid-area: nav;
+    margin-right: 0;
+    overflow-x: auto;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+  .top-header > .nav-areas::-webkit-scrollbar {
+    display: none;
+  }
+
+  .header-action-buttons {
+    grid-area: actions;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.35rem;
+    overflow-x: auto;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+  .header-action-buttons::-webkit-scrollbar {
+    display: none;
+  }
+
+  .btn-header-action {
+    padding: 0.4rem 0.65rem;
+    font-size: 0.78rem;
+    white-space: nowrap;
+  }
+
+  .kpi-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 1024px) {
+  .top-header {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    grid-template-rows: auto auto auto;
+    grid-template-areas: 
+      "brand status"
+      "nav nav"
+      "actions actions";
+    gap: 0.45rem 0.65rem;
+    padding: 0.55rem 0.85rem;
+  }
+
+  .top-header > .brand-section {
+    grid-area: brand;
+    min-width: 0;
+  }
+
+  .header-actions {
+    display: contents;
+  }
+
+  .header-status-group {
+    grid-area: status;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.35rem;
   }
 
   .header-brand-divider,
@@ -1781,15 +1833,39 @@ body {
     -webkit-overflow-scrolling: touch;
     width: 100%;
     scrollbar-width: none;
+    margin-right: 0;
   }
   .top-header > .nav-areas::-webkit-scrollbar {
     display: none;
   }
 
+  .header-action-buttons {
+    grid-area: actions;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 0.35rem;
+    width: 100%;
+    overflow-x: auto;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+  .header-action-buttons::-webkit-scrollbar {
+    display: none;
+  }
+
+  .btn-header-action {
+    flex-shrink: 0;
+    padding: 0.4rem 0.6rem;
+    font-size: 0.76rem;
+    white-space: nowrap;
+  }
+
   .nav-tab {
     flex: 1;
     justify-content: center;
-    padding: 0.5rem 0.75rem;
+    padding: 0.45rem 0.65rem;
+    font-size: 0.78rem;
   }
 
   .main-content {
@@ -1803,20 +1879,19 @@ body {
   }
 }
 
-/* 4. Teléfonos móviles y pantallas táctiles pequeñas (< 768px) */
 @media (max-width: 768px) {
   .top-header {
-    padding: 0.5rem 0.65rem;
-    gap: 0.5rem;
+    padding: 0.45rem 0.6rem;
+    gap: 0.4rem;
   }
 
   .brand-logo-img {
-    height: 30px;
-    max-width: 110px;
+    height: 28px;
+    max-width: 105px;
   }
 
   .brand-text h1 {
-    font-size: 0.95rem;
+    font-size: 0.9rem;
   }
 
   .brand-badge {
@@ -1825,26 +1900,18 @@ body {
   }
 
   .live-clock {
-    padding: 0.35rem 0.5rem;
-    font-size: 0.72rem;
+    padding: 0.3rem 0.45rem;
+    font-size: 0.7rem;
   }
 
   .plan-date-indicator {
-    padding: 0.35rem 0.55rem;
-    font-size: 0.72rem;
-  }
-
-  .header-actions {
-    gap: 0.35rem;
+    padding: 0.3rem 0.5rem;
+    font-size: 0.7rem;
   }
 
   .btn-header-action {
-    padding: 0.4rem 0.55rem;
-    font-size: 0.75rem;
-  }
-
-  .btn-primary .btn-label-text {
-    display: none;
+    padding: 0.35rem 0.5rem;
+    font-size: 0.72rem;
   }
 
   .nav-areas {
@@ -1853,7 +1920,7 @@ body {
   }
 
   .nav-tab {
-    padding: 0.45rem 0.55rem;
+    padding: 0.4rem 0.5rem;
     font-size: 0.72rem;
     gap: 0.25rem;
   }
