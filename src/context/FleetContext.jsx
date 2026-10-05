@@ -17,7 +17,7 @@ import {
   retireFleetUnitDb
 } from '../lib/supabaseClient';
 import { FLOTA_TOTAL, SUCURSALES_MAESTRAS } from '../constants/fleetConstants';
-import { buscarIdOperadorPorNombre, buscarOperadorPorEco, checkTieneViajeYOperador, evaluarDisponibilidadManana, evaluarDisponibilidadMananaPorUnidad, resumirFlotaPorEstado, contarViajesSinUnidadAsignada, construirPadronManana, unidadContableManana, esCamioneta } from '../utils/fleetUtils';
+import { buscarIdOperadorPorNombre, buscarOperadorPorEco, checkTieneViajeYOperador, evaluarDisponibilidadManana, evaluarDisponibilidadMananaPorUnidad, resumirFlotaPorEstado, contarViajesSinUnidadAsignada, construirPadronManana, unidadContableManana, esCamioneta, formatearFechaPlan } from '../utils/fleetUtils';
 
 const FleetContext = createContext(null);
 
@@ -414,13 +414,31 @@ export const FleetProvider = ({ children }) => {
     }
   }, [units]);
 
-  // Si estamos en modo consulta histórica, mostrar las unidades de ese plan
   const displayedUnits = useMemo(() => {
     if (historicalPlanView && Array.isArray(historicalPlanView.unidades)) {
       return historicalPlanView.unidades.map(cleanUnitDestino);
     }
     return units;
   }, [historicalPlanView, units]);
+
+  const currentPlanDate = useMemo(() => {
+    if (historicalPlanView?.fecha) return String(historicalPlanView.fecha).trim();
+    if (historicalPlanView?.nombre) {
+      const match = historicalPlanView.nombre.match(/\d{4}-\d{2}-\d{2}|\d{1,2}[-/]\d{1,2}[-/]\d{4}/);
+      if (match) return match[0];
+    }
+    const found = displayedUnits.find(u => u.fecha && String(u.fecha).trim());
+    if (found?.fecha) return String(found.fecha).trim();
+    return '';
+  }, [historicalPlanView, displayedUnits]);
+
+  const formattedPlanDate = useMemo(() => {
+    return formatearFechaPlan(currentPlanDate, 'corto');
+  }, [currentPlanDate]);
+
+  const formattedPlanDateLong = useMemo(() => {
+    return formatearFechaPlan(currentPlanDate, 'largo');
+  }, [currentPlanDate]);
 
   // KPIs en tiempo real basados en la flota completa y unidades en pantalla
   const kpis = useMemo(() => {
@@ -1051,6 +1069,9 @@ export const FleetProvider = ({ children }) => {
       setIsImportModalOpen,
       importViajesPlaneacion,
       evaluarDisponibilidadManana,
+      currentPlanDate,
+      formattedPlanDate,
+      formattedPlanDateLong,
       theme,
       setTheme
     }}>

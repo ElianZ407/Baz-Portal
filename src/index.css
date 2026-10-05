@@ -499,6 +499,19 @@ body {
   background: #10b981;
 }
 
+.plan-date-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.45rem 0.85rem;
+  border-radius: var(--radius-md);
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  font-weight: 700;
+  white-space: nowrap;
+  transition: all 0.2s ease;
+}
+
 /* Botones Principales */
 .btn {
   display: inline-flex;
@@ -1786,6 +1799,11 @@ body {
 
   .live-clock {
     padding: 0.35rem 0.5rem;
+    font-size: 0.72rem;
+  }
+
+  .plan-date-indicator {
+    padding: 0.35rem 0.55rem;
     font-size: 0.72rem;
   }
 

@@ -669,3 +669,40 @@ export const contarViajesSinUnidadAsignada = (units = []) => {
   return tripKeys.size;
 };
 
+export const formatearFechaPlan = (fechaStr, formato = 'corto') => {
+  if (!fechaStr) return '';
+  const clean = String(fechaStr).trim();
+  const dias = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+  const diasCortos = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+  const meses = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+  const mesesCortos = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+
+  const isoMatch = clean.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (isoMatch) {
+    const y = Number(isoMatch[1]);
+    const m = Number(isoMatch[2]);
+    const d = Number(isoMatch[3]);
+    const dateObj = new Date(y, m - 1, d);
+    const dayStr = String(d).padStart(2, '0');
+    if (formato === 'largo') {
+      return `${dias[dateObj.getDay()]} ${d} de ${meses[dateObj.getMonth()]}, ${y}`;
+    }
+    return `${diasCortos[dateObj.getDay()]} ${dayStr}/${mesesCortos[dateObj.getMonth()]}/${y}`;
+  }
+
+  const dmyMatch = clean.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{4})$/);
+  if (dmyMatch) {
+    const d = Number(dmyMatch[1]);
+    const m = Number(dmyMatch[2]);
+    const y = Number(dmyMatch[3]);
+    const dateObj = new Date(y, m - 1, d);
+    const dayStr = String(d).padStart(2, '0');
+    if (formato === 'largo') {
+      return `${dias[dateObj.getDay()]} ${d} de ${meses[dateObj.getMonth()]}, ${y}`;
+    }
+    return `${diasCortos[dateObj.getDay()]} ${dayStr}/${mesesCortos[dateObj.getMonth()]}/${y}`;
+  }
+
+  return clean;
+};
+

@@ -9,7 +9,8 @@ import {
   FileSpreadsheet,
   Save,
   History,
-  UploadCloud
+  UploadCloud,
+  Calendar
 } from 'lucide-react';
 import { useFleet } from '../context/FleetContext';
 import { exportByModule } from '../utils/exportOfficialExcel';
@@ -26,7 +27,10 @@ export const Header = () => {
     savedPlans,
     setIsSavePlanModalOpen,
     setIsHistoryModalOpen,
-    setIsImportModalOpen
+    setIsImportModalOpen,
+    formattedPlanDate,
+    formattedPlanDateLong,
+    historicalPlanView
   } = useFleet();
 
   const handleExportExcel = () => {
@@ -143,6 +147,34 @@ export const Header = () => {
 
       {/* Acciones y Reloj */}
       <div className="header-actions">
+        {formattedPlanDate && (
+          <div 
+            className="plan-date-indicator"
+            title={historicalPlanView ? `Plan Histórico: ${formattedPlanDateLong}` : `Plan activo de embarques: ${formattedPlanDateLong}`}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.45rem',
+              padding: '0.35rem 0.85rem',
+              borderRadius: '20px',
+              fontSize: '0.8rem',
+              fontWeight: 700,
+              fontFamily: 'var(--font-mono)',
+              background: historicalPlanView ? 'rgba(245, 158, 11, 0.16)' : 'rgba(6, 182, 212, 0.14)',
+              border: '1px solid ' + (historicalPlanView ? 'rgba(245, 158, 11, 0.4)' : 'rgba(6, 182, 212, 0.4)'),
+              color: historicalPlanView ? '#fbbf24' : '#22d3ee',
+              whiteSpace: 'nowrap',
+              boxShadow: historicalPlanView ? '0 2px 8px rgba(245, 158, 11, 0.2)' : '0 2px 8px rgba(6, 182, 212, 0.2)'
+            }}
+          >
+            <Calendar size={14} color={historicalPlanView ? '#fbbf24' : 'var(--accent-cyan)'} />
+            <span>
+              {historicalPlanView ? 'Historial: ' : 'Plan: '}
+              <strong style={{ color: '#fff', marginLeft: '0.2rem' }}>{formattedPlanDate}</strong>
+            </span>
+          </div>
+        )}
+
         <div className="live-clock" title="Hora de sistema sincronizada">
           <span className="clock-dot"></span>
           <Clock size={14} />

@@ -2,7 +2,8 @@ import React, { useState, useMemo } from 'react';
 import { 
   Tv, 
   MapPin, 
-  Search 
+  Search,
+  Calendar
 } from 'lucide-react';
 import { useFleet } from '../context/FleetContext';
 import { KpiBar } from './KpiBar';
@@ -15,7 +16,9 @@ export const TvDashboardView = () => {
     setFilterStatus, 
     searchQuery, 
     setSearchQuery,
-    catalogoFlota
+    catalogoFlota,
+    formattedPlanDate,
+    formattedPlanDateLong
   } = useFleet();
 
   const [filterFL, setFilterFL] = useState('ALL');
@@ -242,11 +245,35 @@ export const TvDashboardView = () => {
       <div className="table-card">
         <div className="table-header-title" style={{ flexWrap: 'wrap', gap: '0.75rem', padding: '0.75rem 1rem' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
-            <h2 style={{ fontSize: '1.05rem', margin: 0 }}>
+            <h2 style={{ fontSize: '1.05rem', margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
               <Tv size={18} color="var(--accent-cyan)" />
-              {filterStatus === 'SIN_UNIDAD' 
-                ? `Viajes Pendientes de Asignar (${filteredUnits.length})`
-                : `Flota y Embarques del Día (${filteredEcosCount})`}
+              <span>
+                {filterStatus === 'SIN_UNIDAD' 
+                  ? `Viajes Pendientes de Asignar (${filteredUnits.length})`
+                  : `Flota y Embarques del Día (${filteredEcosCount})`}
+              </span>
+              {formattedPlanDate && (
+                <span 
+                  style={{
+                    fontSize: '0.78rem',
+                    fontWeight: 700,
+                    fontFamily: 'var(--font-mono)',
+                    color: '#38bdf8',
+                    background: 'rgba(56, 189, 248, 0.12)',
+                    border: '1px solid rgba(56, 189, 248, 0.3)',
+                    padding: '0.2rem 0.6rem',
+                    borderRadius: '6px',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.35rem',
+                    marginLeft: '0.35rem'
+                  }}
+                  title={`Fecha del plan de embarques: ${formattedPlanDateLong}`}
+                >
+                  <Calendar size={13} />
+                  Plan: {formattedPlanDate}
+                </span>
+              )}
             </h2>
 
             <div style={{ display: 'flex', gap: '0.35rem', marginLeft: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>

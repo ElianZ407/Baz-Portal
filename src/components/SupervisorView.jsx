@@ -9,7 +9,8 @@ import {
   AlertTriangle, 
   MapPin, 
   Edit3, 
-  Trash2 
+  Trash2,
+  Calendar
 } from 'lucide-react';
 import { useFleet } from '../context/FleetContext';
 
@@ -22,7 +23,9 @@ export const SupervisorView = () => {
     deleteUnit,
     showConfirm,
     searchQuery, 
-    setSearchQuery 
+    setSearchQuery,
+    formattedPlanDate,
+    formattedPlanDateLong
   } = useFleet();
 
   const [filterSubStatus, setFilterSubStatus] = useState('ALL');
@@ -206,9 +209,30 @@ export const SupervisorView = () => {
       {/* Tabla de Monitoreo de Supervisor */}
       <div className="table-card">
         <div className="table-header-title">
-          <h2>
+          <h2 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
             <Radio size={20} color="var(--accent-cyan)" />
-            Supervisor: Monitoreo en Tránsito y Sucursales (CD Villahermosa)
+            <span>Supervisor: Monitoreo en Tránsito y Sucursales (CD Villahermosa)</span>
+            {formattedPlanDate && (
+              <span 
+                style={{
+                  fontSize: '0.78rem',
+                  fontWeight: 700,
+                  fontFamily: 'var(--font-mono)',
+                  color: 'var(--accent-cyan)',
+                  background: 'rgba(6, 182, 212, 0.12)',
+                  border: '1px solid rgba(6, 182, 212, 0.3)',
+                  padding: '0.2rem 0.6rem',
+                  borderRadius: '6px',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.35rem'
+                }}
+                title={`Fecha del plan de embarques: ${formattedPlanDateLong}`}
+              >
+                <Calendar size={13} />
+                Plan: {formattedPlanDate}
+              </span>
+            )}
           </h2>
           <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
             Actualice el estatus de la unidad con un solo clic conforme se reciban reportes satelitales o de operadores

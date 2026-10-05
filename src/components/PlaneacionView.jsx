@@ -18,7 +18,8 @@ import {
   Package,
   UploadCloud,
   ChevronDown,
-  ChevronRight
+  ChevronRight,
+  Calendar
 } from 'lucide-react';
 import { useFleet } from '../context/FleetContext';
 import { validarRestriccionesViaje, checkTieneViajeYOperador, resumirFlotaPorEstado, contarViajesSinUnidadAsignada } from '../utils/fleetUtils';
@@ -98,7 +99,9 @@ export const PlaneacionView = () => {
     catalogoFlota,
     searchQuery, 
     setSearchQuery,
-    setIsImportModalOpen 
+    setIsImportModalOpen,
+    formattedPlanDate,
+    formattedPlanDateLong
   } = useFleet();
 
   const [filterFL, setFilterFL] = useState('ALL'); // 'ALL' | 'LOCAL' | 'FORANEO'
@@ -492,9 +495,30 @@ export const PlaneacionView = () => {
       {/* TABLA PRINCIPAL: Matriz Operativa de Embarques */}
       <div className="table-card">
         <div className="table-header-title">
-          <h2>
+          <h2 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
             <CalendarClock size={20} color="var(--accent-cyan)" />
-            Matriz de Embarques y Despacho ({planeacionUnits.length} Viajes)
+            <span>Matriz de Embarques y Despacho ({planeacionUnits.length} Viajes)</span>
+            {formattedPlanDate && (
+              <span 
+                style={{
+                  fontSize: '0.78rem',
+                  fontWeight: 700,
+                  fontFamily: 'var(--font-mono)',
+                  color: 'var(--accent-cyan)',
+                  background: 'rgba(6, 182, 212, 0.12)',
+                  border: '1px solid rgba(6, 182, 212, 0.3)',
+                  padding: '0.2rem 0.6rem',
+                  borderRadius: '6px',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.35rem'
+                }}
+                title={`Fecha del plan de embarques: ${formattedPlanDateLong}`}
+              >
+                <Calendar size={13} />
+                Plan: {formattedPlanDate}
+              </span>
+            )}
           </h2>
           <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
             Estatus Oficial: COLOCADO, CARGADO, PENDIENTE (Sincronizado en tiempo real)
