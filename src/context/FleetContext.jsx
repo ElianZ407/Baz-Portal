@@ -116,9 +116,11 @@ export const FleetProvider = ({ children }) => {
   const [currentTime, setCurrentTime] = useState(new Date());
   const [theme, setThemeState] = useState(() => {
     try {
-      return localStorage.getItem('baz_theme') || 'aviation';
+      const saved = localStorage.getItem('baz_theme');
+      if (saved && saved !== 'aviation') return saved;
+      return 'corporate';
     } catch {
-      return 'aviation';
+      return 'corporate';
     }
   });
 

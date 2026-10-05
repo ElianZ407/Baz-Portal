@@ -6,23 +6,23 @@
 @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
 
 :root {
-  --bg-primary: #0b0f17;
-  --bg-secondary: #111722;
-  --bg-card: #161e2b;
-  --bg-card-hover: #1c2636;
-  --bg-card-header: #0f141e;
+  --bg-primary: #070b14;
+  --bg-secondary: #0c1220;
+  --bg-card: #111a2d;
+  --bg-card-hover: #17243e;
+  --bg-card-header: #0a0f1c;
 
-  --border-color: #1e2d3d;
-  --border-subtle: rgba(255, 255, 255, 0.07);
-  --border-focus: #10b981;
+  --border-color: #1c2b44;
+  --border-subtle: rgba(255, 255, 255, 0.08);
+  --border-focus: #0ea5e9;
 
-  --text-primary: #f1f5f9;
+  --text-primary: #f8fafc;
   --text-secondary: #94a3b8;
   --text-muted: #64748b;
 
-  --accent-cyan: #10b981;
-  --accent-cyan-hover: #059669;
-  --accent-blue: #f59e0b;
+  --accent-cyan: #0ea5e9;
+  --accent-cyan-hover: #0284c7;
+  --accent-blue: #3b82f6;
 
   --status-green-bg: rgba(16, 185, 129, 0.15);
   --status-green-border: rgba(16, 185, 129, 0.4);
@@ -58,51 +58,59 @@
   --shadow-lg: 0 10px 28px rgba(0, 0, 0, 0.5);
 }
 
+.theme-corporate,
 .theme-aviation,
+html.theme-corporate,
 html.theme-aviation,
+body.theme-corporate,
 body.theme-aviation {
-  --bg-primary: #080c14;
-  --bg-secondary: #0d1422;
-  --bg-card: #121c2e;
-  --bg-card-hover: #18253d;
-  --bg-card-header: #0a111e;
-  --border-color: #1e2c45;
-  --border-subtle: rgba(16, 185, 129, 0.2);
-  --border-focus: #10b981;
-  --text-primary: #f0fdf4;
-  --text-secondary: #86efac;
+  --bg-primary: #070b14;
+  --bg-secondary: #0c1220;
+  --bg-card: #111a2d;
+  --bg-card-hover: #17243e;
+  --bg-card-header: #0a0f1c;
+  --border-color: #1c2b44;
+  --border-subtle: rgba(14, 165, 233, 0.15);
+  --border-focus: #0ea5e9;
+  --text-primary: #f8fafc;
+  --text-secondary: #94a3b8;
   --text-muted: #64748b;
-  --accent-cyan: #10b981;
-  --accent-cyan-hover: #059669;
-  --accent-blue: #f59e0b;
+  --accent-cyan: #0ea5e9;
+  --accent-cyan-hover: #0284c7;
+  --accent-blue: #3b82f6;
 }
 
+.theme-corporate .top-header,
 .theme-aviation .top-header {
-  background: rgba(10, 14, 23, 0.98) !important;
-  border-bottom: 1px solid rgba(16, 185, 129, 0.35) !important;
+  background: rgba(10, 16, 30, 0.98) !important;
+  border-bottom: 1px solid rgba(14, 165, 233, 0.25) !important;
 }
 
+.theme-corporate .kpi-card,
 .theme-aviation .kpi-card {
   background: linear-gradient(145deg, #0e172a 0%, #080f1d 100%) !important;
-  border: 1px solid rgba(16, 185, 129, 0.3) !important;
-  box-shadow: 0 10px 25px rgba(0,0,0,0.5), 0 0 15px rgba(16, 185, 129, 0.08) !important;
+  border: 1px solid rgba(14, 165, 233, 0.2) !important;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.5), 0 0 15px rgba(14, 165, 233, 0.05) !important;
 }
 
+.theme-corporate .table-card,
 .theme-aviation .table-card {
-  background: #0d1320 !important;
-  border: 1px solid rgba(16, 185, 129, 0.25) !important;
+  background: #0c1220 !important;
+  border: 1px solid rgba(14, 165, 233, 0.2) !important;
 }
 
+.theme-corporate .data-table th,
 .theme-aviation .data-table th {
-  background: #080d16 !important;
-  border-bottom: 2px solid #10b981 !important;
-  color: #34d399 !important;
+  background: #090e1c !important;
+  border-bottom: 2px solid #0ea5e9 !important;
+  color: #38bdf8 !important;
   font-family: var(--font-mono) !important;
 }
 
+.theme-corporate .nav-areas,
 .theme-aviation .nav-areas {
-  background: #080d16 !important;
-  border: 1px solid rgba(16, 185, 129, 0.3) !important;
+  background: #090e1c !important;
+  border: 1px solid rgba(14, 165, 233, 0.25) !important;
 }
 
 .theme-swiss,

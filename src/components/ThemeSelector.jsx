@@ -9,11 +9,11 @@ export const ThemeSelector = () => {
 
   const THEMES = [
     {
-      id: 'aviation',
-      name: 'Aviation & Control',
-      badge: 'Radar Táctico',
-      color: '#10b981',
-      desc: 'Antracita mate, verde radar fósforo y ámbar aeronáutico'
+      id: 'corporate',
+      name: 'BAZ Corporate Navy',
+      badge: 'Oficial BAZ',
+      color: '#0ea5e9',
+      desc: 'Dark Navy profundo, acentos cyan eléctrico y neutrales limpios'
     },
     {
       id: 'swiss',

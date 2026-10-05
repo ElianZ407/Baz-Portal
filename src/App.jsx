@@ -17,13 +17,13 @@ const AppContent = () => {
   const { activeArea, theme } = useFleet();
 
   React.useEffect(() => {
-    const currentTheme = theme || 'aviation';
+    const currentTheme = theme || 'corporate';
     document.documentElement.className = `theme-${currentTheme}`;
     document.body.className = `theme-${currentTheme}`;
   }, [theme]);
 
   return (
-    <div className={`app-container theme-${theme || 'aviation'} ${activeArea === 'tv' ? 'tv-mode' : ''}`}>
+    <div className={`app-container theme-${theme || 'corporate'} ${activeArea === 'tv' ? 'tv-mode' : ''}`}>
       <RoutesBackground />
       <Header />
       <HistoricalBanner />
