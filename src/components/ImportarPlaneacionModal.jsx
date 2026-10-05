@@ -135,7 +135,15 @@ export const ImportarPlaneacionModal = () => {
       });
     } catch (err) {
       console.error('Error parseando archivo de planeación:', err);
-      setErrorMessage(err.message || 'Error al procesar el archivo. Verifica el formato e intenta nuevamente.');
+      const isDynamicChunkError = err?.message && (
+        err.message.includes('dynamically imported module') ||
+        err.message.includes('Failed to fetch')
+      );
+      if (isDynamicChunkError) {
+        setErrorMessage('El sistema se ha actualizado en el servidor. Por favor recarga la página para continuar.');
+      } else {
+        setErrorMessage(err.message || 'Error al procesar el archivo. Verifica el formato e intenta nuevamente.');
+      }
     } finally {
       setIsProcessing(false);
     }
@@ -305,9 +313,21 @@ export const ImportarPlaneacionModal = () => {
               fontSize: '0.85rem'
             }}>
               <AlertTriangle size={18} style={{ flexShrink: 0, marginTop: '2px', color: '#ef4444' }} />
-              <div>
+              <div style={{ flex: 1 }}>
                 <strong style={{ color: '#fff', display: 'block', marginBottom: '0.15rem' }}>Aviso de Validación</strong>
                 <span>{errorMessage}</span>
+                {errorMessage.includes('recarga la página') && (
+                  <div style={{ marginTop: '0.5rem' }}>
+                    <button
+                      type="button"
+                      className="btn btn-primary"
+                      onClick={() => window.location.reload()}
+                      style={{ padding: '0.35rem 0.75rem', fontSize: '0.78rem' }}
+                    >
+                      Recargar página ahora
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
           )}

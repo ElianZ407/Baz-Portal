@@ -9,8 +9,15 @@
  */
 
 const getExcelJS = async () => {
-  const ExcelJSModule = await import('exceljs/dist/exceljs.min.js');
-  return ExcelJSModule.default || ExcelJSModule;
+  try {
+    const ExcelJSModule = await import('exceljs/dist/exceljs.min.js');
+    return ExcelJSModule.default || ExcelJSModule;
+  } catch (err) {
+    if (typeof window !== 'undefined' && err?.message && (err.message.includes('dynamically imported module') || err.message.includes('Failed to fetch'))) {
+      window.location.reload();
+    }
+    throw err;
+  }
 };
 
 export const exportOfficialExcel = async (units = [], selectedDate = null) => {

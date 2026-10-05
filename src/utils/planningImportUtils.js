@@ -478,6 +478,18 @@ const cacheKeyOf = (file) => `${file.name}|${file.size}|${file.lastModified || 0
 const LIBROS_CACHE = new Map();
 const MAX_LIBROS_EN_CACHE = 3;
 
+const loadExcelJS = async () => {
+  try {
+    const mod = await import('exceljs/dist/exceljs.min.js');
+    return mod.default || mod;
+  } catch (err) {
+    if (typeof window !== 'undefined' && err?.message && (err.message.includes('dynamically imported module') || err.message.includes('Failed to fetch'))) {
+      window.location.reload();
+    }
+    throw err;
+  }
+};
+
 // Lee el archivo UNA sola vez y guarda todas sus pestañas con sus filas crudas.
 // A partir de aquí, cambiar de día es solo un recorrido de memoria.
 const leerLibroCompleto = async (file) => {
@@ -503,8 +515,7 @@ const leerLibroCompleto = async (file) => {
       rows
     }];
   } else {
-    const ExcelJSModule = await import('exceljs/dist/exceljs.min.js');
-    const ExcelJS = ExcelJSModule.default || ExcelJSModule;
+    const ExcelJS = await loadExcelJS();
     const workbook = new ExcelJS.Workbook();
     await workbook.xlsx.load(await file.arrayBuffer());
 
@@ -914,8 +925,7 @@ function parseCsvToRows(text) {
  * Genera y descarga una plantilla oficial en Excel (.xlsx) con los 24 encabezados y estilos
  */
 export const downloadPlanningTemplate = async () => {
-  const ExcelJSModule = await import('exceljs/dist/exceljs.min.js');
-  const ExcelJS = ExcelJSModule.default || ExcelJSModule;
+  const ExcelJS = await loadExcelJS();
   const workbook = new ExcelJS.Workbook();
   workbook.creator = 'BAZ Entregas CD Villahermosa';
   workbook.created = new Date();
