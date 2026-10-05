@@ -14,7 +14,6 @@ import {
 } from 'lucide-react';
 import { useFleet } from '../context/FleetContext';
 import { exportByModule } from '../utils/exportOfficialExcel';
-import { ThemeSelector } from './ThemeSelector';
 
 export const Header = () => {
   const { 
@@ -102,7 +101,8 @@ export const Header = () => {
         </div>
       </div>
 
-      {/* Navegación por Áreas según el Pizarrón de Operaciones */}
+      <div className="header-brand-divider" />
+
       <nav className="nav-areas">
         <button 
           className={`nav-tab ${activeArea === 'patio' ? 'active' : ''}`}
@@ -146,45 +146,7 @@ export const Header = () => {
         </button>
       </nav>
 
-      {/* Acciones y Reloj */}
       <div className="header-actions">
-        {formattedPlanDate && (
-          <div 
-            className="plan-date-indicator"
-            title={historicalPlanView ? `Plan Histórico: ${formattedPlanDateLong}` : `Plan activo de embarques: ${formattedPlanDateLong}`}
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '0.45rem',
-              padding: '0.35rem 0.85rem',
-              borderRadius: '20px',
-              fontSize: '0.8rem',
-              fontWeight: 700,
-              fontFamily: 'var(--font-mono)',
-              background: historicalPlanView ? 'rgba(245, 158, 11, 0.16)' : 'rgba(6, 182, 212, 0.14)',
-              border: '1px solid ' + (historicalPlanView ? 'rgba(245, 158, 11, 0.4)' : 'rgba(6, 182, 212, 0.4)'),
-              color: historicalPlanView ? '#fbbf24' : '#22d3ee',
-              whiteSpace: 'nowrap',
-              boxShadow: historicalPlanView ? '0 2px 8px rgba(245, 158, 11, 0.2)' : '0 2px 8px rgba(6, 182, 212, 0.2)'
-            }}
-          >
-            <Calendar size={14} color={historicalPlanView ? '#fbbf24' : 'var(--accent-cyan)'} />
-            <span>
-              {historicalPlanView ? 'Historial: ' : (isPlanDateToday ? 'Plan de Hoy: ' : 'Plan: ')}
-              <strong style={{ color: '#fff', marginLeft: '0.2rem' }}>{formattedPlanDate}</strong>
-            </span>
-          </div>
-        )}
-
-        <div className="live-clock" title="Hora de sistema sincronizada">
-          <span className="clock-dot"></span>
-          <Clock size={14} />
-          <span className="clock-full-text">{dateString.toUpperCase()} | {timeString}</span>
-          <span className="clock-short-text">{timeString}</span>
-        </div>
-
-        <ThemeSelector />
-
         {activeArea === 'planeacion' && (
           <>
             <button 
@@ -262,6 +224,43 @@ export const Header = () => {
             <span className="btn-label-text" style={{ fontWeight: 700 }}>{getExportButtonLabel()}</span>
           </button>
         )}
+
+        <div className="header-actions-divider" />
+
+        {formattedPlanDate && (
+          <div 
+            className="plan-date-indicator"
+            title={historicalPlanView ? `Plan Histórico: ${formattedPlanDateLong}` : `Plan activo de embarques: ${formattedPlanDateLong}`}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.45rem',
+              padding: '0.35rem 0.75rem',
+              borderRadius: '20px',
+              fontSize: '0.78rem',
+              fontWeight: 700,
+              fontFamily: 'var(--font-mono)',
+              background: historicalPlanView ? 'rgba(245, 158, 11, 0.16)' : 'rgba(6, 182, 212, 0.14)',
+              border: '1px solid ' + (historicalPlanView ? 'rgba(245, 158, 11, 0.4)' : 'rgba(6, 182, 212, 0.4)'),
+              color: historicalPlanView ? '#fbbf24' : '#22d3ee',
+              whiteSpace: 'nowrap',
+              boxShadow: historicalPlanView ? '0 2px 8px rgba(245, 158, 11, 0.2)' : '0 2px 8px rgba(6, 182, 212, 0.2)'
+            }}
+          >
+            <Calendar size={13} color={historicalPlanView ? '#fbbf24' : 'var(--accent-cyan)'} />
+            <span>
+              {historicalPlanView ? 'Historial: ' : (isPlanDateToday ? 'Plan de Hoy: ' : 'Plan: ')}
+              <strong style={{ color: '#fff', marginLeft: '0.2rem' }}>{formattedPlanDate}</strong>
+            </span>
+          </div>
+        )}
+
+        <div className="live-clock" title="Hora de sistema sincronizada">
+          <span className="clock-dot"></span>
+          <Clock size={13} />
+          <span className="clock-full-text">{dateString.toUpperCase()} | {timeString}</span>
+          <span className="clock-short-text">{timeString}</span>
+        </div>
       </div>
     </header>
   );

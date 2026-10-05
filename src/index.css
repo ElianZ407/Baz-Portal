@@ -302,14 +302,21 @@ body {
   background: rgba(13, 21, 39, 0.98);
   backdrop-filter: blur(12px);
   border-bottom: 1px solid var(--border-color);
-  padding: 0.65rem 1.25rem;
+  padding: 0.5rem 1.25rem;
   position: sticky;
   top: 0;
   z-index: 1000;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
+  gap: 0.65rem;
+}
+
+.header-brand-divider {
+  width: 1px;
+  height: 28px;
+  background: rgba(255, 255, 255, 0.12);
+  margin: 0 0.25rem;
+  flex-shrink: 0;
 }
 
 .brand-section {
@@ -388,27 +395,26 @@ body {
   white-space: nowrap;
 }
 
-/* Navegación por Áreas */
 .nav-areas {
   display: flex;
   background: #090e1c;
-  padding: 0.25rem;
+  padding: 0.2rem;
   border-radius: var(--radius-md);
   border: 1px solid var(--border-color);
-  gap: 0.25rem;
+  gap: 0.2rem;
   flex-shrink: 0;
 }
 
 .nav-tab {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  padding: 0.5rem 1.15rem;
+  gap: 0.45rem;
+  padding: 0.45rem 0.95rem;
   border-radius: var(--radius-sm);
   background: transparent;
   border: none;
   color: var(--text-secondary);
-  font-size: 0.85rem;
+  font-size: 0.82rem;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.15s ease;
@@ -450,18 +456,26 @@ body {
   font-family: var(--font-mono);
 }
 
-/* Acciones en Header */
 .header-actions {
   display: flex;
   align-items: center;
-  gap: 0.65rem;
+  gap: 0.4rem;
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
+.header-actions-divider {
+  width: 1px;
+  height: 24px;
+  background: rgba(255, 255, 255, 0.12);
+  margin: 0 0.25rem;
   flex-shrink: 0;
 }
 
 .btn-header-action {
-  padding: 0.45rem 0.85rem;
-  font-size: 0.82rem;
-  gap: 0.45rem;
+  padding: 0.4rem 0.72rem;
+  font-size: 0.8rem;
+  gap: 0.35rem;
 }
 
 .btn-label-text {
@@ -1754,6 +1768,11 @@ body {
   .top-header > .header-actions {
     grid-area: actions;
     justify-content: flex-end;
+  }
+
+  .header-brand-divider,
+  .header-actions-divider {
+    display: none;
   }
 
   .top-header > .nav-areas {
