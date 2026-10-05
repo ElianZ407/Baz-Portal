@@ -11,7 +11,7 @@ export const KpiBar = ({ filterFL = 'ALL', setFilterFL }) => {
     if (setFilterFL) setFilterFL('ALL');
   };
 
-  const isMananaActive = ['DISP_MANANA', 'REGRESAN_MANANA', 'POR_CONFIRMAR', 'SIN_UNIDAD'].includes(filterStatus);
+  const isMananaActive = ['DISP_MANANA', 'REGRESAN_MANANA', 'NO_REGRESAN_MANANA', 'POR_CONFIRMAR', 'SIN_UNIDAD'].includes(filterStatus);
 
   const regresanLabel = filterFL === 'FORANEO' 
     ? 'Regresan de Viaje Foráneo' 
@@ -149,6 +149,26 @@ export const KpiBar = ({ filterFL = 'ALL', setFilterFL }) => {
               <RotateCcw size={14} />
               <span>{regresanLabel} ({kpis.regresanManana})</span>
             </button>
+
+            {kpis.noRegresanManana > 0 && (
+              <button
+                type="button"
+                className="btn"
+                onClick={() => handleSelectStatus('NO_REGRESAN_MANANA')}
+                style={{
+                  fontSize: '0.84rem',
+                  padding: '0.45rem 1rem',
+                  fontWeight: 700,
+                  background: filterStatus === 'NO_REGRESAN_MANANA' ? 'linear-gradient(135deg, #d97706, #b45309)' : 'rgba(245, 158, 11, 0.12)',
+                  color: filterStatus === 'NO_REGRESAN_MANANA' ? '#fff' : '#fbbf24',
+                  border: '1px solid ' + (filterStatus === 'NO_REGRESAN_MANANA' ? '#f59e0b' : 'rgba(245, 158, 11, 0.35)'),
+                  boxShadow: filterStatus === 'NO_REGRESAN_MANANA' ? '0 4px 12px rgba(245, 158, 11, 0.3)' : 'none'
+                }}
+                title="Ver unidades en viajes largos que tardan más de 1 día y no regresan mañana"
+              >
+                <span>⏳ No Regresan ({kpis.noRegresanManana})</span>
+              </button>
+            )}
 
             <button
               type="button"

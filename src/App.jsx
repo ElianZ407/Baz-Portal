@@ -14,10 +14,16 @@ import { ImportarPlaneacionModal } from './components/ImportarPlaneacionModal';
 import { RoutesBackground } from './components/RoutesBackground';
 
 const AppContent = () => {
-  const { activeArea } = useFleet();
+  const { activeArea, theme } = useFleet();
+
+  React.useEffect(() => {
+    const currentTheme = theme || 'aviation';
+    document.documentElement.className = `theme-${currentTheme}`;
+    document.body.className = `theme-${currentTheme}`;
+  }, [theme]);
 
   return (
-    <div className={`app-container ${activeArea === 'tv' ? 'tv-mode' : ''}`}>
+    <div className={`app-container theme-${theme || 'aviation'} ${activeArea === 'tv' ? 'tv-mode' : ''}`}>
       <RoutesBackground />
       <Header />
       <HistoricalBanner />

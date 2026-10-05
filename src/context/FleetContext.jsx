@@ -17,7 +17,7 @@ import {
   retireFleetUnitDb
 } from '../lib/supabaseClient';
 import { FLOTA_TOTAL, SUCURSALES_MAESTRAS } from '../constants/fleetConstants';
-import { buscarIdOperadorPorNombre, buscarOperadorPorEco, checkTieneViajeYOperador, evaluarDisponibilidadManana, evaluarDisponibilidadMananaPorUnidad, resumirFlotaPorEstado, contarViajesSinUnidadAsignada } from '../utils/fleetUtils';
+import { buscarIdOperadorPorNombre, buscarOperadorPorEco, checkTieneViajeYOperador, evaluarDisponibilidadManana, evaluarDisponibilidadMananaPorUnidad, resumirFlotaPorEstado, contarViajesSinUnidadAsignada, construirPadronManana, unidadContableManana, esCamioneta } from '../utils/fleetUtils';
 
 const FleetContext = createContext(null);
 
@@ -107,13 +107,27 @@ export const FleetProvider = ({ children }) => {
     return [];
   });
 
-  const [activeArea, setActiveArea] = useState('tv'); // 'patio' | 'planeacion' | 'supervisor' | 'tv'
+  const [activeArea, setActiveArea] = useState('tv');
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState('ALL');
   const [selectedUnit, setSelectedUnit] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [confirmModal, setConfirmModal] = useState(null);
   const [currentTime, setCurrentTime] = useState(new Date());
+  const [theme, setThemeState] = useState(() => {
+    try {
+      return localStorage.getItem('baz_theme') || 'aviation';
+    } catch {
+      return 'aviation';
+    }
+  });
+
+  const setTheme = (newTheme) => {
+    setThemeState(newTheme);
+    try {
+      localStorage.setItem('baz_theme', newTheme);
+    } catch {}
+  };
 
   // Referencia persistente de BroadcastChannel multi-pestaña
   const broadcastRef = useRef(null);
@@ -430,30 +444,35 @@ export const FleetProvider = ({ children }) => {
     const activeEcos = new Set();
     const disponiblesMananaActivas = new Set();
     const regresanManana = new Set();
+    const noRegresanManana = new Set();
     const porConfirmarManana = new Set();
     const availabilityByUnitId = evaluarDisponibilidadMananaPorUnidad(displayedUnits, catalogoFlota);
     const viajesSinUnidadAsignada = contarViajesSinUnidadAsignada(displayedUnits);
+
+    const padronManana = construirPadronManana(catalogoFlota);
 
     displayedUnits.forEach(u => {
       const eco = String(u.economico || '').trim();
       if (!eco) return;
       activeEcos.add(eco);
+      if (!unidadContableManana(u, padronManana)) return;
       const evalResult = availabilityByUnitId.get(String(u.id));
+      if (!evalResult) return;
       const unitKey = `eco-${eco}`;
       if (evalResult.disponible) {
         disponiblesMananaActivas.add(unitKey);
         if (evalResult.regresaManana) regresanManana.add(unitKey);
+      } else if (evalResult.noRegresaManana) {
+        noRegresanManana.add(unitKey);
       } else if (evalResult.badge === 'POR CONFIRMAR') {
         porConfirmarManana.add(unitKey);
       }
     });
 
-    // Una unidad con más de un viaje pendiente no se considera disponible todavía.
     porConfirmarManana.forEach(key => disponiblesMananaActivas.delete(key));
 
-    // Unidades de flota libres en patio (no programadas hoy ni en taller)
     const flotaLibreEnPatio = new Set((catalogoFlota || [])
-      .filter(f => String(f.estatus || 'ACTIVO').trim().toUpperCase() === 'ACTIVO')
+      .filter(f => String(f.estatus || 'ACTIVO').trim().toUpperCase() === 'ACTIVO' && !esCamioneta(f))
       .map(f => String(f.eco || '').trim())
       .filter(eco => eco && !activeEcos.has(eco))).size;
 
@@ -471,6 +490,7 @@ export const FleetProvider = ({ children }) => {
       disponiblesManana,
       libresManana: disponiblesManana - regresanManana.size,
       regresanManana: regresanManana.size,
+      noRegresanManana: noRegresanManana.size,
       porConfirmarManana: porConfirmarManana.size,
       viajesSinUnidadAsignada,
       fueraOperacion: fleetStatusCounts.fueraOperacion
@@ -1030,8 +1050,9 @@ export const FleetProvider = ({ children }) => {
       isImportModalOpen,
       setIsImportModalOpen,
       importViajesPlaneacion,
-      // Utilidades operativas
-      evaluarDisponibilidadManana
+      evaluarDisponibilidadManana,
+      theme,
+      setTheme
     }}>
       {children}
     </FleetContext.Provider>

@@ -6,7 +6,7 @@ import {
 } from 'lucide-react';
 import { useFleet } from '../context/FleetContext';
 import { KpiBar } from './KpiBar';
-import { evaluarDisponibilidadMananaPorUnidad, tieneRutaAsignada } from '../utils/fleetUtils';
+import { evaluarDisponibilidadMananaPorUnidad, tieneRutaAsignada, construirPadronManana, unidadContableManana } from '../utils/fleetUtils';
 
 export const TvDashboardView = () => {
   const { 
@@ -61,6 +61,7 @@ export const TvDashboardView = () => {
     () => evaluarDisponibilidadMananaPorUnidad(unitsForFilter, catalogoFlota),
     [unitsForFilter, catalogoFlota]
   );
+  const padronManana = useMemo(() => construirPadronManana(catalogoFlota), [catalogoFlota]);
 
   const unassignedTripsCount = useMemo(
     () => units.filter(u => !String(u.economico || '').trim()).length,
@@ -111,13 +112,16 @@ export const TvDashboardView = () => {
       return unit.estatusPatio === 'Disponible' && !tieneRutaAsignada(unit);
     }
     if (filterStatus === 'DISP_MANANA') {
-      return availabilityByUnitId.get(String(unit.id))?.disponible || false;
+      return unidadContableManana(unit, padronManana) && (availabilityByUnitId.get(String(unit.id))?.disponible || false);
     }
     if (filterStatus === 'REGRESAN_MANANA') {
-      return availabilityByUnitId.get(String(unit.id))?.regresaManana || false;
+      return unidadContableManana(unit, padronManana) && (availabilityByUnitId.get(String(unit.id))?.regresaManana || false);
+    }
+    if (filterStatus === 'NO_REGRESAN_MANANA') {
+      return unidadContableManana(unit, padronManana) && Boolean(availabilityByUnitId.get(String(unit.id))?.noRegresaManana);
     }
     if (filterStatus === 'POR_CONFIRMAR') {
-      return Boolean(ecoStr) && availabilityByUnitId.get(String(unit.id))?.badge === 'POR CONFIRMAR';
+      return unidadContableManana(unit, padronManana) && availabilityByUnitId.get(String(unit.id))?.badge === 'POR CONFIRMAR';
     }
     if (filterStatus === 'SIN_UNIDAD') {
       return !ecoStr;
@@ -391,13 +395,13 @@ export const TvDashboardView = () => {
                           <span className={unit.fl === 'FORANEO' ? 'badge-fl-foraneo' : 'badge-fl-local'}>
                             {unit.fl === 'FORANEO' ? 'FORÁNEO' : 'LOCAL'}
                           </span>
-                          {avail?.regresaManana && (
-                            <span style={{ fontSize: '0.72rem', color: '#38bdf8', background: 'rgba(56, 189, 248, 0.15)', border: '1px solid rgba(56, 189, 248, 0.3)', padding: '0.1rem 0.4rem', borderRadius: '4px', fontWeight: 700 }}>
+                          {!avail?.esCamioneta && avail?.regresaManana && (
+                            <span style={{ fontSize: '0.72rem', color: '#38bdf8', background: 'rgba(56, 189, 248, 0.15)', border: '1px solid rgba(56, 189, 248, 0.3)', padding: '0.1rem 0.4rem', borderRadius: '4px', fontWeight: 700 }} title={avail?.detalle}>
                               🔄 Regresa Mañana
                             </span>
                           )}
-                          {avail?.noRegresaManana && (
-                            <span style={{ fontSize: '0.72rem', color: '#fbbf24', background: 'rgba(245, 158, 11, 0.15)', border: '1px solid rgba(245, 158, 11, 0.3)', padding: '0.1rem 0.4rem', borderRadius: '4px', fontWeight: 700 }}>
+                          {!avail?.esCamioneta && avail?.noRegresaManana && (
+                            <span style={{ fontSize: '0.72rem', color: '#fbbf24', background: 'rgba(245, 158, 11, 0.15)', border: '1px solid rgba(245, 158, 11, 0.3)', padding: '0.1rem 0.4rem', borderRadius: '4px', fontWeight: 700 }} title={avail?.detalle}>
                               ⏳ No regresa ({avail.dias}d)
                             </span>
                           )}

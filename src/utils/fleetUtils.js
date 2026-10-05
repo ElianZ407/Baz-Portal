@@ -263,6 +263,26 @@ export const consolidarUnidadesPatioPorEconomico = (units = []) => {
   return unitsByEco;
 };
 
+export const esCamioneta = (item) =>
+  Number(item?.capUnidad) === 18 || String(item?.tipo || '').toLowerCase().includes('camioneta');
+
+export const construirPadronManana = (catalogoFlota = []) => {
+  const padron = new Set();
+  (catalogoFlota || []).forEach(f => {
+    const eco = String(f.eco || '').trim();
+    const status = String(f.estatus || 'ACTIVO').trim().toUpperCase();
+    if (eco && status === 'ACTIVO' && !esCamioneta(f)) padron.add(eco);
+  });
+  return padron;
+};
+
+export const unidadContableManana = (unit, padron) => {
+  const eco = String(unit?.economico || '').trim();
+  if (!eco) return false;
+  if (padron && padron.size > 0) return padron.has(eco);
+  return !esCamioneta(unit);
+};
+
 export const evaluarDisponibilidadManana = (unitOrTrips, catalogoFlota = []) => {
   const units = (Array.isArray(unitOrTrips) ? unitOrTrips : [unitOrTrips]).filter(Boolean);
   if (units.length === 0) {
@@ -272,6 +292,20 @@ export const evaluarDisponibilidadManana = (unitOrTrips, catalogoFlota = []) => 
   const eco = units[0].economico;
   const fleetUnit = (catalogoFlota || []).find(f => String(f.eco).trim() === String(eco || '').trim());
   const fleetStatus = String(fleetUnit?.estatus || '').trim().toUpperCase();
+
+  if (esCamioneta(units[0]) || (fleetUnit && esCamioneta(fleetUnit))) {
+    return {
+      disponible: false,
+      regresaManana: false,
+      noRegresaManana: false,
+      esCamioneta: true,
+      badge: 'CAMIONETA LOCAL',
+      motivo: 'Retorno diario automático',
+      detalle: 'Camioneta (18 m³). Retorno diario garantizado.',
+      color: '#94a3b8'
+    };
+  }
+
   const isTaller = units.some(unit =>
     unit.estatusPatio === 'Taller' ||
     unit.estatus === 'TALLER'
@@ -329,7 +363,17 @@ export const evaluarDisponibilidadManana = (unitOrTrips, catalogoFlota = []) => 
     };
   }
 
-  // Diccionario de duraciones oficiales en horas (Total de Ida y Vuelta + tiempos)
+  const normalizeDest = (str) => {
+    if (!str) return '';
+    return String(str)
+      .toUpperCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^A-Z0-9\s]/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+  };
+
   const DURACION_VIAJES_HORAS = {
     'BANCOS CHIAPAS': 84.31,
     'BANCOS OAXACA': 68.54,
@@ -341,6 +385,7 @@ export const evaluarDisponibilidadManana = (unitOrTrips, catalogoFlota = []) => 
     'POCHUTLA': 44.95,
     'HUATULCO': 43.75,
     'CIUDAD HIDALGO': 36.27,
+    'CD HIDALGO': 36.27,
     'MOTOZINTLA': 35.47,
     'TAPACHULA': 35.07,
     'HUIXTLA': 33.82,
@@ -351,25 +396,31 @@ export const evaluarDisponibilidadManana = (unitOrTrips, catalogoFlota = []) => 
     'TEHUANTEPEC': 30.92,
     'COMITAN': 30.92,
     'PIJIJIAPAN': 30.62,
+    'JUCHITAN': 26.50,
     'TONALA': 22.30,
     'ARRIAGA': 21.88,
     'SAN CRISTOBAL DE LAS CASAS': 21.15,
     'SAN CRISTOBAL': 21.15,
     'CINTALAPA': 19.98,
     'TUXTLA GUTIERREZ': 19.18,
+    'JUAN SABINES': 19.18,
     'SAN ANDRES TUXTLA': 17.87,
     'BENEMERITO': 16.13,
     'OCOSINGO': 15.65,
     'ACAYUCAN': 15.25,
     'HUB TUXTLA': 15.09,
+    'ESCARCEGA': 15.00,
     'MINATITLAN': 13.79,
     'COATZACOALCOS': 13.25,
+    'PLAZA FLORIDA': 13.25,
+    'AVIACION': 11.50,
     'YAJALON': 10.78,
     'LAS CHOAPAS': 9.02,
     'TENOSIQUE': 8.96,
     'AGUA DULCE': 8.83,
     'PALENQUE': 8.45,
     'LA VENTA': 8.31,
+    'CANDELARIA': 8.32,
     'BALANCAN': 8.25,
     'JONUTA': 7.27,
     'EMILIANO ZAPATA': 6.96,
@@ -387,11 +438,10 @@ export const evaluarDisponibilidadManana = (unitOrTrips, catalogoFlota = []) => 
     'JALPA DE MENDEZ': 3.58,
     'CUNDUACAN': 3.55,
     'CENTRO': 2.76,
-    'CANDELARIA': 8.32,
-    'JUCHITAN': 0.0
+    'VILLAHERMOSA': 2.76,
+    'VILLA HERMOSA': 2.76
   };
 
-  // Diccionario oficial de Duración en Días (Última columna de la matriz oficial BAZ)
   const DURACION_VIAJES_DIAS = {
     'BANCOS CHIAPAS': 3.51,
     'BANCOS OAXACA': 2.86,
@@ -403,6 +453,7 @@ export const evaluarDisponibilidadManana = (unitOrTrips, catalogoFlota = []) => 
     'POCHUTLA': 1.87,
     'HUATULCO': 1.82,
     'CIUDAD HIDALGO': 1.51,
+    'CD HIDALGO': 1.51,
     'MOTOZINTLA': 1.48,
     'TAPACHULA': 1.46,
     'HUIXTLA': 1.41,
@@ -413,27 +464,32 @@ export const evaluarDisponibilidadManana = (unitOrTrips, catalogoFlota = []) => 
     'TEHUANTEPEC': 1.29,
     'COMITAN': 1.29,
     'PIJIJIAPAN': 1.28,
+    'JUCHITAN': 1.10,
     'TONALA': 0.93,
     'ARRIAGA': 0.91,
     'SAN CRISTOBAL DE LAS CASAS': 0.88,
     'SAN CRISTOBAL': 0.88,
     'CINTALAPA': 0.83,
     'TUXTLA GUTIERREZ': 0.80,
+    'JUAN SABINES': 0.80,
     'SAN ANDRES TUXTLA': 0.74,
     'BENEMERITO': 0.67,
     'OCOSINGO': 0.65,
     'ACAYUCAN': 0.64,
     'HUB TUXTLA': 0.63,
+    'ESCARCEGA': 0.63,
     'MINATITLAN': 0.57,
     'COATZACOALCOS': 0.55,
+    'PLAZA FLORIDA': 0.55,
+    'AVIACION': 0.48,
     'YAJALON': 0.45,
     'LAS CHOAPAS': 0.38,
     'TENOSIQUE': 0.37,
     'AGUA DULCE': 0.37,
     'PALENQUE': 0.35,
     'LA VENTA': 0.35,
-    'BALANCAN': 0.34,
     'CANDELARIA': 0.35,
+    'BALANCAN': 0.34,
     'JONUTA': 0.30,
     'EMILIANO ZAPATA': 0.29,
     'PARAISO': 0.21,
@@ -450,12 +506,13 @@ export const evaluarDisponibilidadManana = (unitOrTrips, catalogoFlota = []) => 
     'JALPA DE MENDEZ': 0.15,
     'CUNDUACAN': 0.15,
     'CENTRO': 0.12,
-    'JUCHITAN': 0.00
+    'VILLAHERMOSA': 0.12,
+    'VILLA HERMOSA': 0.12
   };
 
   const getDuracionViajeHrs = (destinoStr) => {
     if (!destinoStr) return 0;
-    const dest = String(destinoStr).toUpperCase().trim();
+    const dest = normalizeDest(destinoStr);
     if (DURACION_VIAJES_HORAS[dest]) return DURACION_VIAJES_HORAS[dest];
     for (const [key, hrs] of Object.entries(DURACION_VIAJES_HORAS)) {
       if (dest.includes(key)) return hrs;
@@ -464,9 +521,8 @@ export const evaluarDisponibilidadManana = (unitOrTrips, catalogoFlota = []) => 
   };
 
   const getDuracionViajeDias = (destinoStr, duracionHrs) => {
-    if (!destinoStr && duracionHrs > 0) return Math.round((duracionHrs / 24) * 100) / 100;
-    if (!destinoStr) return 0;
-    const dest = String(destinoStr).toUpperCase().trim();
+    if (!destinoStr) return duracionHrs > 0 ? Math.round((duracionHrs / 24) * 100) / 100 : 0;
+    const dest = normalizeDest(destinoStr);
     if (DURACION_VIAJES_DIAS[dest] !== undefined) return DURACION_VIAJES_DIAS[dest];
     for (const [key, dias] of Object.entries(DURACION_VIAJES_DIAS)) {
       if (dest.includes(key)) return dias;
@@ -474,24 +530,21 @@ export const evaluarDisponibilidadManana = (unitOrTrips, catalogoFlota = []) => 
     return duracionHrs > 0 ? Math.round((duracionHrs / 24) * 100) / 100 : 0;
   };
 
-  // Analizar la disponibilidad basada en el viaje asignado (sin importar si ya partió o está pendiente)
-  const trip = trips.find(t => esViajeForaneo(t)) || trips[0]; // Usar el viaje más largo/foráneo si hay
-  
-  // Determinar la duración del viaje en horas (priorizando el tiempo estimado cargado, o el diccionario)
+  const trip = trips.find(t => esViajeForaneo(t)) || trips[0];
   let duracion = Number(trip.tiempoEstimadoHrs) || 0;
   if (!duracion && trip.destino) {
     duracion = getDuracionViajeHrs(trip.destino);
   }
 
-  // Si no logramos inferir duración, aplicamos un default según F/L para no romper la matemática
-  if (duracion === 0) {
-    duracion = esViajeForaneo(trip) ? 36 : 6;
+  const foraneo = esViajeForaneo(trip);
+  if (duracion === 0 && !foraneo) {
+    duracion = 6;
   }
 
   const diasMatriz = getDuracionViajeDias(trip.destino, duracion);
+  const esViajeLargo = diasMatriz > 1.0 || duracion > 24;
 
-  // Regla del negocio: Viajes de más de 36 horas son foráneos largos que se toman varios días (no regresan mañana)
-  if (duracion > 36) {
+  if (esViajeLargo) {
     return {
       disponible: false,
       regresaManana: false,
@@ -501,15 +554,31 @@ export const evaluarDisponibilidadManana = (unitOrTrips, catalogoFlota = []) => 
       badge: 'NO DISPONIBLE',
       motivo: `Viaje largo (${diasMatriz} días)`,
       detalle: `Duración de ${duracion} hrs (${diasMatriz} días según matriz). No alcanza a regresar mañana.`,
-      color: '#f59e0b' // Ámbar
+      color: '#f59e0b'
     };
-  } 
+  }
 
-  // Si el viaje dura 36 horas o menos, SÍ regresa mañana
+  if (duracion === 0 && foraneo) {
+    return {
+      disponible: false,
+      regresaManana: false,
+      noRegresaManana: false,
+      dias: null,
+      horas: 0,
+      badge: 'POR CONFIRMAR',
+      motivo: 'Foráneo sin matriz',
+      detalle: 'Destino foráneo sin duración registrada en matriz.',
+      color: '#f59e0b'
+    };
+  }
+
   const isEnRuta = yaPartioDeRuta(trip);
   return {
     disponible: true,
     regresaManana: true,
+    noRegresaManana: false,
+    dias: diasMatriz,
+    horas: duracion,
     badge: 'REGRESA MAÑANA',
     motivo: isEnRuta ? 'En ruta' : 'Ruta programada',
     detalle: `Duración: ${duracion} hrs (${diasMatriz} días según matriz). Retorno estimado para mañana.`,

@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { useFleet } from '../context/FleetContext';
 import { exportByModule } from '../utils/exportOfficialExcel';
+import { ThemeSelector } from './ThemeSelector';
 
 export const Header = () => {
   const { 
@@ -148,6 +149,8 @@ export const Header = () => {
           <span className="clock-full-text">{dateString.toUpperCase()} | {timeString}</span>
           <span className="clock-short-text">{timeString}</span>
         </div>
+
+        <ThemeSelector />
 
         {activeArea === 'planeacion' && (
           <>
