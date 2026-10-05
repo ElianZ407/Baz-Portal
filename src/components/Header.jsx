@@ -169,7 +169,7 @@ export const Header = () => {
           >
             <Calendar size={14} color={historicalPlanView ? '#fbbf24' : 'var(--accent-cyan)'} />
             <span>
-              {historicalPlanView ? 'Historial: ' : 'Plan: '}
+              {historicalPlanView ? 'Historial: ' : 'Plan de Hoy: '}
               <strong style={{ color: '#fff', marginLeft: '0.2rem' }}>{formattedPlanDate}</strong>
             </span>
           </div>

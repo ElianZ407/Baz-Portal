@@ -427,10 +427,13 @@ export const FleetProvider = ({ children }) => {
       const match = historicalPlanView.nombre.match(/\d{4}-\d{2}-\d{2}|\d{1,2}[-/]\d{1,2}[-/]\d{4}/);
       if (match) return match[0];
     }
-    const found = displayedUnits.find(u => u.fecha && String(u.fecha).trim());
-    if (found?.fecha) return String(found.fecha).trim();
-    return '';
-  }, [historicalPlanView, displayedUnits]);
+    const now = currentTime || new Date();
+    const y = now.getFullYear();
+    const m = String(now.getMonth() + 1).padStart(2, '0');
+    const d = String(now.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+  }, [historicalPlanView, currentTime]);
+
 
   const formattedPlanDate = useMemo(() => {
     return formatearFechaPlan(currentPlanDate, 'corto');

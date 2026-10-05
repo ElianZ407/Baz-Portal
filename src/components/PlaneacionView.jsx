@@ -516,7 +516,7 @@ export const PlaneacionView = () => {
                 title={`Fecha del plan de embarques: ${formattedPlanDateLong}`}
               >
                 <Calendar size={13} />
-                Plan: {formattedPlanDate}
+                Plan de Hoy: {formattedPlanDate}
               </span>
             )}
           </h2>
