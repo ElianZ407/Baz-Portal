@@ -18,7 +18,8 @@ export const TvDashboardView = () => {
     setSearchQuery,
     catalogoFlota,
     formattedPlanDate,
-    formattedPlanDateLong
+    formattedPlanDateLong,
+    isPlanDateToday
   } = useFleet();
 
   const [filterFL, setFilterFL] = useState('ALL');
@@ -271,7 +272,7 @@ export const TvDashboardView = () => {
                   title={`Fecha del plan de embarques: ${formattedPlanDateLong}`}
                 >
                   <Calendar size={13} />
-                  Plan de Hoy: {formattedPlanDate}
+                  {isPlanDateToday ? `Plan de Hoy: ${formattedPlanDate}` : `Plan: ${formattedPlanDate}`}
                 </span>
               )}
             </h2>

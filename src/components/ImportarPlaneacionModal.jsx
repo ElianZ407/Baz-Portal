@@ -210,15 +210,14 @@ export const ImportarPlaneacionModal = () => {
           padding: 0,
           overflow: 'hidden',
           backgroundColor: '#0a0f1d',
-          border: '1px solid rgba(16, 185, 129, 0.3)',
+          border: '1px solid rgba(14, 165, 233, 0.3)',
           boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.75)'
         }}
       >
-        {/* Cabecera del Modal */}
         <div style={{
           padding: '1.25rem 1.6rem',
           borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
-          background: 'linear-gradient(180deg, rgba(16, 185, 129, 0.08) 0%, rgba(10, 15, 29, 0) 100%)',
+          background: 'linear-gradient(180deg, rgba(14, 165, 233, 0.08) 0%, rgba(10, 15, 29, 0) 100%)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
@@ -229,12 +228,12 @@ export const ImportarPlaneacionModal = () => {
               width: '44px',
               height: '44px',
               borderRadius: '10px',
-              background: 'rgba(16, 185, 129, 0.15)',
-              border: '1px solid rgba(16, 185, 129, 0.35)',
+              background: 'rgba(14, 165, 233, 0.15)',
+              border: '1px solid rgba(14, 165, 233, 0.35)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              color: '#34d399'
+              color: '#38bdf8'
             }}>
               <UploadCloud size={24} />
             </div>
@@ -323,11 +322,11 @@ export const ImportarPlaneacionModal = () => {
                 onDrop={handleDrop}
                 onClick={() => fileInputRef.current?.click()}
                 style={{
-                  border: dragActive ? '2px dashed #10b981' : '2px dashed rgba(255, 255, 255, 0.18)',
+                  border: dragActive ? '2px dashed #0ea5e9' : '2px dashed rgba(255, 255, 255, 0.18)',
                   borderRadius: '14px',
                   padding: '3rem 2rem',
                   textAlign: 'center',
-                  background: dragActive ? 'rgba(16, 185, 129, 0.08)' : 'rgba(255, 255, 255, 0.02)',
+                  background: dragActive ? 'rgba(14, 165, 233, 0.08)' : 'rgba(255, 255, 255, 0.02)',
                   cursor: 'pointer',
                   transition: 'all 0.2s ease',
                   position: 'relative'
@@ -343,7 +342,7 @@ export const ImportarPlaneacionModal = () => {
 
                 {isProcessing ? (
                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.85rem' }}>
-                    <RefreshCw size={36} className="spin-animation" color="#34d399" />
+                    <RefreshCw size={36} className="spin-animation" color="#38bdf8" />
                     <p style={{ fontWeight: 700, color: '#fff', fontSize: '1rem', margin: 0 }}>
                       Analizando archivo y detectando columnas...
                     </p>
@@ -357,12 +356,12 @@ export const ImportarPlaneacionModal = () => {
                       width: '64px',
                       height: '64px',
                       borderRadius: '50%',
-                      background: 'rgba(16, 185, 129, 0.12)',
-                      border: '1px solid rgba(16, 185, 129, 0.25)',
+                      background: 'rgba(14, 165, 233, 0.12)',
+                      border: '1px solid rgba(14, 165, 233, 0.25)',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      color: '#34d399'
+                      color: '#38bdf8'
                     }}>
                       <FileSpreadsheet size={32} />
                     </div>
@@ -543,79 +542,142 @@ export const ImportarPlaneacionModal = () => {
               {/* Selector de Hoja / Día del Mes (para libros multi-hoja con 26 días) */}
               {parsedData.hojasDisponibles && parsedData.hojasDisponibles.length > 1 && (
                 <div style={{
-                  background: 'linear-gradient(135deg, rgba(6, 182, 212, 0.12), rgba(16, 185, 129, 0.08))',
-                  border: '1px solid rgba(6, 182, 212, 0.4)',
+                  background: 'linear-gradient(135deg, rgba(14, 165, 233, 0.12), rgba(30, 41, 59, 0.5))',
+                  border: '1px solid rgba(14, 165, 233, 0.4)',
                   borderRadius: '10px',
-                  padding: '0.85rem 1.25rem',
+                  padding: '1rem 1.25rem',
                   marginBottom: '1.25rem',
                   display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  flexWrap: 'wrap',
+                  flexDirection: 'column',
                   gap: '0.85rem'
                 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-                    <div style={{
-                      width: '36px',
-                      height: '36px',
-                      borderRadius: '8px',
-                      background: 'rgba(6, 182, 212, 0.2)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      color: '#22d3ee'
-                    }}>
-                      <Layers size={18} />
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    flexWrap: 'wrap',
+                    gap: '0.85rem'
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                      <div style={{
+                        width: '36px',
+                        height: '36px',
+                        borderRadius: '8px',
+                        background: 'rgba(14, 165, 233, 0.2)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: '#38bdf8'
+                      }}>
+                        <Layers size={18} />
+                      </div>
+                      <div>
+                        <div style={{ fontWeight: 800, color: '#fff', fontSize: '0.92rem', display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                          <span>Mostrando: <strong style={{ color: '#38bdf8' }}>{parsedData.hojasDisponibles.find(h => h.name === parsedData.nombreHoja)?.displayName || `Pestaña ${parsedData.nombreHoja}`}</strong></span>
+                          {parsedData.hojasDisponibles.find(h => h.name === parsedData.nombreHoja)?.esDiaActual && (
+                            <span style={{
+                              background: '#0ea5e9',
+                              color: '#fff',
+                              fontSize: '0.7rem',
+                              fontWeight: 800,
+                              padding: '0.15rem 0.55rem',
+                              borderRadius: '4px'
+                            }}>
+                              ✓ DÍA DE HOY
+                            </span>
+                          )}
+                        </div>
+                        <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>
+                          El archivo contiene {parsedData.hojasDisponibles.length} hojas (días). Haz clic en cualquier día para cambiar instantáneamente:
+                        </div>
+                      </div>
                     </div>
-                    <div>
-                      <div style={{ fontWeight: 800, color: '#fff', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '0.45rem', flexWrap: 'wrap' }}>
-                        <span>Viajes de: <strong style={{ color: '#22d3ee' }}>{parsedData.hojasDisponibles.find(h => h.name === parsedData.nombreHoja)?.displayName || `Pestaña ${parsedData.nombreHoja}`}</strong></span>
-                        {parsedData.hojasDisponibles.find(h => h.name === parsedData.nombreHoja)?.esDiaActual && (
-                          <span style={{
-                            background: '#10b981',
-                            color: '#fff',
-                            fontSize: '0.7rem',
-                            fontWeight: 800,
-                            padding: '0.15rem 0.5rem',
-                            borderRadius: '4px'
-                          }}>
-                            ✓ DÍA DE HOY
-                          </span>
-                        )}
-                      </div>
-                      <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>
-                        El libro trae {parsedData.hojasDisponibles.length} pestañas. El archivo ya está leído en memoria, cambiar de día es inmediato.
-                      </div>
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <label style={{ fontSize: '0.78rem', color: '#94a3b8', fontWeight: 700 }}>
+                        Pestaña:
+                      </label>
+                      <select
+                        value={parsedData.nombreHoja}
+                        onChange={(e) => handleSwitchSheet(e.target.value)}
+                        disabled={isProcessing}
+                        style={{
+                          background: '#070c17',
+                          border: '1.5px solid #0ea5e9',
+                          color: '#fff',
+                          padding: '0.4rem 0.75rem',
+                          borderRadius: '6px',
+                          fontWeight: 700,
+                          fontSize: '0.82rem',
+                          cursor: 'pointer',
+                          outline: 'none',
+                          boxShadow: '0 0 10px rgba(14, 165, 233, 0.25)'
+                        }}
+                      >
+                        {parsedData.hojasDisponibles.map(sh => (
+                          <option key={sh.id || sh.name} value={sh.name}>
+                            {sh.displayName} · {sh.rowCount} filas{sh.esDiaActual ? ' ★ hoy' : ''}
+                          </option>
+                        ))}
+                      </select>
                     </div>
                   </div>
 
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <label style={{ fontSize: '0.78rem', color: '#94a3b8', fontWeight: 700 }}>
-                      Cambiar Día / Pestaña:
-                    </label>
-                    <select
-                      value={parsedData.nombreHoja}
-                      onChange={(e) => handleSwitchSheet(e.target.value)}
-                      disabled={isProcessing}
-                      style={{
-                        background: '#070c17',
-                        border: '1.5px solid #06b6d4',
-                        color: '#fff',
-                        padding: '0.45rem 0.85rem',
-                        borderRadius: '6px',
-                        fontWeight: 700,
-                        fontSize: '0.84rem',
-                        cursor: 'pointer',
-                        outline: 'none',
-                        boxShadow: '0 0 10px rgba(6, 182, 212, 0.25)'
-                      }}
-                    >
-                      {parsedData.hojasDisponibles.map(sh => (
-                        <option key={sh.id || sh.name} value={sh.name}>
-                          {sh.displayName} · {sh.rowCount} filas{sh.esDiaActual ? ' ★ hoy' : ''}
-                        </option>
-                      ))}
-                    </select>
+                  <div style={{
+                    display: 'flex',
+                    gap: '0.4rem',
+                    overflowX: 'auto',
+                    paddingBottom: '0.35rem',
+                    scrollbarWidth: 'thin'
+                  }}>
+                    {parsedData.hojasDisponibles.map(sh => {
+                      const isSelected = sh.name === parsedData.nombreHoja;
+                      return (
+                        <button
+                          key={sh.id || sh.name}
+                          type="button"
+                          onClick={() => handleSwitchSheet(sh.name)}
+                          disabled={isProcessing}
+                          style={{
+                            flexShrink: 0,
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.35rem',
+                            padding: '0.4rem 0.75rem',
+                            borderRadius: '6px',
+                            fontSize: '0.78rem',
+                            fontWeight: isSelected ? 800 : 600,
+                            fontFamily: 'var(--font-mono)',
+                            cursor: 'pointer',
+                            transition: 'all 0.15s ease',
+                            border: isSelected 
+                              ? '1.5px solid #0ea5e9' 
+                              : sh.esDiaActual 
+                                ? '1.5px solid rgba(14, 165, 233, 0.5)' 
+                                : '1px solid rgba(255, 255, 255, 0.1)',
+                            background: isSelected 
+                              ? '#0ea5e9' 
+                              : sh.esDiaActual 
+                                ? 'rgba(14, 165, 233, 0.18)' 
+                                : 'rgba(255, 255, 255, 0.04)',
+                            color: isSelected ? '#fff' : (sh.esDiaActual ? '#38bdf8' : '#94a3b8'),
+                            boxShadow: isSelected ? '0 0 10px rgba(14, 165, 233, 0.35)' : 'none'
+                          }}
+                        >
+                          {sh.esDiaActual && !isSelected && <span style={{ color: '#38bdf8' }}>★</span>}
+                          <span>{sh.displayName}</span>
+                          <span style={{ 
+                            fontSize: '0.68rem', 
+                            opacity: isSelected ? 0.9 : 0.6,
+                            background: isSelected ? 'rgba(0,0,0,0.2)' : 'rgba(255,255,255,0.06)',
+                            padding: '0.1rem 0.35rem',
+                            borderRadius: '4px'
+                          }}>
+                            {sh.rowCount}
+                          </span>
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
               )}

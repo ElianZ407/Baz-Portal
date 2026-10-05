@@ -101,7 +101,8 @@ export const PlaneacionView = () => {
     setSearchQuery,
     setIsImportModalOpen,
     formattedPlanDate,
-    formattedPlanDateLong
+    formattedPlanDateLong,
+    isPlanDateToday
   } = useFleet();
 
   const [filterFL, setFilterFL] = useState('ALL'); // 'ALL' | 'LOCAL' | 'FORANEO'
@@ -516,7 +517,7 @@ export const PlaneacionView = () => {
                 title={`Fecha del plan de embarques: ${formattedPlanDateLong}`}
               >
                 <Calendar size={13} />
-                Plan de Hoy: {formattedPlanDate}
+                {isPlanDateToday ? `Plan de Hoy: ${formattedPlanDate}` : `Plan: ${formattedPlanDate}`}
               </span>
             )}
           </h2>

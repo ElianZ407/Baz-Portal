@@ -30,6 +30,7 @@ export const Header = () => {
     setIsImportModalOpen,
     formattedPlanDate,
     formattedPlanDateLong,
+    isPlanDateToday,
     historicalPlanView
   } = useFleet();
 
@@ -169,7 +170,7 @@ export const Header = () => {
           >
             <Calendar size={14} color={historicalPlanView ? '#fbbf24' : 'var(--accent-cyan)'} />
             <span>
-              {historicalPlanView ? 'Historial: ' : 'Plan de Hoy: '}
+              {historicalPlanView ? 'Historial: ' : (isPlanDateToday ? 'Plan de Hoy: ' : 'Plan: ')}
               <strong style={{ color: '#fff', marginLeft: '0.2rem' }}>{formattedPlanDate}</strong>
             </span>
           </div>

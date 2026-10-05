@@ -515,10 +515,10 @@ const leerLibroCompleto = async (file) => {
     activeTab = workbook.views?.[0]?.activeTab ?? 0;
     const hoy = new Date().getDate();
 
-    // Pestañas diarias identificadas por su NOMBRE (ej: '26', '25', '08')
     hojas = workbook.worksheets.map((ws, idx) => {
       const tabName = String(ws.name || '').trim();
-      const numVal = parseInt(tabName, 10);
+      const matchDia = tabName.match(/(?:d[ií]a\s*)?(\d{1,2})/i);
+      const numVal = matchDia ? parseInt(matchDia[1], 10) : parseInt(tabName, 10);
       const isDayTab = !isNaN(numVal) && numVal >= 1 && numVal <= 31;
       const rows = extractSheetRows(ws);
 
@@ -526,7 +526,7 @@ const leerLibroCompleto = async (file) => {
         index: idx + 1,
         id: String(ws.id || idx + 1),
         name: tabName || `Hoja ${idx + 1}`,
-        displayName: isDayTab ? `Día ${tabName}` : (tabName || `Hoja ${idx + 1}`),
+        displayName: isDayTab ? `Día ${String(numVal).padStart(2, '0')}` : (tabName || `Hoja ${idx + 1}`),
         dayNumber: isDayTab ? numVal : null,
         esDiaActual: isDayTab && numVal === hoy,
         rowCount: rows.length,
@@ -543,8 +543,6 @@ const leerLibroCompleto = async (file) => {
   return libro;
 };
 
-// Elige la pestaña a importar: la que pidió el usuario, luego la que estaba activa
-// en Excel y, si no, la más cercana al día de hoy.
 const elegirHoja = (libro, preferredSheet) => {
   const hojas = libro.hojas;
   const pref = preferredSheet === null || preferredSheet === undefined ? '' : String(preferredSheet).trim();
@@ -565,20 +563,20 @@ const elegirHoja = (libro, preferredSheet) => {
     }
   }
 
-  if (!elegida && libro.activeTab > 0) {
-    elegida = hojas[libro.activeTab] || null;
-  }
-
   const hoy = new Date().getDate();
   if (!elegida) {
     elegida = hojas.find(h => h.dayNumber === hoy) || null;
+  }
+
+  if (!elegida && libro.activeTab > 0) {
+    elegida = hojas[libro.activeTab] || null;
   }
 
   if (!elegida) {
     const dias = hojas.filter(h => h.dayNumber !== null);
     elegida = dias.length > 0
       ? dias.reduce((mejor, h) => (Math.abs(h.dayNumber - hoy) < Math.abs(mejor.dayNumber - hoy) ? h : mejor))
-      : hojas[hojas.length - 1];
+      : hojas[0] || null;
   }
 
   return elegida;

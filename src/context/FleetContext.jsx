@@ -423,18 +423,28 @@ export const FleetProvider = ({ children }) => {
     return units;
   }, [historicalPlanView, units]);
 
+  const todayIso = useMemo(() => {
+    const now = currentTime || new Date();
+    const y = now.getFullYear();
+    const m = String(now.getMonth() + 1).padStart(2, '0');
+    const d = String(now.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+  }, [currentTime]);
+
   const currentPlanDate = useMemo(() => {
     if (historicalPlanView?.fecha) return String(historicalPlanView.fecha).trim();
     if (historicalPlanView?.nombre) {
       const match = historicalPlanView.nombre.match(/\d{4}-\d{2}-\d{2}|\d{1,2}[-/]\d{1,2}[-/]\d{4}/);
       if (match) return match[0];
     }
-    const now = currentTime || new Date();
-    const y = now.getFullYear();
-    const m = String(now.getMonth() + 1).padStart(2, '0');
-    const d = String(now.getDate()).padStart(2, '0');
-    return `${y}-${m}-${d}`;
-  }, [historicalPlanView, currentTime]);
+    const found = displayedUnits.find(u => u.fecha && String(u.fecha).trim());
+    if (found?.fecha) return String(found.fecha).trim();
+    return todayIso;
+  }, [historicalPlanView, displayedUnits, todayIso]);
+
+  const isPlanDateToday = useMemo(() => {
+    return currentPlanDate === todayIso;
+  }, [currentPlanDate, todayIso]);
 
 
   const formattedPlanDate = useMemo(() => {
@@ -1077,6 +1087,7 @@ export const FleetProvider = ({ children }) => {
       currentPlanDate,
       formattedPlanDate,
       formattedPlanDateLong,
+      isPlanDateToday,
       theme,
       setTheme
     }}>

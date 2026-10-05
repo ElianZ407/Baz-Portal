@@ -25,7 +25,8 @@ export const SupervisorView = () => {
     searchQuery, 
     setSearchQuery,
     formattedPlanDate,
-    formattedPlanDateLong
+    formattedPlanDateLong,
+    isPlanDateToday
   } = useFleet();
 
   const [filterSubStatus, setFilterSubStatus] = useState('ALL');
@@ -230,7 +231,7 @@ export const SupervisorView = () => {
                 title={`Fecha del plan de embarques: ${formattedPlanDateLong}`}
               >
                 <Calendar size={13} />
-                Plan de Hoy: {formattedPlanDate}
+                {isPlanDateToday ? `Plan de Hoy: ${formattedPlanDate}` : `Plan: ${formattedPlanDate}`}
               </span>
             )}
           </h2>
