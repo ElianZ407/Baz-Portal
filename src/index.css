@@ -3763,6 +3763,24 @@ body {
   display: grid;
   grid-template-columns: 1.34fr 1fr;
   gap: 0.75rem;
+  align-items: stretch;
+}
+
+.flyer-col-left {
+  display: flex;
+  flex-direction: column;
+}
+
+.panel-resumen-cargas {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.panel-table-wrap {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
 }
 
 .flyer-panel {
@@ -3822,7 +3840,7 @@ body {
 }
 
 .table-cargas td {
-  padding: 0.32rem 0.45rem;
+  padding: 0.38rem 0.45rem;
   border: 1px solid #c4dbc2;
   font-size: 0.82rem;
 }
@@ -4041,7 +4059,7 @@ body {
 }
 
 .panel-comportamiento {
-  margin-top: 0.75rem;
+  margin-top: 0.6rem;
 }
 
 .body-comportamiento {
@@ -4099,23 +4117,35 @@ body {
 
 .flyer-panel-row-n2 {
   display: grid;
-  grid-template-columns: 200px 1fr;
-  gap: 0.75rem;
-  margin-top: 0.75rem;
+  grid-template-columns: 140px 1fr;
+  gap: 0.65rem;
+  margin-top: 0.65rem;
+}
+
+.panel-n2-programadas {
+  display: flex;
+  flex-direction: column;
 }
 
 .body-n2-left {
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 0.75rem;
-  background: #ffffff;
-  border: 1px solid #cbd5e1;
+  gap: 0.35rem;
+  background: linear-gradient(145deg, #f0fdf4 0%, #e2f7e7 100%);
+  border: 1px solid #bbf7d0;
   border-top: none;
   border-radius: 0 0 7px 7px;
-  padding: 0.75rem 0.5rem;
-  height: calc(100% - 30px);
+  padding: 0.5rem 0.4rem;
+  flex: 1;
   box-sizing: border-box;
+}
+
+.n2-big-calendar-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .n2-big-stats {
@@ -4125,17 +4155,23 @@ body {
 }
 
 .n2-stat-num {
-  font-size: 2.4rem;
+  font-size: 2.15rem;
   font-weight: 900;
   line-height: 1;
-  color: #0f172a;
+  color: #14532d;
 }
 
 .n2-stat-desc {
-  font-size: 0.82rem;
+  font-size: 0.76rem;
   font-weight: 800;
-  color: #1e293b;
+  color: #166534;
   text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.panel-n2-pendientes {
+  display: flex;
+  flex-direction: column;
 }
 
 .body-n2-right {
@@ -4144,7 +4180,7 @@ body {
   border-top: none;
   border-radius: 0 0 7px 7px;
   overflow: hidden;
-  height: calc(100% - 30px);
+  flex: 1;
   box-sizing: border-box;
 }
 
@@ -4156,16 +4192,17 @@ body {
   background: #b5ceb4;
   color: #163d20;
   font-weight: 900;
-  padding: 0.25rem 0.5rem;
-  font-size: 0.74rem;
+  padding: 0.25rem 0.4rem;
+  font-size: 0.72rem;
   border: 1px solid #9bbe98;
   text-transform: uppercase;
 }
 
 .table-n2 td {
-  padding: 0.26rem 0.55rem;
+  padding: 0.22rem 0.45rem;
   border: 1px solid #e2e8f0;
-  font-size: 0.8rem;
+  font-size: 0.76rem;
+  line-height: 1.25;
 }
 
 .row-n2-even {
@@ -4179,7 +4216,7 @@ body {
 .n2-folio-cell {
   font-weight: 700;
   color: #431407;
-  font-size: 0.76rem;
+  font-size: 0.74rem;
   letter-spacing: -0.01em;
 }
 
@@ -4187,16 +4224,18 @@ body {
   text-align: center;
   font-weight: 800;
   color: #0f172a;
-  font-size: 0.78rem;
+  font-size: 0.76rem;
+  white-space: nowrap;
 }
 
 .n2-obs-cell {
-  font-size: 0.73rem;
+  font-size: 0.72rem;
   font-weight: 700;
   color: #4338ca;
   text-transform: uppercase;
   letter-spacing: 0.01em;
   background: rgba(224, 231, 255, 0.45);
+  line-height: 1.22;
 }
 
 .n2-total-row {
