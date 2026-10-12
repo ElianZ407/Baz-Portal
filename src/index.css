@@ -3555,13 +3555,13 @@ body {
 }
 
 .colocacion-flyer-container {
-  width: 1200px;
-  min-width: 1200px;
+  width: 1240px;
+  min-width: 1240px;
   background: #ffffff;
   color: #0f172a;
   border-radius: 14px;
-  padding: 1.25rem 1.4rem;
-  box-shadow: 0 16px 50px rgba(0, 0, 0, 0.55), 0 0 1px 1px rgba(255, 255, 255, 0.1);
+  padding: 1.15rem 1.35rem;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.65), 0 0 1px 1px rgba(255, 255, 255, 0.15);
   font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
   box-sizing: border-box;
 }
@@ -3570,7 +3570,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: #091a36;
+  background: linear-gradient(135deg, #091a36 0%, #0d284f 100%);
   border-radius: 10px;
   padding: 0.65rem 1.25rem;
   color: #ffffff;
@@ -3580,12 +3580,12 @@ body {
 .flyer-header-left {
   display: flex;
   align-items: center;
-  width: 200px;
+  width: 210px;
 }
 
 .flyer-logo-img {
-  height: 60px;
-  max-width: 190px;
+  height: 64px;
+  max-width: 200px;
   object-fit: contain;
   display: block;
 }
@@ -3599,7 +3599,7 @@ body {
 }
 
 .flyer-main-title {
-  font-size: 1.65rem;
+  font-size: 1.7rem;
   font-weight: 900;
   color: #ffffff;
   letter-spacing: -0.01em;
@@ -3615,11 +3615,11 @@ body {
   background: #ffffff;
   color: #0a192f;
   border-radius: 6px;
-  padding: 0.28rem 1.1rem;
+  padding: 0.28rem 1.15rem;
   margin-top: 0.35rem;
   font-size: 0.88rem;
   font-weight: 800;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
 .flyer-badge-item {
@@ -3636,133 +3636,127 @@ body {
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  width: 250px;
+  width: 320px;
 }
 
 .flyer-cedis-photo-card {
-  width: 240px;
-  height: 82px;
+  width: 310px;
+  height: 96px;
   border-radius: 8px;
-  border: 2px solid #ffffff;
+  border: 2.5px solid #ffffff;
   overflow: hidden;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
-  background: #0f172a;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.45);
+  background: #0b1528;
+  position: relative;
 }
 
 .flyer-cedis-img {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  object-position: 8% 62%;
   display: block;
+  filter: contrast(1.06) saturate(1.12);
 }
 
 .flyer-kpi-strip {
   display: grid;
   grid-template-columns: repeat(5, 1fr);
-  gap: 0.85rem;
-  margin: 0.85rem 0;
+  gap: 0.75rem;
+  margin: 0.75rem 0;
 }
 
 .flyer-kpi-card {
   background: #ffffff;
   border-radius: 8px;
-  border: 2px solid;
-  padding: 0.55rem 0.65rem;
+  border: 1.5px solid #cbd5e1;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+  overflow: hidden;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  text-align: center;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
 }
 
 .flyer-kpi-card .kpi-card-header {
   display: flex;
-  flex-direction: column;
   align-items: center;
-  gap: 0.25rem;
-  margin-bottom: 0.2rem;
+  justify-content: center;
+  gap: 0.4rem;
+  padding: 0.32rem 0.45rem;
+  color: #ffffff;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .flyer-kpi-card .kpi-icon-pill {
-  width: 32px;
-  height: 32px;
-  border-radius: 6px;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #ffffff;
 }
 
 .flyer-kpi-card .kpi-label {
   font-size: 0.82rem;
-  font-weight: 700;
-  color: #334155;
+  font-weight: 800;
+  color: #ffffff;
+  letter-spacing: 0.01em;
 }
 
 .flyer-kpi-card .kpi-card-value {
-  font-size: 1.6rem;
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 0.25rem;
+  padding: 0.45rem 0.5rem 0.55rem;
+  font-size: 1.85rem;
   font-weight: 900;
-  line-height: 1.1;
   color: #0f172a;
+  line-height: 1;
 }
 
 .flyer-kpi-card .kpi-unit {
-  font-size: 0.95rem;
-  font-weight: 700;
+  font-size: 0.92rem;
+  font-weight: 800;
   color: #475569;
 }
 
 .kpi-programado {
-  border-color: #0d284f;
+  border-color: #174276;
 }
-.kpi-programado .icon-programado {
-  background: #0d284f;
+.kpi-programado .kpi-card-header {
+  background: #174276;
 }
 
 .kpi-ejecutadas {
-  border-color: #198754;
+  border-color: #168045;
 }
-.kpi-ejecutadas .icon-ejecutadas {
-  background: #198754;
-}
-.kpi-ejecutadas .kpi-card-value {
-  color: #0f172a;
-  font-size: 1.85rem;
+.kpi-ejecutadas .kpi-card-header {
+  background: #168045;
 }
 
 .kpi-pendientes {
-  border-color: #be185d;
+  border-color: #b8175d;
 }
-.kpi-pendientes .icon-pendientes {
-  background: #be185d;
-}
-.kpi-pendientes .kpi-card-value {
-  color: #0f172a;
-  font-size: 1.85rem;
+.kpi-pendientes .kpi-card-header {
+  background: #b8175d;
 }
 
 .kpi-cumplimiento {
-  border-color: #581c87;
+  border-color: #551c6b;
 }
-.kpi-cumplimiento .icon-cumplimiento {
-  background: #581c87;
-}
-.kpi-cumplimiento .kpi-card-value {
-  color: #0f172a;
-  font-size: 1.85rem;
+.kpi-cumplimiento .kpi-card-header {
+  background: #551c6b;
 }
 
 .kpi-metros {
-  border-color: #0e7490;
+  border-color: #12757c;
 }
-.kpi-metros .icon-metros {
-  background: #0e7490;
+.kpi-metros .kpi-card-header {
+  background: #12757c;
 }
 
 .flyer-content-grid {
   display: grid;
-  grid-template-columns: 1.35fr 1fr;
-  gap: 0.85rem;
+  grid-template-columns: 1.34fr 1fr;
+  gap: 0.75rem;
 }
 
 .flyer-panel {
@@ -3771,18 +3765,19 @@ body {
 }
 
 .panel-header {
-  padding: 0.45rem 0.85rem;
-  font-weight: 800;
+  padding: 0.42rem 0.75rem;
+  font-weight: 900;
   font-size: 0.92rem;
   color: #ffffff;
   letter-spacing: 0.02em;
   text-align: center;
-  border-radius: 8px 8px 0 0;
+  border-radius: 7px 7px 0 0;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  text-transform: uppercase;
 }
 
 .header-green {
-  background: #246a3d;
+  background: #256a3e;
 }
 
 .header-navy {
@@ -3811,17 +3806,18 @@ body {
 }
 
 .table-cargas thead th {
-  background: #b5cdb2;
-  color: #193820;
-  font-weight: 800;
+  background: #b5ceb4;
+  color: #163d20;
+  font-weight: 900;
   padding: 0.35rem 0.45rem;
-  border: 1px solid #9dbb99;
+  border: 1px solid #9bbe98;
   font-size: 0.82rem;
+  text-transform: uppercase;
 }
 
 .table-cargas td {
   padding: 0.32rem 0.45rem;
-  border: 1px solid #c2d8bf;
+  border: 1px solid #c4dbc2;
   font-size: 0.82rem;
 }
 
@@ -3830,7 +3826,7 @@ body {
 }
 
 .row-odd {
-  background: #edf6eb;
+  background: #eef6ed;
 }
 
 .cell-num {
@@ -3870,14 +3866,14 @@ body {
 .badge-ejecutada {
   display: inline-flex;
   align-items: center;
-  gap: 0.3rem;
+  gap: 0.35rem;
   background: #16a34a;
   color: #ffffff;
-  padding: 0.12rem 0.55rem;
+  padding: 0.12rem 0.6rem;
   border-radius: 9999px;
   font-size: 0.74rem;
   font-weight: 800;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.18);
 }
 
 .badge-check-icon {
@@ -3889,19 +3885,20 @@ body {
   background: #184c2a;
   color: #ffffff;
   font-weight: 900;
-  font-size: 0.95rem;
+  font-size: 0.94rem;
   text-align: center;
   padding: 0.45rem;
-  border-radius: 0 0 8px 8px;
-  letter-spacing: 0.02em;
+  border-radius: 0 0 7px 7px;
+  text-transform: uppercase;
+  letter-spacing: 0.01em;
 }
 
 .panel-movimientos .body-movimientos {
   display: grid;
-  grid-template-columns: 140px 1fr;
+  grid-template-columns: 145px 1fr;
   border: 1px solid #cbd5e1;
   border-top: none;
-  border-radius: 0 0 8px 8px;
+  border-radius: 0 0 7px 7px;
   overflow: hidden;
   background: #ffffff;
 }
@@ -3910,8 +3907,8 @@ body {
   display: flex;
   flex-direction: column;
   justify-content: center;
-  gap: 0.85rem;
-  padding: 0.85rem;
+  gap: 0.75rem;
+  padding: 0.75rem;
   background: #f8fafc;
   border-right: 1px solid #e2e8f0;
 }
@@ -3919,7 +3916,18 @@ body {
 .box-mini-card {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.55rem;
+  background: #ffffff;
+  padding: 0.35rem 0.55rem;
+  border-radius: 6px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.box-icon-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .box-mini-info {
@@ -3928,15 +3936,16 @@ body {
 }
 
 .box-title {
-  font-size: 0.88rem;
+  font-size: 0.85rem;
   font-weight: 800;
   color: #0f172a;
 }
 
 .box-val {
-  font-size: 1.15rem;
+  font-size: 1.25rem;
   font-weight: 900;
   color: #0f172a;
+  line-height: 1;
 }
 
 .movimientos-right-table {
@@ -3948,7 +3957,7 @@ body {
 }
 
 .table-piezas td {
-  padding: 0.26rem 0.65rem;
+  padding: 0.28rem 0.65rem;
   border: 1px solid #e2e8f0;
   font-size: 0.82rem;
 }
@@ -3958,7 +3967,7 @@ body {
 }
 
 .row-piezas-odd {
-  background: #edf2f7;
+  background: #f1f5f9;
 }
 
 .piezas-cat-name {
@@ -3981,6 +3990,7 @@ body {
 .row-piezas-total td {
   border-color: #0d284f;
   color: #ffffff !important;
+  font-size: 0.86rem;
 }
 
 .piezas-total-lbl {
@@ -3995,29 +4005,30 @@ body {
 }
 
 .panel-comportamiento {
-  margin-top: 0.85rem;
+  margin-top: 0.75rem;
 }
 
 .body-comportamiento {
   display: flex;
   align-items: center;
-  background: #46134b;
+  background: linear-gradient(135deg, #46134b 0%, #3a0d3f 100%);
   color: #ffffff;
   padding: 0.65rem 1rem;
-  border-radius: 0 0 8px 8px;
-  gap: 1.25rem;
+  border-radius: 0 0 7px 7px;
+  gap: 1.15rem;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
 }
 
 .comportamiento-trend-box {
-  width: 54px;
-  height: 54px;
+  width: 52px;
+  height: 52px;
   background: rgba(255, 255, 255, 0.12);
-  border: 1px solid rgba(255, 255, 255, 0.25);
+  border: 1.5px solid rgba(255, 255, 255, 0.28);
   border-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
 }
 
 .comportamiento-metrics-col {
@@ -4053,8 +4064,8 @@ body {
 .flyer-panel-row-n2 {
   display: grid;
   grid-template-columns: 1fr 1.35fr;
-  gap: 0.85rem;
-  margin-top: 0.85rem;
+  gap: 0.75rem;
+  margin-top: 0.75rem;
 }
 
 .body-n2-left {
@@ -4065,9 +4076,9 @@ body {
   background: #ffffff;
   border: 1px solid #cbd5e1;
   border-top: none;
-  border-radius: 0 0 8px 8px;
+  border-radius: 0 0 7px 7px;
   padding: 0.75rem 0.5rem;
-  height: calc(100% - 32px);
+  height: calc(100% - 30px);
   box-sizing: border-box;
 }
 
@@ -4078,7 +4089,7 @@ body {
 }
 
 .n2-stat-num {
-  font-size: 2.2rem;
+  font-size: 2.4rem;
   font-weight: 900;
   line-height: 1;
   color: #0f172a;
@@ -4088,15 +4099,16 @@ body {
   font-size: 0.82rem;
   font-weight: 800;
   color: #1e293b;
+  text-transform: uppercase;
 }
 
 .body-n2-right {
   background: #ffffff;
   border: 1px solid #cbd5e1;
   border-top: none;
-  border-radius: 0 0 8px 8px;
+  border-radius: 0 0 7px 7px;
   overflow: hidden;
-  height: calc(100% - 32px);
+  height: calc(100% - 30px);
   box-sizing: border-box;
 }
 
@@ -4105,9 +4117,9 @@ body {
 }
 
 .table-n2 td {
-  padding: 0.24rem 0.55rem;
+  padding: 0.26rem 0.55rem;
   border: 1px solid #e2e8f0;
-  font-size: 0.78rem;
+  font-size: 0.8rem;
 }
 
 .n2-folio-cell {

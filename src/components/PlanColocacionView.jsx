@@ -15,7 +15,6 @@ import {
   FileWarning, 
   ClipboardList, 
   Check, 
-  Package, 
   Sparkles,
   Save,
   X,
@@ -97,6 +96,16 @@ const getNextDayFormatted = (dateStr) => {
   ];
   return `TOTAL PLAN DE CARGAS N-02 ${nextDate.getDate()} ${meses[nextDate.getMonth()]} ${nextDate.getFullYear()}`;
 };
+
+const BoxParcelIcon = () => (
+  <svg width="38" height="38" viewBox="0 0 48 48" fill="none" className="parcel-svg-icon">
+    <path d="M24 4L42 14L24 24L6 14L24 4Z" fill="#d99859" stroke="#b46f2e" strokeWidth="1.5" />
+    <path d="M6 14L24 24V44L6 33V14Z" fill="#b97635" stroke="#92531a" strokeWidth="1.5" />
+    <path d="M24 24L42 14V33L24 44V24Z" fill="#c78440" stroke="#92531a" strokeWidth="1.5" />
+    <path d="M24 4L24 24M24 24V44" stroke="#edd2b4" strokeWidth="2.2" strokeOpacity="0.85" />
+    <path d="M15 9L33 19" stroke="#edd2b4" strokeWidth="2.2" strokeOpacity="0.85" />
+  </svg>
+);
 
 export const PlanColocacionView = () => {
   const [records, setRecords] = useState(() => {
@@ -252,7 +261,7 @@ export const PlanColocacionView = () => {
         allowTaint: true,
         backgroundColor: '#ffffff',
         logging: false,
-        windowWidth: 1280
+        windowWidth: 1240
       });
 
       const image = canvas.toDataURL('image/png');
@@ -282,7 +291,7 @@ export const PlanColocacionView = () => {
         allowTaint: true,
         backgroundColor: '#ffffff',
         logging: false,
-        windowWidth: 1280
+        windowWidth: 1240
       });
 
       canvas.toBlob(async (blob) => {
@@ -559,10 +568,10 @@ export const PlanColocacionView = () => {
             </div>
 
             <div className="flyer-header-right">
-              <div className="flyer-cedis-photo-card">
+              <div className="flyer-cedis-photo-card" title="CEDIS Villahermosa - Andenes y Flota de Tractos">
                 <img 
                   src="/cedis-patio-trucks.png" 
-                  alt="Patio y Andenes CEDIS Villahermosa" 
+                  alt="Flota de tractocamiones en andenes CEDIS Villahermosa" 
                   className="flyer-cedis-img"
                 />
               </div>
@@ -573,7 +582,7 @@ export const PlanColocacionView = () => {
             <div className="flyer-kpi-card kpi-programado">
               <div className="kpi-card-header">
                 <div className="kpi-icon-pill icon-programado">
-                  <ClipboardList size={18} />
+                  <ClipboardList size={17} />
                 </div>
                 <span className="kpi-label">Plan programado</span>
               </div>
@@ -585,7 +594,7 @@ export const PlanColocacionView = () => {
             <div className="flyer-kpi-card kpi-ejecutadas">
               <div className="kpi-card-header">
                 <div className="kpi-icon-pill icon-ejecutadas">
-                  <Truck size={18} />
+                  <Truck size={17} />
                 </div>
                 <span className="kpi-label">Cargas ejecutadas</span>
               </div>
@@ -597,7 +606,7 @@ export const PlanColocacionView = () => {
             <div className="flyer-kpi-card kpi-pendientes">
               <div className="kpi-card-header">
                 <div className="kpi-icon-pill icon-pendientes">
-                  <FileWarning size={18} />
+                  <FileWarning size={17} />
                 </div>
                 <span className="kpi-label">Pendientes</span>
               </div>
@@ -609,7 +618,7 @@ export const PlanColocacionView = () => {
             <div className="flyer-kpi-card kpi-cumplimiento">
               <div className="kpi-card-header">
                 <div className="kpi-icon-pill icon-cumplimiento">
-                  <TrendingUp size={18} />
+                  <TrendingUp size={17} />
                 </div>
                 <span className="kpi-label">Cumplimiento</span>
               </div>
@@ -621,7 +630,7 @@ export const PlanColocacionView = () => {
             <div className="flyer-kpi-card kpi-metros">
               <div className="kpi-card-header">
                 <div className="kpi-icon-pill icon-metros">
-                  <Boxes size={18} />
+                  <Boxes size={17} />
                 </div>
                 <span className="kpi-label">Metros remisionados</span>
               </div>
@@ -688,7 +697,7 @@ export const PlanColocacionView = () => {
                   <div className="movimientos-left-box">
                     <div className="box-mini-card">
                       <div className="box-icon-container">
-                        <Package size={34} color="#b45309" strokeWidth={1.8} />
+                        <BoxParcelIcon />
                       </div>
                       <div className="box-mini-info">
                         <span className="box-title">PPE'S:</span>
@@ -698,7 +707,7 @@ export const PlanColocacionView = () => {
 
                     <div className="box-mini-card">
                       <div className="box-icon-container">
-                        <Package size={34} color="#b45309" strokeWidth={1.8} />
+                        <BoxParcelIcon />
                       </div>
                       <div className="box-mini-info">
                         <span className="box-title">.COM:</span>
@@ -734,7 +743,7 @@ export const PlanColocacionView = () => {
                 <div className="panel-body body-comportamiento">
                   <div className="comportamiento-icon-col">
                     <div className="comportamiento-trend-box">
-                      <TrendingUp size={36} color="#ffffff" strokeWidth={2.4} />
+                      <TrendingUp size={34} color="#ffffff" strokeWidth={2.4} />
                     </div>
                   </div>
 
