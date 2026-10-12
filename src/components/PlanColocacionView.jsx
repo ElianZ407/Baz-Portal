@@ -89,6 +89,17 @@ const formatDateToSpanish = (dateStr) => {
   return `${day} DE ${meses[date.getMonth()]} DE ${year}`;
 };
 
+const getNextDayShort = (dateStr) => {
+  if (!dateStr) return '';
+  const [year, month, day] = dateStr.split('-').map(Number);
+  const nextDate = new Date(year, month - 1, day + 1);
+  const meses = [
+    'ENE', 'FEB', 'MAR', 'ABR', 'MAY', 'JUN',
+    'JUL', 'AGO', 'SEP', 'OCT', 'NOV', 'DIC'
+  ];
+  return `${nextDate.getDate()} ${meses[nextDate.getMonth()]}`;
+};
+
 const getNextDayFormatted = (dateStr) => {
   if (!dateStr) return '';
   const [year, month, day] = dateStr.split('-').map(Number);
@@ -738,6 +749,18 @@ export const PlanColocacionView = () => {
                 {Number(currentData.kpis.metrosRemisionados).toLocaleString()} <span className="kpi-unit">m³</span>
               </div>
             </div>
+
+            <div className="flyer-kpi-card kpi-plan-n2">
+              <div className="kpi-card-header">
+                <div className="kpi-icon-pill icon-plan-n2">
+                  <Calendar size={17} />
+                </div>
+                <span className="kpi-label">Plan N-02 ({getNextDayShort(currentData.fecha)})</span>
+              </div>
+              <div className="kpi-card-value">
+                {currentData.planProximo.cargasProgramadas} <span className="kpi-unit">cargas</span>
+              </div>
+            </div>
           </section>
 
           <main className="flyer-content-grid">
@@ -871,51 +894,34 @@ export const PlanColocacionView = () => {
                 </div>
               </div>
 
-              <div className="flyer-panel-row-n2">
-                <div className="flyer-panel panel-n2-programadas">
-                  <div className="panel-header header-forest-left">
-                    <span>{currentData.planProximo.titulo}</span>
-                  </div>
-                  <div className="panel-body body-n2-left">
-                    <div className="n2-big-calendar-icon">
-                      <Calendar size={30} color="#15803d" strokeWidth={2} />
-                    </div>
-                    <div className="n2-big-stats">
-                      <div className="n2-stat-num">{currentData.planProximo.cargasProgramadas}</div>
-                      <div className="n2-stat-desc">programadas</div>
-                    </div>
-                  </div>
+              <div className="flyer-panel panel-n2-pendientes">
+                <div className="panel-header header-forest">
+                  <span>4. CARGAS PENDIENTES / ESCALONADAS</span>
                 </div>
-
-                <div className="flyer-panel panel-n2-pendientes">
-                  <div className="panel-header header-forest-right">
-                    <span>CARGAS PENDIENTES / ESCALONADAS</span>
-                  </div>
-                  <div className="panel-body body-n2-right">
-                    <table className="flyer-table table-n2">
-                      <thead>
-                        <tr>
-                          <th style={{ textAlign: 'left' }}>Folio / Destino</th>
-                          <th style={{ width: '55px', textAlign: 'center' }}>m³</th>
-                          <th style={{ textAlign: 'left' }}>Observaciones</th>
+                <div className="panel-body body-n2-right">
+                  <table className="flyer-table table-n2">
+                    <thead>
+                      <tr>
+                        <th style={{ textAlign: 'left', width: '38%' }}>Folio / Destino</th>
+                        <th style={{ width: '60px', textAlign: 'center' }}>m³</th>
+                        <th style={{ textAlign: 'left' }}>Observaciones</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {currentData.planProximo.cargasPendientes.map((p, idx) => (
+                        <tr key={p.id || idx} className={idx % 2 === 0 ? 'row-n2-even' : 'row-n2-odd'}>
+                          <td className="n2-folio-cell">{p.folioDestino}</td>
+                          <td className="n2-cap-cell">{p.capacidad} m³</td>
+                          <td className="n2-obs-cell">{p.observacion || '-'}</td>
                         </tr>
-                      </thead>
-                      <tbody>
-                        {currentData.planProximo.cargasPendientes.map((p, idx) => (
-                          <tr key={p.id || idx} className={idx % 2 === 0 ? 'row-n2-even' : 'row-n2-odd'}>
-                            <td className="n2-folio-cell">{p.folioDestino}</td>
-                            <td className="n2-cap-cell">{p.capacidad} m³</td>
-                            <td className="n2-obs-cell">{p.observacion || '-'}</td>
-                          </tr>
-                        ))}
-                        <tr className="n2-total-row">
-                          <td className="n2-total-lbl">TOTAL:</td>
-                          <td className="n2-total-val">{totalPendientesMetros} m³</td>
-                          <td className="n2-total-empty"></td>
-                        </tr>
-                      </tbody>
-                    </table>
-                  </div>
+                      ))}
+                      <tr className="n2-total-row">
+                        <td className="n2-total-lbl">TOTAL:</td>
+                        <td className="n2-total-val">{totalPendientesMetros} m³</td>
+                        <td className="n2-total-empty"></td>
+                      </tr>
+                    </tbody>
+                  </table>
                 </div>
               </div>
             </div>
