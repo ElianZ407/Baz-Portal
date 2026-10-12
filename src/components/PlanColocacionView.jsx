@@ -878,7 +878,7 @@ export const PlanColocacionView = () => {
                   </div>
                   <div className="panel-body body-n2-left">
                     <div className="n2-big-calendar-icon">
-                      <Calendar size={38} color="#15803d" strokeWidth={1.8} />
+                      <Calendar size={48} color="#15803d" strokeWidth={2} />
                     </div>
                     <div className="n2-big-stats">
                       <div className="n2-stat-num">{currentData.planProximo.cargasProgramadas}</div>
