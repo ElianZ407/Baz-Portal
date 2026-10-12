@@ -500,5 +500,43 @@ export const fetchSucursalesDb = async () => {
     return null;
   }
 };
+export const fetchPlanesColocacionDb = async () => {
+  if (!supabase) return null;
+  try {
+    const { data, error } = await supabase
+      .from('plan_colocacion')
+      .select('fecha, datos, updated_at')
+      .order('fecha', { ascending: false });
 
+    if (error) {
+      console.warn('Advertencia al consultar plan_colocacion:', error.message);
+      return null;
+    }
+    return data;
+  } catch (err) {
+    console.warn('Excepción al consultar plan_colocacion:', err);
+    return null;
+  }
+};
 
+export const savePlanColocacionDb = async (fecha, datos) => {
+  if (!supabase) throw new Error('Supabase no está configurado');
+  const { error } = await supabase
+    .from('plan_colocacion')
+    .upsert(
+      { fecha, datos, updated_at: new Date().toISOString() },
+      { onConflict: 'fecha' }
+    );
+  if (error) throw error;
+  return true;
+};
+
+export const deletePlanColocacionDb = async (fecha) => {
+  if (!supabase) throw new Error('Supabase no está configurado');
+  const { error } = await supabase
+    .from('plan_colocacion')
+    .delete()
+    .eq('fecha', fecha);
+  if (error) throw error;
+  return true;
+};

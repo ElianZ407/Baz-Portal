@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import html2canvas from 'html2canvas';
+import { fetchPlanesColocacionDb, savePlanColocacionDb, isSupabaseConfigured } from '../lib/supabaseClient';
 import { 
   Calendar, 
   ChevronLeft, 
@@ -14,7 +15,9 @@ import {
   Truck, 
   FileWarning, 
   ClipboardList, 
-  Check, 
+  Cloud,
+  CloudOff,
+  RefreshCw,
   Sparkles,
   Save,
   X,
@@ -134,7 +137,66 @@ export const PlanColocacionView = () => {
   const [toastMessage, setToastMessage] = useState('');
   const [isExporting, setIsExporting] = useState(false);
 
+  const [cloudStatus, setCloudStatus] = useState(isSupabaseConfigured() ? 'loading' : 'offline');
+
   const flyerRef = useRef(null);
+
+  const toDateKey = (date) => {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const d = String(date.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+  };
+
+  const applyCloudRows = (rows) => {
+    if (!rows) {
+      setCloudStatus('error');
+      return;
+    }
+    setRecords((prev) => {
+      const next = { ...prev };
+      rows.forEach((row) => {
+        const local = next[row.fecha];
+        const cloudTime = row.updated_at ? new Date(row.updated_at).getTime() : 0;
+        const localTime = local?.updatedAt ? new Date(local.updatedAt).getTime() : 0;
+        if (!local || cloudTime >= localTime) {
+          next[row.fecha] = { ...row.datos, updatedAt: row.updated_at };
+        }
+      });
+      return next;
+    });
+    setCloudStatus('synced');
+  };
+
+  const loadFromCloud = async () => {
+    if (!isSupabaseConfigured()) {
+      setCloudStatus('offline');
+      return;
+    }
+    setCloudStatus('loading');
+    applyCloudRows(await fetchPlanesColocacionDb());
+  };
+
+  useEffect(() => {
+    if (!isSupabaseConfigured()) return;
+    fetchPlanesColocacionDb().then(applyCloudRows);
+  }, []);
+
+  const persistToCloud = async (record) => {
+    if (!isSupabaseConfigured()) {
+      setCloudStatus('offline');
+      return false;
+    }
+    setCloudStatus('saving');
+    try {
+      await savePlanColocacionDb(record.fecha, record);
+      setCloudStatus('synced');
+      return true;
+    } catch {
+      setCloudStatus('error');
+      return false;
+    }
+  };
 
   useEffect(() => {
     try {
@@ -166,24 +228,20 @@ export const PlanColocacionView = () => {
     };
   }, [records, currentDate]);
 
+  const savedDates = useMemo(() => Object.keys(records).sort().reverse(), [records]);
+
   const handlePrevDay = () => {
     const [y, m, d] = currentDate.split('-').map(Number);
-    const date = new Date(y, m - 1, d - 1);
-    const prevStr = date.toISOString().split('T')[0];
-    setCurrentDate(prevStr);
+    setCurrentDate(toDateKey(new Date(y, m - 1, d - 1)));
   };
 
   const handleNextDay = () => {
     const [y, m, d] = currentDate.split('-').map(Number);
-    const date = new Date(y, m - 1, d + 1);
-    const nextStr = date.toISOString().split('T')[0];
-    setCurrentDate(nextStr);
+    setCurrentDate(toDateKey(new Date(y, m - 1, d + 1)));
   };
 
   const handleToday = () => {
-    const now = new Date();
-    const todayStr = now.toISOString().split('T')[0];
-    setCurrentDate(todayStr);
+    setCurrentDate(toDateKey(new Date()));
   };
 
   const handleOpenEdit = () => {
@@ -197,7 +255,7 @@ export const PlanColocacionView = () => {
     setEditForm(null);
   };
 
-  const handleSaveEdit = () => {
+  const handleSaveEdit = async () => {
     if (!editForm) return;
 
     const totalCargasM3 = (editForm.cargasEjecutadas || []).reduce((acc, c) => acc + (Number(c.capacidad) || 0), 0);
@@ -205,6 +263,7 @@ export const PlanColocacionView = () => {
     const updated = {
       ...editForm,
       fechaTexto: formatDateToSpanish(editForm.fecha),
+      updatedAt: new Date().toISOString(),
       kpis: {
         ...editForm.kpis,
         cargasEjecutadas: editForm.cargasEjecutadas?.length || editForm.kpis.cargasEjecutadas,
@@ -223,19 +282,27 @@ export const PlanColocacionView = () => {
 
     setIsEditing(false);
     setEditForm(null);
-    showToast('¡Datos del Plan de Colocación guardados correctamente!');
+
+    const ok = await persistToCloud(updated);
+    if (ok) {
+      showToast('¡Guardado en la nube! Ya puedes consultarlo desde cualquier equipo.');
+    } else if (isSupabaseConfigured()) {
+      showToast('Se guardó en este equipo, pero falló la nube. Revisa la tabla plan_colocacion en Supabase.');
+    } else {
+      showToast('Guardado solo en este equipo (Supabase no está configurado).');
+    }
   };
 
-  const handleDuplicateYesterday = () => {
+  const handleDuplicateYesterday = async () => {
     const [y, m, d] = currentDate.split('-').map(Number);
-    const prevDate = new Date(y, m - 1, d - 1);
-    const prevKey = prevDate.toISOString().split('T')[0];
+    const prevKey = toDateKey(new Date(y, m - 1, d - 1));
     const prevRecord = records[prevKey] || DEFAULT_RECORD;
 
     const duplicated = {
       ...JSON.parse(JSON.stringify(prevRecord)),
       fecha: currentDate,
       fechaTexto: formatDateToSpanish(currentDate),
+      updatedAt: new Date().toISOString(),
       planProximo: {
         ...prevRecord.planProximo,
         titulo: getNextDayFormatted(currentDate)
@@ -247,6 +314,7 @@ export const PlanColocacionView = () => {
       [currentDate]: duplicated
     }));
 
+    await persistToCloud(duplicated);
     showToast(`¡Se clonó la estructura del día anterior (${prevKey})!`);
   };
 
@@ -487,15 +555,31 @@ export const PlanColocacionView = () => {
             Hoy
           </button>
 
-          {records[currentDate] ? (
-            <span className="badge-status-pill badge-saved">
-              <Check size={12} /> Guardado
-            </span>
-          ) : (
-            <span className="badge-status-pill badge-draft">
-              Plantilla base
-            </span>
+          {savedDates.length > 0 && (
+            <select
+              className="colocacion-saved-select"
+              value={savedDates.includes(currentDate) ? currentDate : ''}
+              onChange={(e) => e.target.value && setCurrentDate(e.target.value)}
+              title="Ir a un día guardado"
+            >
+              <option value="">Días guardados ({savedDates.length})</option>
+              {savedDates.map((key) => (
+                <option key={key} value={key}>{formatDateToSpanish(key)}</option>
+              ))}
+            </select>
           )}
+
+          <button
+            className={`badge-status-pill cloud-pill cloud-${cloudStatus}`}
+            onClick={loadFromCloud}
+            title="Clic para sincronizar con la nube"
+          >
+            {cloudStatus === 'synced' && <><Cloud size={12} /> {records[currentDate]?.updatedAt ? 'En la nube' : 'Sin guardar este día'}</>}
+            {cloudStatus === 'loading' && <><RefreshCw size={12} className="spin-icon" /> Consultando...</>}
+            {cloudStatus === 'saving' && <><RefreshCw size={12} className="spin-icon" /> Guardando...</>}
+            {cloudStatus === 'error' && <><CloudOff size={12} /> Error de nube (reintentar)</>}
+            {cloudStatus === 'offline' && <><CloudOff size={12} /> Solo local</>}
+          </button>
         </div>
 
         <div className="colocacion-actions">

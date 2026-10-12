@@ -4404,3 +4404,59 @@ body {
 }
 
 
+
+.badge-status-pill {
+  font-family: inherit;
+  cursor: pointer;
+  border: 1px solid transparent;
+}
+
+.cloud-pill.cloud-synced {
+  background: rgba(16, 185, 129, 0.15);
+  color: #34d399;
+  border-color: rgba(16, 185, 129, 0.3);
+}
+
+.cloud-pill.cloud-loading,
+.cloud-pill.cloud-saving {
+  background: rgba(56, 189, 248, 0.15);
+  color: #38bdf8;
+  border-color: rgba(56, 189, 248, 0.3);
+}
+
+.cloud-pill.cloud-error {
+  background: rgba(239, 68, 68, 0.15);
+  color: #f87171;
+  border-color: rgba(239, 68, 68, 0.35);
+}
+
+.cloud-pill.cloud-offline {
+  background: rgba(245, 158, 11, 0.15);
+  color: #fbbf24;
+  border-color: rgba(245, 158, 11, 0.3);
+}
+
+.spin-icon {
+  animation: colocacion-spin 1s linear infinite;
+}
+
+@keyframes colocacion-spin {
+  to { transform: rotate(360deg); }
+}
+
+.colocacion-saved-select {
+  background: #0b1329;
+  border: 1px solid #1e293b;
+  color: #f8fafc;
+  font-family: inherit;
+  font-size: 0.82rem;
+  font-weight: 600;
+  padding: 0.45rem 0.65rem;
+  border-radius: 6px;
+  outline: none;
+  max-width: 230px;
+}
+
+.colocacion-saved-select:focus {
+  border-color: #0284c7;
+}
