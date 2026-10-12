@@ -547,7 +547,7 @@ export const PlanColocacionView = () => {
           <header className="flyer-header">
             <div className="flyer-header-left">
               <img 
-                src="/baz-entregas-logo.png" 
+                src="/baz-entregas-logo-clean.png" 
                 alt="baz entregas" 
                 className="flyer-logo-img"
               />
