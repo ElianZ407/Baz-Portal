@@ -3575,19 +3575,19 @@ body {
   padding: 0.85rem 1.4rem;
   color: #ffffff;
   gap: 1.25rem;
-  min-height: 204px;
+  min-height: 184px;
   box-sizing: border-box;
 }
 
 .flyer-header-left {
   display: flex;
   align-items: center;
-  flex: 0 0 280px;
+  flex: 0 0 250px;
 }
 
 .flyer-logo-img {
-  height: 74px;
-  max-width: 270px;
+  height: 72px;
+  max-width: 245px;
   width: auto;
   object-fit: contain;
   display: block;
@@ -3600,10 +3600,11 @@ body {
   align-items: center;
   text-align: center;
   flex: 1;
+  min-width: 0;
 }
 
 .flyer-main-title {
-  font-size: 1.8rem;
+  font-size: 1.68rem;
   font-weight: 900;
   color: #ffffff;
   letter-spacing: -0.01em;
@@ -3621,7 +3622,7 @@ body {
   color: #0a192f;
   border-radius: 6px;
   padding: 0.32rem 1.25rem;
-  margin-top: 0.4rem;
+  margin-top: 0.38rem;
   font-size: 0.92rem;
   font-weight: 800;
   box-shadow: 0 3px 10px rgba(0, 0, 0, 0.25);
@@ -3641,16 +3642,16 @@ body {
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  flex: 0 0 190px;
+  flex: 0 0 375px;
 }
 
 .flyer-cedis-photo-card {
-  width: 188px;
-  height: 188px;
-  border-radius: 9px;
-  border: 2.5px solid #ffffff;
+  width: 370px;
+  height: 160px;
+  border-radius: 10px;
+  border: 2px solid rgba(255, 255, 255, 0.85);
   overflow: hidden;
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.45);
   background: #0b1528;
   position: relative;
 }
@@ -3658,8 +3659,8 @@ body {
 .flyer-cedis-img {
   width: 100%;
   height: 100%;
-  object-fit: contain;
-  object-position: center;
+  object-fit: cover;
+  object-position: 12% 64%;
   display: block;
   filter: contrast(1.08) saturate(1.15);
 }
