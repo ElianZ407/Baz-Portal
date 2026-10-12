@@ -10,7 +10,8 @@ import {
   Save,
   History,
   UploadCloud,
-  Calendar
+  Calendar,
+  FileText
 } from 'lucide-react';
 import { useFleet } from '../context/FleetContext';
 import { exportByModule } from '../utils/exportOfficialExcel';
@@ -143,6 +144,16 @@ export const Header = () => {
           <span className="tab-full-text">Resumen General</span>
           <span className="tab-short-text">Resumen</span>
           <span className="badge-counter">{kpis.totalFlota}</span>
+        </button>
+
+        <button 
+          className={`nav-tab ${activeArea === 'colocacion' ? 'active' : ''}`}
+          onClick={() => setActiveArea('colocacion')}
+          title="Plan de Colocación Villahermosa e Infografía Diaria"
+        >
+          <FileText size={16} />
+          <span className="tab-full-text">Plan Colocación</span>
+          <span className="tab-short-text">Colocación</span>
         </button>
       </nav>
 

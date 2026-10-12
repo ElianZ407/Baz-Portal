@@ -1,0 +1,1184 @@
+import React, { useState, useEffect, useRef, useMemo } from 'react';
+import html2canvas from 'html2canvas';
+import { 
+  Calendar, 
+  ChevronLeft, 
+  ChevronRight, 
+  Download, 
+  Copy, 
+  Edit3, 
+  Plus, 
+  Trash2, 
+  TrendingUp, 
+  Boxes, 
+  Truck, 
+  FileWarning, 
+  ClipboardList, 
+  Check, 
+  Package, 
+  Sparkles,
+  Save,
+  X,
+  RotateCcw
+} from 'lucide-react';
+
+const STORAGE_KEY = 'baz_plan_colocacion_records_v1';
+
+const DEFAULT_RECORD = {
+  fecha: '2026-10-11',
+  fechaTexto: '11 DE OCTUBRE DE 2026',
+  plaza: 'VILLAHERMOSA',
+  kpis: {
+    planProgramado: 36,
+    cargasEjecutadas: 33,
+    pendientes: 3,
+    cumplimiento: 91.7,
+    metrosRemisionados: 1237
+  },
+  cargasEjecutadas: [
+    { id: 1, destino: 'Frontera', tipo: 'Retail', capacidad: 18, linea: 'LTI - VHS', estatus: 'Ejecutada' },
+    { id: 2, destino: 'Cárdenas Tabasco', tipo: 'Foráneo', capacidad: 50, linea: 'VALLEY', estatus: 'Ejecutada' },
+    { id: 3, destino: 'Jalpa de Méndez', tipo: 'HUB', capacidad: 50, linea: 'BRITO', estatus: 'Ejecutada' },
+    { id: 4, destino: 'HUB Tuxtla', tipo: 'Retail', capacidad: 153, linea: 'VALLEY', estatus: 'Ejecutada' },
+    { id: 5, destino: 'Coatzacoalcos', tipo: 'Foráneo', capacidad: 50, linea: 'VALLEY', estatus: 'Ejecutada' },
+    { id: 6, destino: 'Tonalá Chiapas', tipo: 'Foráneo', capacidad: 90, linea: 'LIBRA EXPRESS', estatus: 'Ejecutada' },
+    { id: 7, destino: 'Tapachula', tipo: 'Foráneo', capacidad: 110, linea: 'VALLEY', estatus: 'Ejecutada' },
+    { id: 8, destino: 'Matías Romero', tipo: 'HUB', capacidad: 110, linea: 'BRITO', estatus: 'Ejecutada' },
+    { id: 9, destino: 'Pichucalco', tipo: 'Foráneo', capacidad: 50, linea: 'LTI - VHS', estatus: 'Ejecutada' },
+    { id: 10, destino: 'Las Choapas', tipo: 'Foráneo', capacidad: 50, linea: 'LTI - VHS', estatus: 'Ejecutada' },
+    { id: 11, destino: 'Huimanguillo', tipo: 'Foráneo', capacidad: 110, linea: 'LIBRA EXPRESS', estatus: 'Ejecutada' }
+  ],
+  piezas: {
+    ppes: 0,
+    dotCom: 0,
+    categorias: [
+      { id: 1, categoria: 'Italikas', cantidad: 484 },
+      { id: 2, categoria: 'Conectividad', cantidad: 378 },
+      { id: 3, categoria: 'Colchones y Box', cantidad: 61 },
+      { id: 4, categoria: 'Entretenimiento', cantidad: 479 },
+      { id: 5, categoria: 'Muebles y Hogar', cantidad: 29 },
+      { id: 6, categoria: 'LB Enseres', cantidad: 312 }
+    ]
+  },
+  comportamiento: {
+    promedioDiarioAsignadoFC: 2797,
+    promedioDiarioOperado: 1539,
+    remisionadoAcumulado: 16624
+  },
+  planProximo: {
+    titulo: 'TOTAL PLAN DE CARGAS N-02 12 OCTUBRE 2026',
+    cargasProgramadas: 58,
+    cargasPendientes: [
+      { id: 1, folioDestino: 'CS00381549 · EKT OCOSINGO', capacidad: 50 },
+      { id: 2, folioDestino: 'CS00381519 · EKT ACAYUCAN', capacidad: 50 },
+      { id: 3, folioDestino: 'CS00381535 · MEGA PALENQUE', capacidad: 50 }
+    ]
+  }
+};
+
+const formatDateToSpanish = (dateStr) => {
+  if (!dateStr) return '';
+  const [year, month, day] = dateStr.split('-').map(Number);
+  const date = new Date(year, month - 1, day);
+  const meses = [
+    'ENERO', 'FEBRERO', 'MARZO', 'ABRIL', 'MAYO', 'JUNIO',
+    'JULIO', 'AGOSTO', 'SEPTIEMBRE', 'OCTUBRE', 'NOVIEMBRE', 'DICIEMBRE'
+  ];
+  return `${day} DE ${meses[date.getMonth()]} DE ${year}`;
+};
+
+const getNextDayFormatted = (dateStr) => {
+  if (!dateStr) return '';
+  const [year, month, day] = dateStr.split('-').map(Number);
+  const nextDate = new Date(year, month - 1, day + 1);
+  const meses = [
+    'ENERO', 'FEBRERO', 'MARZO', 'ABRIL', 'MAYO', 'JUNIO',
+    'JULIO', 'AGOSTO', 'SEPTIEMBRE', 'OCTUBRE', 'NOVIEMBRE', 'DICIEMBRE'
+  ];
+  return `TOTAL PLAN DE CARGAS N-02 ${nextDate.getDate()} ${meses[nextDate.getMonth()]} ${nextDate.getFullYear()}`;
+};
+
+export const PlanColocacionView = () => {
+  const [records, setRecords] = useState(() => {
+    try {
+      const saved = window.localStorage.getItem(STORAGE_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed && typeof parsed === 'object') {
+          return {
+            '2026-10-11': DEFAULT_RECORD,
+            ...parsed
+          };
+        }
+      }
+    } catch {
+      return { '2026-10-11': DEFAULT_RECORD };
+    }
+    return { '2026-10-11': DEFAULT_RECORD };
+  });
+
+  const [currentDate, setCurrentDate] = useState('2026-10-11');
+  const [isEditing, setIsEditing] = useState(false);
+  const [editForm, setEditForm] = useState(null);
+  const [activeTab, setActiveTab] = useState('kpis');
+  const [toastMessage, setToastMessage] = useState('');
+  const [isExporting, setIsExporting] = useState(false);
+
+  const flyerRef = useRef(null);
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(records));
+    } catch {
+      return;
+    }
+  }, [records]);
+
+  const showToast = (msg) => {
+    setToastMessage(msg);
+    window.setTimeout(() => {
+      setToastMessage('');
+    }, 3500);
+  };
+
+  const currentData = useMemo(() => {
+    if (records[currentDate]) {
+      return records[currentDate];
+    }
+    return {
+      ...DEFAULT_RECORD,
+      fecha: currentDate,
+      fechaTexto: formatDateToSpanish(currentDate),
+      planProximo: {
+        ...DEFAULT_RECORD.planProximo,
+        titulo: getNextDayFormatted(currentDate)
+      }
+    };
+  }, [records, currentDate]);
+
+  const handlePrevDay = () => {
+    const [y, m, d] = currentDate.split('-').map(Number);
+    const date = new Date(y, m - 1, d - 1);
+    const prevStr = date.toISOString().split('T')[0];
+    setCurrentDate(prevStr);
+  };
+
+  const handleNextDay = () => {
+    const [y, m, d] = currentDate.split('-').map(Number);
+    const date = new Date(y, m - 1, d + 1);
+    const nextStr = date.toISOString().split('T')[0];
+    setCurrentDate(nextStr);
+  };
+
+  const handleToday = () => {
+    const now = new Date();
+    const todayStr = now.toISOString().split('T')[0];
+    setCurrentDate(todayStr);
+  };
+
+  const handleOpenEdit = () => {
+    setEditForm(JSON.parse(JSON.stringify(currentData)));
+    setIsEditing(true);
+    setActiveTab('kpis');
+  };
+
+  const handleCloseEdit = () => {
+    setIsEditing(false);
+    setEditForm(null);
+  };
+
+  const handleSaveEdit = () => {
+    if (!editForm) return;
+
+    const totalCargasM3 = (editForm.cargasEjecutadas || []).reduce((acc, c) => acc + (Number(c.capacidad) || 0), 0);
+
+    const updated = {
+      ...editForm,
+      fechaTexto: formatDateToSpanish(editForm.fecha),
+      kpis: {
+        ...editForm.kpis,
+        cargasEjecutadas: editForm.cargasEjecutadas?.length || editForm.kpis.cargasEjecutadas,
+        metrosRemisionados: totalCargasM3 > 0 ? totalCargasM3 : editForm.kpis.metrosRemisionados
+      }
+    };
+
+    setRecords((prev) => ({
+      ...prev,
+      [updated.fecha]: updated
+    }));
+
+    if (updated.fecha !== currentDate) {
+      setCurrentDate(updated.fecha);
+    }
+
+    setIsEditing(false);
+    setEditForm(null);
+    showToast('¡Datos del Plan de Colocación guardados correctamente!');
+  };
+
+  const handleDuplicateYesterday = () => {
+    const [y, m, d] = currentDate.split('-').map(Number);
+    const prevDate = new Date(y, m - 1, d - 1);
+    const prevKey = prevDate.toISOString().split('T')[0];
+    const prevRecord = records[prevKey] || DEFAULT_RECORD;
+
+    const duplicated = {
+      ...JSON.parse(JSON.stringify(prevRecord)),
+      fecha: currentDate,
+      fechaTexto: formatDateToSpanish(currentDate),
+      planProximo: {
+        ...prevRecord.planProximo,
+        titulo: getNextDayFormatted(currentDate)
+      }
+    };
+
+    setRecords((prev) => ({
+      ...prev,
+      [currentDate]: duplicated
+    }));
+
+    showToast(`¡Se clonó la estructura del día anterior (${prevKey})!`);
+  };
+
+  const handleDownloadImage = async () => {
+    if (!flyerRef.current) return;
+    setIsExporting(true);
+    showToast('Generando imagen de alta resolución...');
+
+    try {
+      const canvas = await html2canvas(flyerRef.current, {
+        scale: 2.5,
+        useCORS: true,
+        allowTaint: true,
+        backgroundColor: '#ffffff',
+        logging: false,
+        windowWidth: 1280
+      });
+
+      const image = canvas.toDataURL('image/png');
+      const link = window.document.createElement('a');
+      link.href = image;
+      link.download = `Plan_Colocacion_Villahermosa_${currentDate}.png`;
+      window.document.body.appendChild(link);
+      link.click();
+      window.document.body.removeChild(link);
+      showToast('¡Imagen descargada exitosamente en alta definición!');
+    } catch {
+      showToast('Error al generar la imagen. Intenta nuevamente.');
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  const handleCopyImage = async () => {
+    if (!flyerRef.current) return;
+    setIsExporting(true);
+    showToast('Copiando infografía al portapapeles...');
+
+    try {
+      const canvas = await html2canvas(flyerRef.current, {
+        scale: 2.5,
+        useCORS: true,
+        allowTaint: true,
+        backgroundColor: '#ffffff',
+        logging: false,
+        windowWidth: 1280
+      });
+
+      canvas.toBlob(async (blob) => {
+        if (!blob) {
+          showToast('No se pudo crear el archivo de imagen.');
+          setIsExporting(false);
+          return;
+        }
+
+        try {
+          if (window.ClipboardItem && window.navigator.clipboard?.write) {
+            const item = new window.ClipboardItem({ 'image/png': blob });
+            await window.navigator.clipboard.write([item]);
+            showToast('¡Imagen copiada al portapapeles! Lista para pegar (Ctrl+V) en WhatsApp o Teams.');
+          } else {
+            showToast('El navegador no soporta copiado directo. Usa Descargar PNG.');
+          }
+        } catch {
+          showToast('No se pudo copiar directamente. Puedes usar el botón de Descargar Imagen.');
+        } finally {
+          setIsExporting(false);
+        }
+      }, 'image/png');
+    } catch {
+      showToast('No se pudo copiar directamente. Puedes usar el botón de Descargar Imagen.');
+      setIsExporting(false);
+    }
+  };
+
+  const handleKpiChange = (field, val) => {
+    setEditForm((prev) => {
+      const nextKpis = { ...prev.kpis, [field]: Number(val) || 0 };
+      if (field === 'planProgramado' || field === 'cargasEjecutadas') {
+        const prog = field === 'planProgramado' ? Number(val) || 0 : nextKpis.planProgramado;
+        const ejec = field === 'cargasEjecutadas' ? Number(val) || 0 : nextKpis.cargasEjecutadas;
+        nextKpis.pendientes = Math.max(0, prog - ejec);
+        nextKpis.cumplimiento = prog > 0 ? Number(((ejec / prog) * 100).toFixed(1)) : 0;
+      }
+      return { ...prev, kpis: nextKpis };
+    });
+  };
+
+  const handleAddCarga = () => {
+    setEditForm((prev) => {
+      const newId = (prev.cargasEjecutadas.length > 0 ? Math.max(...prev.cargasEjecutadas.map((c) => c.id)) : 0) + 1;
+      return {
+        ...prev,
+        cargasEjecutadas: [
+          ...prev.cargasEjecutadas,
+          { id: newId, destino: 'Nuevo Destino', tipo: 'Foráneo', capacidad: 50, linea: 'VALLEY', estatus: 'Ejecutada' }
+        ]
+      };
+    });
+  };
+
+  const handleUpdateCarga = (id, field, value) => {
+    setEditForm((prev) => ({
+      ...prev,
+      cargasEjecutadas: prev.cargasEjecutadas.map((c) => {
+        if (c.id === id) {
+          return { ...c, [field]: field === 'capacidad' ? Number(value) || 0 : value };
+        }
+        return c;
+      })
+    }));
+  };
+
+  const handleRemoveCarga = (id) => {
+    setEditForm((prev) => ({
+      ...prev,
+      cargasEjecutadas: prev.cargasEjecutadas.filter((c) => c.id !== id)
+    }));
+  };
+
+  const handleAddCategoriaPieza = () => {
+    setEditForm((prev) => {
+      const newId = (prev.piezas.categorias.length > 0 ? Math.max(...prev.piezas.categorias.map((c) => c.id)) : 0) + 1;
+      return {
+        ...prev,
+        piezas: {
+          ...prev.piezas,
+          categorias: [
+            ...prev.piezas.categorias,
+            { id: newId, categoria: 'Nueva Categoría', cantidad: 0 }
+          ]
+        }
+      };
+    });
+  };
+
+  const handleUpdateCategoriaPieza = (id, field, value) => {
+    setEditForm((prev) => ({
+      ...prev,
+      piezas: {
+        ...prev.piezas,
+        categorias: prev.piezas.categorias.map((c) => {
+          if (c.id === id) {
+            return { ...c, [field]: field === 'cantidad' ? Number(value) || 0 : value };
+          }
+          return c;
+        })
+      }
+    }));
+  };
+
+  const handleRemoveCategoriaPieza = (id) => {
+    setEditForm((prev) => ({
+      ...prev,
+      piezas: {
+        ...prev.piezas,
+        categorias: prev.piezas.categorias.filter((c) => c.id !== id)
+      }
+    }));
+  };
+
+  const handleAddCargaPendiente = () => {
+    setEditForm((prev) => {
+      const newId = (prev.planProximo.cargasPendientes.length > 0 ? Math.max(...prev.planProximo.cargasPendientes.map((c) => c.id)) : 0) + 1;
+      return {
+        ...prev,
+        planProximo: {
+          ...prev.planProximo,
+          cargasPendientes: [
+            ...prev.planProximo.cargasPendientes,
+            { id: newId, folioDestino: 'CS00000000 · NUEVO DESTINO', capacidad: 50 }
+          ]
+        }
+      };
+    });
+  };
+
+  const handleUpdateCargaPendiente = (id, field, value) => {
+    setEditForm((prev) => ({
+      ...prev,
+      planProximo: {
+        ...prev.planProximo,
+        cargasPendientes: prev.planProximo.cargasPendientes.map((c) => {
+          if (c.id === id) {
+            return { ...c, [field]: field === 'capacidad' ? Number(value) || 0 : value };
+          }
+          return c;
+        })
+      }
+    }));
+  };
+
+  const handleRemoveCargaPendiente = (id) => {
+    setEditForm((prev) => ({
+      ...prev,
+      planProximo: {
+        ...prev.planProximo,
+        cargasPendientes: prev.planProximo.cargasPendientes.filter((c) => c.id !== id)
+      }
+    }));
+  };
+
+  const totalCargasCount = currentData.cargasEjecutadas.length;
+  const totalCargasMetros = currentData.cargasEjecutadas.reduce((acc, c) => acc + (Number(c.capacidad) || 0), 0);
+  const totalPiezasCount = currentData.piezas.categorias.reduce((acc, cat) => acc + (Number(cat.cantidad) || 0), 0);
+  const totalPendientesMetros = currentData.planProximo.cargasPendientes.reduce((acc, c) => acc + (Number(c.capacidad) || 0), 0);
+
+  return (
+    <div className="plan-colocacion-page">
+      {toastMessage && (
+        <div className="colocacion-toast">
+          <Sparkles size={16} color="#38bdf8" />
+          <span>{toastMessage}</span>
+        </div>
+      )}
+
+      <div className="colocacion-topbar">
+        <div className="colocacion-date-nav">
+          <button className="btn btn-secondary btn-sm" onClick={handlePrevDay} title="Día anterior">
+            <ChevronLeft size={16} />
+          </button>
+          
+          <div className="colocacion-date-input-wrap">
+            <Calendar size={16} className="colocacion-calendar-icon" />
+            <input 
+              type="date" 
+              className="colocacion-date-input" 
+              value={currentDate}
+              onChange={(e) => setCurrentDate(e.target.value)}
+            />
+          </div>
+
+          <button className="btn btn-secondary btn-sm" onClick={handleNextDay} title="Día siguiente">
+            <ChevronRight size={16} />
+          </button>
+
+          <button className="btn btn-secondary btn-sm" onClick={handleToday} title="Ir a hoy">
+            Hoy
+          </button>
+
+          {records[currentDate] ? (
+            <span className="badge-status-pill badge-saved">
+              <Check size={12} /> Guardado
+            </span>
+          ) : (
+            <span className="badge-status-pill badge-draft">
+              Plantilla base
+            </span>
+          )}
+        </div>
+
+        <div className="colocacion-actions">
+          <button 
+            className="btn btn-secondary btn-header-action"
+            onClick={handleDuplicateYesterday}
+            title="Copiar datos y estructura del día previo"
+          >
+            <RotateCcw size={15} />
+            <span>Clonar de ayer</span>
+          </button>
+
+          <button 
+            className="btn btn-primary btn-header-action"
+            onClick={handleOpenEdit}
+            title="Editar la información de este día"
+          >
+            <Edit3 size={15} />
+            <span>Editar Datos</span>
+          </button>
+
+          <button 
+            className="btn btn-secondary btn-header-action btn-copy-action"
+            onClick={handleCopyImage}
+            disabled={isExporting}
+            title="Copiar infografía al portapapeles para pegar en WhatsApp o Teams"
+          >
+            <Copy size={15} />
+            <span>Copiar Imagen</span>
+          </button>
+
+          <button 
+            className="btn btn-accent btn-header-action"
+            onClick={handleDownloadImage}
+            disabled={isExporting}
+            title="Descargar infografía en alta resolución PNG"
+          >
+            <Download size={15} />
+            <span>Descargar PNG HD</span>
+          </button>
+        </div>
+      </div>
+
+      <div className="colocacion-flyer-outer">
+        <div 
+          ref={flyerRef} 
+          id="plan-colocacion-flyer" 
+          className="colocacion-flyer-container"
+        >
+          <header className="flyer-header">
+            <div className="flyer-header-left">
+              <img 
+                src="/baz-entregas-logo.png" 
+                alt="baz entregas" 
+                className="flyer-logo-img"
+              />
+            </div>
+
+            <div className="flyer-header-center">
+              <h1 className="flyer-main-title">
+                PLAN DE COLOCACIÓN VILLAHERMOSA
+              </h1>
+              <div className="flyer-badge-date">
+                <span className="flyer-badge-item">
+                  <span className="badge-emoji">📅</span> {currentData.fechaTexto || formatDateToSpanish(currentData.fecha)}
+                </span>
+                <span className="flyer-badge-item">
+                  <span className="badge-emoji">📍</span> {currentData.plaza || 'VILLAHERMOSA'}
+                </span>
+              </div>
+            </div>
+
+            <div className="flyer-header-right">
+              <div className="flyer-cedis-photo-card">
+                <img 
+                  src="/cedis-patio-trucks.png" 
+                  alt="Patio y Andenes CEDIS Villahermosa" 
+                  className="flyer-cedis-img"
+                />
+              </div>
+            </div>
+          </header>
+
+          <section className="flyer-kpi-strip">
+            <div className="flyer-kpi-card kpi-programado">
+              <div className="kpi-card-header">
+                <div className="kpi-icon-pill icon-programado">
+                  <ClipboardList size={18} />
+                </div>
+                <span className="kpi-label">Plan programado</span>
+              </div>
+              <div className="kpi-card-value">
+                {currentData.kpis.planProgramado} <span className="kpi-unit">cargas</span>
+              </div>
+            </div>
+
+            <div className="flyer-kpi-card kpi-ejecutadas">
+              <div className="kpi-card-header">
+                <div className="kpi-icon-pill icon-ejecutadas">
+                  <Truck size={18} />
+                </div>
+                <span className="kpi-label">Cargas ejecutadas</span>
+              </div>
+              <div className="kpi-card-value">
+                {currentData.kpis.cargasEjecutadas}
+              </div>
+            </div>
+
+            <div className="flyer-kpi-card kpi-pendientes">
+              <div className="kpi-card-header">
+                <div className="kpi-icon-pill icon-pendientes">
+                  <FileWarning size={18} />
+                </div>
+                <span className="kpi-label">Pendientes</span>
+              </div>
+              <div className="kpi-card-value">
+                {currentData.kpis.pendientes}
+              </div>
+            </div>
+
+            <div className="flyer-kpi-card kpi-cumplimiento">
+              <div className="kpi-card-header">
+                <div className="kpi-icon-pill icon-cumplimiento">
+                  <TrendingUp size={18} />
+                </div>
+                <span className="kpi-label">Cumplimiento</span>
+              </div>
+              <div className="kpi-card-value">
+                {currentData.kpis.cumplimiento}%
+              </div>
+            </div>
+
+            <div className="flyer-kpi-card kpi-metros">
+              <div className="kpi-card-header">
+                <div className="kpi-icon-pill icon-metros">
+                  <Boxes size={18} />
+                </div>
+                <span className="kpi-label">Metros remisionados</span>
+              </div>
+              <div className="kpi-card-value">
+                {Number(currentData.kpis.metrosRemisionados).toLocaleString()} <span className="kpi-unit">m³</span>
+              </div>
+            </div>
+          </section>
+
+          <main className="flyer-content-grid">
+            <div className="flyer-col-left">
+              <div className="flyer-panel panel-resumen-cargas">
+                <div className="panel-header header-green">
+                  <span>1. RESUMEN DE CARGAS EJECUTADAS – {currentData.fechaTexto}</span>
+                </div>
+
+                <div className="panel-table-wrap">
+                  <table className="flyer-table table-cargas">
+                    <thead>
+                      <tr>
+                        <th style={{ width: '38px', textAlign: 'center' }}>#</th>
+                        <th style={{ textAlign: 'left' }}>Destino / Operación</th>
+                        <th style={{ width: '90px', textAlign: 'center' }}>Tipo</th>
+                        <th style={{ width: '90px', textAlign: 'center' }}>Capacidad</th>
+                        <th style={{ width: '130px', textAlign: 'center' }}>Línea</th>
+                        <th style={{ width: '110px', textAlign: 'center' }}>Estatus</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {currentData.cargasEjecutadas.map((c, idx) => (
+                        <tr key={c.id || idx} className={idx % 2 === 0 ? 'row-even' : 'row-odd'}>
+                          <td className="cell-num">{idx + 1}</td>
+                          <td className="cell-dest">{c.destino}</td>
+                          <td className="cell-tipo">{c.tipo}</td>
+                          <td className="cell-cap">{c.capacidad} m³</td>
+                          <td className="cell-linea">{c.linea}</td>
+                          <td className="cell-estatus">
+                            <span className="badge-ejecutada">
+                              <span className="badge-check-icon">✓</span>
+                              <span>Ejecutada</span>
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                <div className="panel-footer footer-green">
+                  <span>
+                    TOTAL {totalCargasCount} cargas – {Number(totalCargasMetros).toLocaleString()} metros remisionados
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div className="flyer-col-right">
+              <div className="flyer-panel panel-movimientos">
+                <div className="panel-header header-navy">
+                  <span>2. MOVIMIENTOS Y PIEZAS DEL DÍA</span>
+                </div>
+
+                <div className="panel-body body-movimientos">
+                  <div className="movimientos-left-box">
+                    <div className="box-mini-card">
+                      <div className="box-icon-container">
+                        <Package size={34} color="#b45309" strokeWidth={1.8} />
+                      </div>
+                      <div className="box-mini-info">
+                        <span className="box-title">PPE'S:</span>
+                        <span className="box-val">{currentData.piezas.ppes}</span>
+                      </div>
+                    </div>
+
+                    <div className="box-mini-card">
+                      <div className="box-icon-container">
+                        <Package size={34} color="#b45309" strokeWidth={1.8} />
+                      </div>
+                      <div className="box-mini-info">
+                        <span className="box-title">.COM:</span>
+                        <span className="box-val">{currentData.piezas.dotCom}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="movimientos-right-table">
+                    <table className="flyer-table table-piezas">
+                      <tbody>
+                        {currentData.piezas.categorias.map((cat, idx) => (
+                          <tr key={cat.id || idx} className={idx % 2 === 0 ? 'row-piezas-even' : 'row-piezas-odd'}>
+                            <td className="piezas-cat-name">{cat.categoria}</td>
+                            <td className="piezas-cat-qty">{Number(cat.cantidad).toLocaleString()}</td>
+                          </tr>
+                        ))}
+                        <tr className="row-piezas-total">
+                          <td className="piezas-total-lbl">TOTAL:</td>
+                          <td className="piezas-total-val">{Number(totalPiezasCount).toLocaleString()} piezas</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flyer-panel panel-comportamiento">
+                <div className="panel-header header-purple">
+                  <span>3. COMPORTAMIENTO DIARIO ASIGNADO VS REMISIONADO</span>
+                </div>
+
+                <div className="panel-body body-comportamiento">
+                  <div className="comportamiento-icon-col">
+                    <div className="comportamiento-trend-box">
+                      <TrendingUp size={36} color="#ffffff" strokeWidth={2.4} />
+                    </div>
+                  </div>
+
+                  <div className="comportamiento-metrics-col">
+                    <div className="comportamiento-item">
+                      <span className="comportamiento-metric-lbl">Promedio Diario Asignado a FC:</span>
+                      <span className="comportamiento-metric-val">{Number(currentData.comportamiento.promedioDiarioAsignadoFC).toLocaleString()} m³</span>
+                    </div>
+                    <div className="comportamiento-item">
+                      <span className="comportamiento-metric-lbl">Promedio Diario Operado:</span>
+                      <span className="comportamiento-metric-val">{Number(currentData.comportamiento.promedioDiarioOperado).toLocaleString()} m³</span>
+                    </div>
+                    <div className="comportamiento-item">
+                      <span className="comportamiento-metric-lbl">Remisionado Acumulado:</span>
+                      <span className="comportamiento-metric-val highlight">{Number(currentData.comportamiento.remisionadoAcumulado).toLocaleString()} m³</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flyer-panel-row-n2">
+                <div className="flyer-panel panel-n2-programadas">
+                  <div className="panel-header header-forest-left">
+                    <span>{currentData.planProximo.titulo}</span>
+                  </div>
+                  <div className="panel-body body-n2-left">
+                    <div className="n2-big-calendar-icon">
+                      <Calendar size={38} color="#15803d" strokeWidth={1.8} />
+                    </div>
+                    <div className="n2-big-stats">
+                      <div className="n2-stat-num">{currentData.planProximo.cargasProgramadas}</div>
+                      <div className="n2-stat-desc">programadas</div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flyer-panel panel-n2-pendientes">
+                  <div className="panel-header header-forest-right">
+                    <span>CARGAS PENDIENTES / ESCALONADAS</span>
+                  </div>
+                  <div className="panel-body body-n2-right">
+                    <table className="flyer-table table-n2">
+                      <tbody>
+                        {currentData.planProximo.cargasPendientes.map((p, idx) => (
+                          <tr key={p.id || idx}>
+                            <td className="n2-folio-cell">{p.folioDestino}</td>
+                            <td className="n2-cap-cell">{p.capacidad} m³</td>
+                          </tr>
+                        ))}
+                        <tr className="n2-total-row">
+                          <td className="n2-total-lbl">TOTAL:</td>
+                          <td className="n2-total-val">{totalPendientesMetros} m³</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </main>
+        </div>
+      </div>
+
+      {isEditing && editForm && (
+        <div className="modal-overlay">
+          <div className="modal-content modal-colocacion-edit">
+            <div className="modal-header">
+              <div className="modal-title-with-icon">
+                <Edit3 size={20} color="#38bdf8" />
+                <div>
+                  <h3>Editar Plan de Colocación</h3>
+                  <p className="modal-subtitle">Captura diaria de métricas, cargas ejecutadas, movimientos y plan N-02</p>
+                </div>
+              </div>
+              <button className="btn-close-modal" onClick={handleCloseEdit}>
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="colocacion-edit-tabs">
+              <button 
+                className={`edit-tab ${activeTab === 'kpis' ? 'active' : ''}`}
+                onClick={() => setActiveTab('kpis')}
+              >
+                1. KPIs Generales
+              </button>
+              <button 
+                className={`edit-tab ${activeTab === 'cargas' ? 'active' : ''}`}
+                onClick={() => setActiveTab('cargas')}
+              >
+                2. Cargas Ejecutadas ({editForm.cargasEjecutadas.length})
+              </button>
+              <button 
+                className={`edit-tab ${activeTab === 'piezas' ? 'active' : ''}`}
+                onClick={() => setActiveTab('piezas')}
+              >
+                3. Movimientos y Piezas
+              </button>
+              <button 
+                className={`edit-tab ${activeTab === 'comportamiento' ? 'active' : ''}`}
+                onClick={() => setActiveTab('comportamiento')}
+              >
+                4. Comportamiento y N-02
+              </button>
+            </div>
+
+            <div className="modal-body colocacion-modal-body">
+              {activeTab === 'kpis' && (
+                <div className="edit-section-grid">
+                  <div className="form-group">
+                    <label>Fecha del Reporte</label>
+                    <input 
+                      type="date" 
+                      className="form-control"
+                      value={editForm.fecha}
+                      onChange={(e) => setEditForm({ ...editForm, fecha: e.target.value })}
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label>Plaza / Centro</label>
+                    <input 
+                      type="text" 
+                      className="form-control"
+                      value={editForm.plaza}
+                      onChange={(e) => setEditForm({ ...editForm, plaza: e.target.value })}
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label>Plan Programado (cargas)</label>
+                    <input 
+                      type="number" 
+                      className="form-control"
+                      value={editForm.kpis.planProgramado}
+                      onChange={(e) => handleKpiChange('planProgramado', e.target.value)}
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label>Cargas Ejecutadas</label>
+                    <input 
+                      type="number" 
+                      className="form-control"
+                      value={editForm.kpis.cargasEjecutadas}
+                      onChange={(e) => handleKpiChange('cargasEjecutadas', e.target.value)}
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label>Pendientes (Calculado)</label>
+                    <input 
+                      type="number" 
+                      className="form-control"
+                      value={editForm.kpis.pendientes}
+                      onChange={(e) => handleKpiChange('pendientes', e.target.value)}
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label>Cumplimiento (%)</label>
+                    <input 
+                      type="number" 
+                      step="0.1"
+                      className="form-control"
+                      value={editForm.kpis.cumplimiento}
+                      onChange={(e) => handleKpiChange('cumplimiento', e.target.value)}
+                    />
+                  </div>
+
+                  <div className="form-group full-width">
+                    <label>Metros Remisionados (m³)</label>
+                    <input 
+                      type="number" 
+                      className="form-control"
+                      value={editForm.kpis.metrosRemisionados}
+                      onChange={(e) => handleKpiChange('metrosRemisionados', e.target.value)}
+                    />
+                    <small className="form-hint">Nota: Se actualiza también al sumar las capacidades de las cargas ejecutadas.</small>
+                  </div>
+                </div>
+              )}
+
+              {activeTab === 'cargas' && (
+                <div className="edit-cargas-section">
+                  <div className="edit-section-header-bar">
+                    <span>Listado de Cargas Ejecutadas</span>
+                    <button className="btn btn-sm btn-primary" onClick={handleAddCarga}>
+                      <Plus size={14} /> Agregar Carga
+                    </button>
+                  </div>
+
+                  <div className="cargas-edit-list">
+                    {editForm.cargasEjecutadas.map((carga, index) => (
+                      <div key={carga.id} className="carga-edit-row">
+                        <span className="carga-row-index">#{index + 1}</span>
+
+                        <input 
+                          type="text" 
+                          className="form-control" 
+                          placeholder="Destino / Operación"
+                          value={carga.destino}
+                          onChange={(e) => handleUpdateCarga(carga.id, 'destino', e.target.value)}
+                        />
+
+                        <select 
+                          className="form-control select-tipo"
+                          value={carga.tipo}
+                          onChange={(e) => handleUpdateCarga(carga.id, 'tipo', e.target.value)}
+                        >
+                          <option value="Foráneo">Foráneo</option>
+                          <option value="Retail">Retail</option>
+                          <option value="HUB">HUB</option>
+                          <option value="Local">Local</option>
+                        </select>
+
+                        <div className="input-with-unit">
+                          <input 
+                            type="number" 
+                            className="form-control input-cap" 
+                            placeholder="m³"
+                            value={carga.capacidad}
+                            onChange={(e) => handleUpdateCarga(carga.id, 'capacidad', e.target.value)}
+                          />
+                          <span className="unit-label">m³</span>
+                        </div>
+
+                        <input 
+                          type="text" 
+                          className="form-control input-linea" 
+                          placeholder="Línea transportista"
+                          value={carga.linea}
+                          onChange={(e) => handleUpdateCarga(carga.id, 'linea', e.target.value)}
+                        />
+
+                        <button 
+                          className="btn-delete-row"
+                          onClick={() => handleRemoveCarga(carga.id)}
+                          title="Eliminar esta fila"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {activeTab === 'piezas' && (
+                <div className="edit-piezas-section">
+                  <div className="edit-section-grid" style={{ marginBottom: '1.25rem' }}>
+                    <div className="form-group">
+                      <label>PPE'S</label>
+                      <input 
+                        type="number" 
+                        className="form-control"
+                        value={editForm.piezas.ppes}
+                        onChange={(e) => setEditForm({
+                          ...editForm,
+                          piezas: { ...editForm.piezas, ppes: Number(e.target.value) || 0 }
+                        })}
+                      />
+                    </div>
+
+                    <div className="form-group">
+                      <label>.COM</label>
+                      <input 
+                        type="number" 
+                        className="form-control"
+                        value={editForm.piezas.dotCom}
+                        onChange={(e) => setEditForm({
+                          ...editForm,
+                          piezas: { ...editForm.piezas, dotCom: Number(e.target.value) || 0 }
+                        })}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="edit-section-header-bar">
+                    <span>Piezas por Categoría</span>
+                    <button className="btn btn-sm btn-primary" onClick={handleAddCategoriaPieza}>
+                      <Plus size={14} /> Agregar Categoría
+                    </button>
+                  </div>
+
+                  <div className="piezas-edit-list">
+                    {editForm.piezas.categorias.map((cat) => (
+                      <div key={cat.id} className="pieza-edit-row">
+                        <input 
+                          type="text" 
+                          className="form-control" 
+                          placeholder="Nombre de la categoría"
+                          value={cat.categoria}
+                          onChange={(e) => handleUpdateCategoriaPieza(cat.id, 'categoria', e.target.value)}
+                        />
+
+                        <input 
+                          type="number" 
+                          className="form-control input-qty" 
+                          placeholder="Cantidad de piezas"
+                          value={cat.cantidad}
+                          onChange={(e) => handleUpdateCategoriaPieza(cat.id, 'cantidad', e.target.value)}
+                        />
+
+                        <button 
+                          className="btn-delete-row"
+                          onClick={() => handleRemoveCategoriaPieza(cat.id)}
+                          title="Eliminar categoría"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {activeTab === 'comportamiento' && (
+                <div className="edit-comportamiento-section">
+                  <h4 className="edit-subheading">Comportamiento Diario (m³)</h4>
+                  <div className="edit-section-grid" style={{ marginBottom: '1.5rem' }}>
+                    <div className="form-group">
+                      <label>Promedio Diario Asignado a FC (m³)</label>
+                      <input 
+                        type="number" 
+                        className="form-control"
+                        value={editForm.comportamiento.promedioDiarioAsignadoFC}
+                        onChange={(e) => setEditForm({
+                          ...editForm,
+                          comportamiento: { ...editForm.comportamiento, promedioDiarioAsignadoFC: Number(e.target.value) || 0 }
+                        })}
+                      />
+                    </div>
+
+                    <div className="form-group">
+                      <label>Promedio Diario Operado (m³)</label>
+                      <input 
+                        type="number" 
+                        className="form-control"
+                        value={editForm.comportamiento.promedioDiarioOperado}
+                        onChange={(e) => setEditForm({
+                          ...editForm,
+                          comportamiento: { ...editForm.comportamiento, promedioDiarioOperado: Number(e.target.value) || 0 }
+                        })}
+                      />
+                    </div>
+
+                    <div className="form-group full-width">
+                      <label>Remisionado Acumulado (m³)</label>
+                      <input 
+                        type="number" 
+                        className="form-control"
+                        value={editForm.comportamiento.remisionadoAcumulado}
+                        onChange={(e) => setEditForm({
+                          ...editForm,
+                          comportamiento: { ...editForm.comportamiento, remisionadoAcumulado: Number(e.target.value) || 0 }
+                        })}
+                      />
+                    </div>
+                  </div>
+
+                  <h4 className="edit-subheading">Plan Próximo (N-02)</h4>
+                  <div className="edit-section-grid" style={{ marginBottom: '1rem' }}>
+                    <div className="form-group full-width">
+                      <label>Título del Plan Próximo</label>
+                      <input 
+                        type="text" 
+                        className="form-control"
+                        value={editForm.planProximo.titulo}
+                        onChange={(e) => setEditForm({
+                          ...editForm,
+                          planProximo: { ...editForm.planProximo, titulo: e.target.value }
+                        })}
+                      />
+                    </div>
+
+                    <div className="form-group">
+                      <label>Total Cargas Programadas N-02</label>
+                      <input 
+                        type="number" 
+                        className="form-control"
+                        value={editForm.planProximo.cargasProgramadas}
+                        onChange={(e) => setEditForm({
+                          ...editForm,
+                          planProximo: { ...editForm.planProximo, cargasProgramadas: Number(e.target.value) || 0 }
+                        })}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="edit-section-header-bar">
+                    <span>Cargas Pendientes / Escalonadas N-02</span>
+                    <button className="btn btn-sm btn-primary" onClick={handleAddCargaPendiente}>
+                      <Plus size={14} /> Agregar Escalonada
+                    </button>
+                  </div>
+
+                  <div className="piezas-edit-list">
+                    {editForm.planProximo.cargasPendientes.map((p) => (
+                      <div key={p.id} className="pieza-edit-row">
+                        <input 
+                          type="text" 
+                          className="form-control" 
+                          placeholder="Folio y Destino (ej: CS00381549 · EKT OCOSINGO)"
+                          value={p.folioDestino}
+                          onChange={(e) => handleUpdateCargaPendiente(p.id, 'folioDestino', e.target.value)}
+                        />
+
+                        <div className="input-with-unit">
+                          <input 
+                            type="number" 
+                            className="form-control input-cap" 
+                            placeholder="m³"
+                            value={p.capacidad}
+                            onChange={(e) => handleUpdateCargaPendiente(p.id, 'capacidad', e.target.value)}
+                          />
+                          <span className="unit-label">m³</span>
+                        </div>
+
+                        <button 
+                          className="btn-delete-row"
+                          onClick={() => handleRemoveCargaPendiente(p.id)}
+                          title="Eliminar fila"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="modal-footer">
+              <button className="btn btn-secondary" onClick={handleCloseEdit}>
+                Cancelar
+              </button>
+              <button className="btn btn-primary" onClick={handleSaveEdit}>
+                <Save size={16} /> Guardar Cambios
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
