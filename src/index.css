@@ -4068,7 +4068,7 @@ body {
 
 .flyer-panel-row-n2 {
   display: grid;
-  grid-template-columns: 1fr 1.35fr;
+  grid-template-columns: 200px 1fr;
   gap: 0.75rem;
   margin-top: 0.75rem;
 }
@@ -4121,21 +4121,51 @@ body {
   width: 100%;
 }
 
+.table-n2 thead th {
+  background: #b5ceb4;
+  color: #163d20;
+  font-weight: 900;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.74rem;
+  border: 1px solid #9bbe98;
+  text-transform: uppercase;
+}
+
 .table-n2 td {
   padding: 0.26rem 0.55rem;
   border: 1px solid #e2e8f0;
   font-size: 0.8rem;
 }
 
+.row-n2-even {
+  background: #ffffff;
+}
+
+.row-n2-odd {
+  background: #fbfcfe;
+}
+
 .n2-folio-cell {
   font-weight: 700;
-  color: #0f172a;
+  color: #431407;
+  font-size: 0.76rem;
+  letter-spacing: -0.01em;
 }
 
 .n2-cap-cell {
-  text-align: right;
-  font-weight: 900;
+  text-align: center;
+  font-weight: 800;
   color: #0f172a;
+  font-size: 0.78rem;
+}
+
+.n2-obs-cell {
+  font-size: 0.73rem;
+  font-weight: 700;
+  color: #4338ca;
+  text-transform: uppercase;
+  letter-spacing: 0.01em;
+  background: rgba(224, 231, 255, 0.45);
 }
 
 .n2-total-row {
@@ -4155,8 +4185,39 @@ body {
 }
 
 .n2-total-val {
-  text-align: right;
+  text-align: center;
   font-weight: 900;
+}
+
+.n2-total-empty {
+  background: #1e5a36 !important;
+  border-color: #1e5a36 !important;
+}
+
+.flyer-observaciones-strip {
+  margin-top: 0.75rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  background: #f8fafc;
+  border: 1px solid #cbd5e1;
+  border-left: 4px solid #1e5a36;
+  padding: 0.45rem 0.85rem;
+  border-radius: 6px;
+}
+
+.obs-strip-badge {
+  font-weight: 900;
+  font-size: 0.78rem;
+  color: #1e5a36;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.obs-strip-text {
+  font-weight: 700;
+  font-size: 0.8rem;
+  color: #334155;
 }
 
 .modal-colocacion-edit {
@@ -4293,6 +4354,17 @@ body {
 .pieza-edit-row {
   display: grid;
   grid-template-columns: 1.8fr 1.2fr 36px;
+  gap: 0.5rem;
+  align-items: center;
+  background: rgba(15, 23, 42, 0.6);
+  padding: 0.45rem 0.65rem;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.pendiente-edit-row {
+  display: grid;
+  grid-template-columns: 1.4fr 90px 1.6fr 36px;
   gap: 0.5rem;
   align-items: center;
   background: rgba(15, 23, 42, 0.6);

@@ -68,11 +68,12 @@ const DEFAULT_RECORD = {
     titulo: 'TOTAL PLAN DE CARGAS N-02 12 OCTUBRE 2026',
     cargasProgramadas: 58,
     cargasPendientes: [
-      { id: 1, folioDestino: 'CS00381549 · EKT OCOSINGO', capacidad: 50 },
-      { id: 2, folioDestino: 'CS00381519 · EKT ACAYUCAN', capacidad: 50 },
-      { id: 3, folioDestino: 'CS00381535 · MEGA PALENQUE', capacidad: 50 }
+      { id: 1, folioDestino: 'CS00381549 - 2077 EKT OCOSINGO DE 50M', capacidad: 50, observacion: 'UNA UNIDAD ESCALONADA POR DIA' },
+      { id: 2, folioDestino: 'CS00381519 - 7809 EKT ACAYUCAN DE 50M', capacidad: 50, observacion: 'AFECTACION QUE TUVO CEDIS CON SISTEMAS PARA EL VALLEY' },
+      { id: 3, folioDestino: 'CS00381535 - 7579 EKT MEGA PALENQUE 50M', capacidad: 50, observacion: 'UNIDAD INGRESO A TALLER' }
     ]
-  }
+  },
+  observacionesGenerales: ''
 };
 
 const formatDateToSpanish = (dateStr) => {
@@ -416,7 +417,7 @@ export const PlanColocacionView = () => {
           ...prev.planProximo,
           cargasPendientes: [
             ...prev.planProximo.cargasPendientes,
-            { id: newId, folioDestino: 'CS00000000 · NUEVO DESTINO', capacidad: 50 }
+            { id: newId, folioDestino: 'CS00000000 - NUEVO DESTINO', capacidad: 50, observacion: 'MOTIVO / OBSERVACION' }
           ]
         }
       };
@@ -786,22 +787,38 @@ export const PlanColocacionView = () => {
                   </div>
                   <div className="panel-body body-n2-right">
                     <table className="flyer-table table-n2">
+                      <thead>
+                        <tr>
+                          <th style={{ textAlign: 'left' }}>Folio / Destino</th>
+                          <th style={{ width: '55px', textAlign: 'center' }}>m³</th>
+                          <th style={{ textAlign: 'left' }}>Observaciones</th>
+                        </tr>
+                      </thead>
                       <tbody>
                         {currentData.planProximo.cargasPendientes.map((p, idx) => (
-                          <tr key={p.id || idx}>
+                          <tr key={p.id || idx} className={idx % 2 === 0 ? 'row-n2-even' : 'row-n2-odd'}>
                             <td className="n2-folio-cell">{p.folioDestino}</td>
                             <td className="n2-cap-cell">{p.capacidad} m³</td>
+                            <td className="n2-obs-cell">{p.observacion || '-'}</td>
                           </tr>
                         ))}
                         <tr className="n2-total-row">
                           <td className="n2-total-lbl">TOTAL:</td>
                           <td className="n2-total-val">{totalPendientesMetros} m³</td>
+                          <td className="n2-total-empty"></td>
                         </tr>
                       </tbody>
                     </table>
                   </div>
                 </div>
               </div>
+
+              {currentData.observacionesGenerales && (
+                <div className="flyer-observaciones-strip">
+                  <span className="obs-strip-badge">OBSERVACIONES:</span>
+                  <span className="obs-strip-text">{currentData.observacionesGenerales}</span>
+                </div>
+              )}
             </div>
           </main>
         </div>
@@ -1143,11 +1160,11 @@ export const PlanColocacionView = () => {
 
                   <div className="piezas-edit-list">
                     {editForm.planProximo.cargasPendientes.map((p) => (
-                      <div key={p.id} className="pieza-edit-row">
+                      <div key={p.id} className="pendiente-edit-row">
                         <input 
                           type="text" 
-                          className="form-control" 
-                          placeholder="Folio y Destino (ej: CS00381549 · EKT OCOSINGO)"
+                          className="form-control input-folio" 
+                          placeholder="Folio y Destino"
                           value={p.folioDestino}
                           onChange={(e) => handleUpdateCargaPendiente(p.id, 'folioDestino', e.target.value)}
                         />
@@ -1163,6 +1180,14 @@ export const PlanColocacionView = () => {
                           <span className="unit-label">m³</span>
                         </div>
 
+                        <input 
+                          type="text" 
+                          className="form-control input-obs" 
+                          placeholder="Observaciones (ej: UNA UNIDAD ESCALONADA POR DIA)"
+                          value={p.observacion || ''}
+                          onChange={(e) => handleUpdateCargaPendiente(p.id, 'observacion', e.target.value)}
+                        />
+
                         <button 
                           className="btn-delete-row"
                           onClick={() => handleRemoveCargaPendiente(p.id)}
@@ -1172,6 +1197,17 @@ export const PlanColocacionView = () => {
                         </button>
                       </div>
                     ))}
+                  </div>
+
+                  <div className="form-group full-width" style={{ marginTop: '1.25rem' }}>
+                    <label>Observaciones Generales del Día (Opcional)</label>
+                    <textarea 
+                      className="form-control"
+                      rows={2}
+                      placeholder="Notas u observaciones generales para el pie de la infografía..."
+                      value={editForm.observacionesGenerales || ''}
+                      onChange={(e) => setEditForm({ ...editForm, observacionesGenerales: e.target.value })}
+                    />
                   </div>
                 </div>
               )}
