@@ -20,8 +20,7 @@ import {
   RefreshCw,
   Sparkles,
   Save,
-  X,
-  RotateCcw
+  X
 } from 'lucide-react';
 
 const STORAGE_KEY = 'baz_plan_colocacion_records_v1';
@@ -259,6 +258,10 @@ export const PlanColocacionView = () => {
     if (!editForm) return;
 
     const totalCargasM3 = (editForm.cargasEjecutadas || []).reduce((acc, c) => acc + (Number(c.capacidad) || 0), 0);
+    const ejec = editForm.cargasEjecutadas?.length || editForm.kpis.cargasEjecutadas;
+    const prog = Number(editForm.kpis.planProgramado) || 0;
+    const cumpl = prog > 0 ? Number(((ejec / prog) * 100).toFixed(1)) : 0;
+    const pend = Math.max(0, prog - ejec);
 
     const updated = {
       ...editForm,
@@ -266,7 +269,9 @@ export const PlanColocacionView = () => {
       updatedAt: new Date().toISOString(),
       kpis: {
         ...editForm.kpis,
-        cargasEjecutadas: editForm.cargasEjecutadas?.length || editForm.kpis.cargasEjecutadas,
+        cargasEjecutadas: ejec,
+        pendientes: pend,
+        cumplimiento: cumpl,
         metrosRemisionados: totalCargasM3 > 0 ? totalCargasM3 : editForm.kpis.metrosRemisionados
       }
     };
@@ -293,29 +298,38 @@ export const PlanColocacionView = () => {
     }
   };
 
-  const handleDuplicateYesterday = async () => {
-    const [y, m, d] = currentDate.split('-').map(Number);
-    const prevKey = toDateKey(new Date(y, m - 1, d - 1));
-    const prevRecord = records[prevKey] || DEFAULT_RECORD;
+  const handleSaveDay = async () => {
+    const totalCargasM3 = (currentData.cargasEjecutadas || []).reduce((acc, c) => acc + (Number(c.capacidad) || 0), 0);
+    const ejec = currentData.cargasEjecutadas?.length || currentData.kpis.cargasEjecutadas;
+    const prog = Number(currentData.kpis.planProgramado) || 0;
+    const cumpl = prog > 0 ? Number(((ejec / prog) * 100).toFixed(1)) : 0;
+    const pend = Math.max(0, prog - ejec);
 
-    const duplicated = {
-      ...JSON.parse(JSON.stringify(prevRecord)),
-      fecha: currentDate,
-      fechaTexto: formatDateToSpanish(currentDate),
+    const updated = {
+      ...currentData,
       updatedAt: new Date().toISOString(),
-      planProximo: {
-        ...prevRecord.planProximo,
-        titulo: getNextDayFormatted(currentDate)
+      kpis: {
+        ...currentData.kpis,
+        cargasEjecutadas: ejec,
+        pendientes: pend,
+        cumplimiento: cumpl,
+        metrosRemisionados: totalCargasM3 > 0 ? totalCargasM3 : currentData.kpis.metrosRemisionados
       }
     };
 
     setRecords((prev) => ({
       ...prev,
-      [currentDate]: duplicated
+      [currentDate]: updated
     }));
 
-    await persistToCloud(duplicated);
-    showToast(`¡Se clonó la estructura del día anterior (${prevKey})!`);
+    const ok = await persistToCloud(updated);
+    if (ok) {
+      showToast(`¡Día guardado en la nube! (${formatDateToSpanish(currentDate)})`);
+    } else if (isSupabaseConfigured()) {
+      showToast('Se guardó en este equipo, pero falló la sincronización con la nube.');
+    } else {
+      showToast('Guardado en este equipo.');
+    }
   };
 
   const handleDownloadImage = async () => {
@@ -584,16 +598,17 @@ export const PlanColocacionView = () => {
 
         <div className="colocacion-actions">
           <button 
-            className="btn btn-secondary btn-header-action"
-            onClick={handleDuplicateYesterday}
-            title="Copiar datos y estructura del día previo"
+            className="btn btn-primary btn-header-action btn-save-action"
+            onClick={handleSaveDay}
+            disabled={cloudStatus === 'saving'}
+            title="Guardar y respaldar los datos de este día en la nube (Supabase)"
           >
-            <RotateCcw size={15} />
-            <span>Clonar de ayer</span>
+            <Save size={15} />
+            <span>Guardar Día</span>
           </button>
 
           <button 
-            className="btn btn-primary btn-header-action"
+            className="btn btn-secondary btn-header-action"
             onClick={handleOpenEdit}
             title="Editar la información de este día"
           >
@@ -786,7 +801,24 @@ export const PlanColocacionView = () => {
                 </div>
 
                 <div className="panel-body body-movimientos">
-                  <div className="movimientos-left-box">
+                  <div className="movimientos-table-col">
+                    <table className="flyer-table table-piezas">
+                      <tbody>
+                        {currentData.piezas.categorias.map((cat, idx) => (
+                          <tr key={cat.id || idx} className={idx % 2 === 0 ? 'row-piezas-even' : 'row-piezas-odd'}>
+                            <td className="piezas-cat-name">{cat.categoria}</td>
+                            <td className="piezas-cat-qty">{Number(cat.cantidad).toLocaleString()}</td>
+                          </tr>
+                        ))}
+                        <tr className="row-piezas-total">
+                          <td className="piezas-total-lbl">TOTAL:</td>
+                          <td className="piezas-total-val">{Number(totalPiezasCount).toLocaleString()} piezas</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+
+                  <div className="movimientos-boxes-col">
                     <div className="box-mini-card">
                       <div className="box-icon-container">
                         <BoxParcelIcon />
@@ -806,23 +838,6 @@ export const PlanColocacionView = () => {
                         <span className="box-val">{currentData.piezas.dotCom}</span>
                       </div>
                     </div>
-                  </div>
-
-                  <div className="movimientos-right-table">
-                    <table className="flyer-table table-piezas">
-                      <tbody>
-                        {currentData.piezas.categorias.map((cat, idx) => (
-                          <tr key={cat.id || idx} className={idx % 2 === 0 ? 'row-piezas-even' : 'row-piezas-odd'}>
-                            <td className="piezas-cat-name">{cat.categoria}</td>
-                            <td className="piezas-cat-qty">{Number(cat.cantidad).toLocaleString()}</td>
-                          </tr>
-                        ))}
-                        <tr className="row-piezas-total">
-                          <td className="piezas-total-lbl">TOTAL:</td>
-                          <td className="piezas-total-val">{Number(totalPiezasCount).toLocaleString()} piezas</td>
-                        </tr>
-                      </tbody>
-                    </table>
                   </div>
                 </div>
               </div>

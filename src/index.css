@@ -3536,6 +3536,16 @@ body {
   flex-wrap: wrap;
 }
 
+.btn-save-action {
+  background: rgba(16, 185, 129, 0.18) !important;
+  color: #34d399 !important;
+  border-color: rgba(52, 211, 153, 0.45) !important;
+}
+
+.btn-save-action:hover {
+  background: rgba(16, 185, 129, 0.28) !important;
+}
+
 .btn-copy-action {
   background: rgba(14, 165, 233, 0.12) !important;
   color: #38bdf8 !important;
@@ -3949,7 +3959,7 @@ body {
 
 .panel-movimientos .body-movimientos {
   display: grid;
-  grid-template-columns: 145px 1fr;
+  grid-template-columns: 1fr 145px;
   border: 1px solid #cbd5e1;
   border-top: none;
   border-radius: 0 0 7px 7px;
@@ -3957,6 +3967,12 @@ body {
   background: #ffffff;
 }
 
+.movimientos-table-col,
+.movimientos-right-table {
+  width: 100%;
+}
+
+.movimientos-boxes-col,
 .movimientos-left-box {
   display: flex;
   flex-direction: column;
@@ -3964,7 +3980,7 @@ body {
   gap: 0.75rem;
   padding: 0.75rem;
   background: #f8fafc;
-  border-right: 1px solid #e2e8f0;
+  border-left: 1px solid #e2e8f0;
 }
 
 .box-mini-card {
@@ -4000,10 +4016,6 @@ body {
   font-weight: 900;
   color: #0f172a;
   line-height: 1;
-}
-
-.movimientos-right-table {
-  width: 100%;
 }
 
 .table-piezas {
