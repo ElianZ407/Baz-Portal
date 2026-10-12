@@ -73,7 +73,7 @@ const DEFAULT_RECORD = {
       { id: 3, folioDestino: 'CS00381535 - 7579 EKT MEGA PALENQUE 50M', capacidad: 50, observacion: 'UNIDAD INGRESO A TALLER' }
     ]
   },
-  observacionesGenerales: ''
+  observacionesGenerales: 'UNA UNIDAD ESCALONADA POR DÍA. AFECTACIÓN QUE TUVO CEDIS CON SISTEMAS PARA EL VALLEY. UNIDAD INGRESÓ A TALLER.'
 };
 
 const formatDateToSpanish = (dateStr) => {
@@ -685,6 +685,13 @@ export const PlanColocacionView = () => {
                     TOTAL {totalCargasCount} cargas – {Number(totalCargasMetros).toLocaleString()} metros remisionados
                   </span>
                 </div>
+
+                <div className="flyer-observaciones-cargas">
+                  <span className="obs-cargas-badge">OBSERVACIONES:</span>
+                  <span className="obs-cargas-text">
+                    {currentData.observacionesGenerales || 'Sin observaciones registradas.'}
+                  </span>
+                </div>
               </div>
             </div>
 
@@ -812,13 +819,6 @@ export const PlanColocacionView = () => {
                   </div>
                 </div>
               </div>
-
-              {currentData.observacionesGenerales && (
-                <div className="flyer-observaciones-strip">
-                  <span className="obs-strip-badge">OBSERVACIONES:</span>
-                  <span className="obs-strip-text">{currentData.observacionesGenerales}</span>
-                </div>
-              )}
             </div>
           </main>
         </div>
@@ -1005,6 +1005,17 @@ export const PlanColocacionView = () => {
                         </button>
                       </div>
                     ))}
+                  </div>
+
+                  <div className="form-group full-width" style={{ marginTop: '1.25rem' }}>
+                    <label>Observaciones (Aparece abajo del Total de Cargas)</label>
+                    <textarea 
+                      className="form-control"
+                      rows={2}
+                      placeholder="Observaciones de la operación (ej: UNA UNIDAD ESCALONADA POR DÍA...)"
+                      value={editForm.observacionesGenerales || ''}
+                      onChange={(e) => setEditForm({ ...editForm, observacionesGenerales: e.target.value })}
+                    />
                   </div>
                 </div>
               )}
