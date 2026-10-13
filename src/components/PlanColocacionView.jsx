@@ -75,7 +75,7 @@ const DEFAULT_RECORD = {
       { id: 3, folioDestino: 'CS00381535 - 7579 EKT MEGA PALENQUE 50M', capacidad: 50, observacion: 'UNIDAD INGRESO A TALLER' }
     ]
   },
-  observacionesGenerales: 'PENDIENTES POR FALTA DE UNIDADES'
+  observacionesGenerales: 'SE SUMAN LAS CARGAS PENDIENTES CON LAS DEL PLAN N-02'
 };
 
 const formatDateToSpanish = (dateStr) => {
@@ -233,7 +233,7 @@ const normalizeRecord = (raw, dateKey) => {
     },
     observacionesGenerales: raw.observacionesGenerales !== undefined 
       ? raw.observacionesGenerales 
-      : 'PENDIENTES POR FALTA DE UNIDADES'
+      : 'SE SUMAN LAS CARGAS PENDIENTES CON LAS DEL PLAN N-02'
   };
 };
 
@@ -1006,7 +1006,7 @@ export const PlanColocacionView = () => {
                 <div className="flyer-observaciones-cargas">
                   <span className="obs-cargas-badge">OBSERVACIONES:</span>
                   <span className="obs-cargas-text">
-                    {currentData.observacionesGenerales || 'PENDIENTES POR FALTA DE UNIDADES'}
+                    {currentData.observacionesGenerales || 'SE SUMAN LAS CARGAS PENDIENTES CON LAS DEL PLAN N-02'}
                   </span>
                 </div>
               </div>
@@ -1113,7 +1113,7 @@ export const PlanColocacionView = () => {
                           </td>
                           <td className="n2-cap-cell">-</td>
                           <td className="n2-obs-cell">
-                            PENDIENTES POR FALTA DE UNIDADES
+                            SE SUMAN LAS CARGAS PENDIENTES CON LAS DEL PLAN N-02
                           </td>
                         </tr>
                       ) : (
@@ -1121,7 +1121,7 @@ export const PlanColocacionView = () => {
                           <tr key={p.id || idx} className={idx % 2 === 0 ? 'row-n2-even' : 'row-n2-odd'}>
                             <td className="n2-folio-cell">{p.folioDestino}</td>
                             <td className="n2-cap-cell">{p.capacidad} m³</td>
-                            <td className="n2-obs-cell">{p.observacion || 'PENDIENTES POR FALTA DE UNIDADES'}</td>
+                            <td className="n2-obs-cell">{p.observacion || 'SE SUMAN LAS CARGAS PENDIENTES CON LAS DEL PLAN N-02'}</td>
                           </tr>
                         ))
                       )}
@@ -1348,7 +1348,7 @@ export const PlanColocacionView = () => {
                     <textarea 
                       className="form-control"
                       rows={2}
-                      placeholder="Observaciones de la operación (ej: PENDIENTES POR FALTA DE UNIDADES)"
+                      placeholder="Observaciones de la operación (ej: SE SUMAN LAS CARGAS PENDIENTES CON LAS DEL PLAN N-02)"
                       value={editForm.observacionesGenerales || ''}
                       onChange={(e) => setEditForm({ ...editForm, observacionesGenerales: e.target.value })}
                     />
@@ -1557,7 +1557,7 @@ export const PlanColocacionView = () => {
                     <textarea 
                       className="form-control"
                       rows={2}
-                      placeholder="Notas u observaciones generales (ej: PENDIENTES POR FALTA DE UNIDADES)..."
+                      placeholder="Notas u observaciones generales (ej: SE SUMAN LAS CARGAS PENDIENTES CON LAS DEL PLAN N-02)..."
                       value={editForm.observacionesGenerales || ''}
                       onChange={(e) => setEditForm({ ...editForm, observacionesGenerales: e.target.value })}
                     />
