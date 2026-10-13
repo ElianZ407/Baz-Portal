@@ -186,55 +186,59 @@ export const Header = () => {
             </>
           )}
 
-          <button 
-            className="btn btn-secondary btn-header-action" 
-            style={{ 
-              borderColor: 'rgba(6, 182, 212, 0.4)', 
-              background: 'rgba(6, 182, 212, 0.12)',
-              color: '#22d3ee'
-            }}
-            onClick={() => setIsSavePlanModalOpen(true)}
-            title="Guardar / Archivar el plan del día y opcionalmente comenzar nuevo día"
-          >
-            <Save size={15} color="#22d3ee" />
-            <span className="btn-label-text" style={{ fontWeight: 700 }}>Guardar Día</span>
-          </button>
+          {activeArea !== 'colocacion' && (
+            <>
+              <button 
+                className="btn btn-secondary btn-header-action" 
+                style={{ 
+                  borderColor: 'rgba(6, 182, 212, 0.4)', 
+                  background: 'rgba(6, 182, 212, 0.12)',
+                  color: '#22d3ee'
+                }}
+                onClick={() => setIsSavePlanModalOpen(true)}
+                title="Guardar / Archivar el plan del día y opcionalmente comenzar nuevo día"
+              >
+                <Save size={15} color="#22d3ee" />
+                <span className="btn-label-text" style={{ fontWeight: 700 }}>Guardar Día</span>
+              </button>
 
-          <button 
-            className="btn btn-secondary btn-header-action" 
-            style={{ 
-              borderColor: 'rgba(168, 85, 247, 0.4)', 
-              background: 'rgba(168, 85, 247, 0.12)',
-              color: '#c084fc',
-              display: 'flex',
-              alignItems: 'center'
-            }}
-            onClick={() => setIsHistoryModalOpen(true)}
-            title="Consultar historial de planes guardados, exportar sus Excel o restaurarlos"
-          >
-            <History size={15} color="#c084fc" />
-            <span className="btn-label-text" style={{ fontWeight: 700 }}>Historial</span>
-            {savedPlans && savedPlans.length > 0 && (
-              <span className="history-badge">
-                {savedPlans.length}
-              </span>
-            )}
-          </button>
+              <button 
+                className="btn btn-secondary btn-header-action" 
+                style={{ 
+                  borderColor: 'rgba(168, 85, 247, 0.4)', 
+                  background: 'rgba(168, 85, 247, 0.12)',
+                  color: '#c084fc',
+                  display: 'flex',
+                  alignItems: 'center'
+                }}
+                onClick={() => setIsHistoryModalOpen(true)}
+                title="Consultar historial de planes guardados, exportar sus Excel o restaurarlos"
+              >
+                <History size={15} color="#c084fc" />
+                <span className="btn-label-text" style={{ fontWeight: 700 }}>Historial</span>
+                {savedPlans && savedPlans.length > 0 && (
+                  <span className="history-badge">
+                    {savedPlans.length}
+                  </span>
+                )}
+              </button>
 
-          {activeArea !== 'planeacion' && (
-            <button 
-              className="btn btn-secondary btn-header-action" 
-              style={{ 
-                borderColor: 'rgba(34, 197, 94, 0.45)', 
-                background: 'rgba(34, 197, 94, 0.12)',
-                color: '#4ade80'
-              }}
-              onClick={handleExportExcel}
-              title={getExportButtonTitle()}
-            >
-              <FileSpreadsheet size={15} color="#4ade80" />
-              <span className="btn-label-text" style={{ fontWeight: 700 }}>{getExportButtonLabel()}</span>
-            </button>
+              {activeArea !== 'planeacion' && (
+                <button 
+                  className="btn btn-secondary btn-header-action" 
+                  style={{ 
+                    borderColor: 'rgba(34, 197, 94, 0.45)', 
+                    background: 'rgba(34, 197, 94, 0.12)',
+                    color: '#4ade80'
+                  }}
+                  onClick={handleExportExcel}
+                  title={getExportButtonTitle()}
+                >
+                  <FileSpreadsheet size={15} color="#4ade80" />
+                  <span className="btn-label-text" style={{ fontWeight: 700 }}>{getExportButtonLabel()}</span>
+                </button>
+              )}
+            </>
           )}
         </div>
 

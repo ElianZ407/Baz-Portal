@@ -122,7 +122,7 @@ const BoxParcelIcon = () => (
 );
 
 const normalizeRecord = (raw, dateKey) => {
-  const targetDate = (raw && raw.fecha) || dateKey || '2026-10-11';
+  const targetDate = (raw && raw.fecha) || dateKey || '2026-10-12';
   if (!raw || typeof raw !== 'object') {
     return {
       ...DEFAULT_RECORD,
@@ -135,7 +135,11 @@ const normalizeRecord = (raw, dateKey) => {
     };
   }
 
-  const planProg = Number(raw.kpis?.planProgramado) || 0;
+  const rawKpis = raw.kpis || {};
+  const planProg = rawKpis.planProgramado !== undefined && rawKpis.planProgramado !== ''
+    ? Number(rawKpis.planProgramado) || 0
+    : DEFAULT_RECORD.kpis.planProgramado;
+
   const rawCargas = Array.isArray(raw.cargasEjecutadas) ? raw.cargasEjecutadas : DEFAULT_RECORD.cargasEjecutadas;
   const cargasEjec = rawCargas.map((c, i) => ({
     id: c.id ?? i + 1,
@@ -146,10 +150,23 @@ const normalizeRecord = (raw, dateKey) => {
     estatus: c.estatus || 'Ejecutada'
   }));
 
-  const ejecCount = cargasEjec.length || (Number(raw.kpis?.cargasEjecutadas) || 0);
-  const pendCount = Math.max(0, planProg - ejecCount);
-  const cumpl = planProg > 0 ? Number(((ejecCount / planProg) * 100).toFixed(1)) : 0;
+  const ejecCount = rawKpis.cargasEjecutadas !== undefined && rawKpis.cargasEjecutadas !== ''
+    ? Number(rawKpis.cargasEjecutadas) || 0
+    : (cargasEjec.length > 0 ? cargasEjec.length : DEFAULT_RECORD.kpis.cargasEjecutadas);
+
+  const pendCount = rawKpis.pendientes !== undefined && rawKpis.pendientes !== ''
+    ? Number(rawKpis.pendientes) || 0
+    : Math.max(0, planProg - ejecCount);
+
+  const cumpl = rawKpis.cumplimiento !== undefined && rawKpis.cumplimiento !== ''
+    ? Number(rawKpis.cumplimiento) || 0
+    : (planProg > 0 ? Number(((ejecCount / planProg) * 100).toFixed(1)) : 0);
+
   const totalMetros = cargasEjec.reduce((acc, c) => acc + (Number(c.capacidad) || 0), 0);
+
+  const metrosRem = rawKpis.metrosRemisionados !== undefined && rawKpis.metrosRemisionados !== ''
+    ? Number(rawKpis.metrosRemisionados) || 0
+    : (totalMetros > 0 ? totalMetros : DEFAULT_RECORD.kpis.metrosRemisionados);
 
   const rawCategorias = Array.isArray(raw.piezas?.categorias) ? raw.piezas.categorias : DEFAULT_RECORD.piezas.categorias;
   const categorias = rawCategorias.map((cat, i) => ({
@@ -166,6 +183,10 @@ const normalizeRecord = (raw, dateKey) => {
     observacion: p.observacion || ''
   }));
 
+  const rawPiezas = raw.piezas || {};
+  const rawComp = raw.comportamiento || {};
+  const rawPlanProx = raw.planProximo || {};
+
   return {
     ...DEFAULT_RECORD,
     ...raw,
@@ -174,34 +195,34 @@ const normalizeRecord = (raw, dateKey) => {
     plaza: raw.plaza || 'VILLAHERMOSA',
     updatedAt: raw.updatedAt || undefined,
     kpis: {
-      ...DEFAULT_RECORD.kpis,
-      ...(raw.kpis || {}),
       planProgramado: planProg,
       cargasEjecutadas: ejecCount,
-      pendientes: raw.kpis?.pendientes !== undefined ? Number(raw.kpis.pendientes) : pendCount,
-      cumplimiento: raw.kpis?.cumplimiento !== undefined ? Number(raw.kpis.cumplimiento) : cumpl,
-      metrosRemisionados: totalMetros > 0 ? totalMetros : (Number(raw.kpis?.metrosRemisionados) || DEFAULT_RECORD.kpis.metrosRemisionados)
+      pendientes: pendCount,
+      cumplimiento: cumpl,
+      metrosRemisionados: metrosRem
     },
     cargasEjecutadas: cargasEjec,
     piezas: {
-      ...DEFAULT_RECORD.piezas,
-      ...(raw.piezas || {}),
-      ppes: Number(raw.piezas?.ppes) || 0,
-      dotCom: Number(raw.piezas?.dotCom) || 0,
+      ppes: rawPiezas.ppes !== undefined && rawPiezas.ppes !== '' ? Number(rawPiezas.ppes) || 0 : 0,
+      dotCom: rawPiezas.dotCom !== undefined && rawPiezas.dotCom !== '' ? Number(rawPiezas.dotCom) || 0 : 0,
       categorias
     },
     comportamiento: {
-      ...DEFAULT_RECORD.comportamiento,
-      ...(raw.comportamiento || {}),
-      promedioDiarioAsignadoFC: Number(raw.comportamiento?.promedioDiarioAsignadoFC) || DEFAULT_RECORD.comportamiento.promedioDiarioAsignadoFC,
-      promedioDiarioOperado: Number(raw.comportamiento?.promedioDiarioOperado) || DEFAULT_RECORD.comportamiento.promedioDiarioOperado,
-      remisionadoAcumulado: Number(raw.comportamiento?.remisionadoAcumulado) || DEFAULT_RECORD.comportamiento.remisionadoAcumulado
+      promedioDiarioAsignadoFC: rawComp.promedioDiarioAsignadoFC !== undefined && rawComp.promedioDiarioAsignadoFC !== ''
+        ? Number(rawComp.promedioDiarioAsignadoFC) || 0
+        : DEFAULT_RECORD.comportamiento.promedioDiarioAsignadoFC,
+      promedioDiarioOperado: rawComp.promedioDiarioOperado !== undefined && rawComp.promedioDiarioOperado !== ''
+        ? Number(rawComp.promedioDiarioOperado) || 0
+        : DEFAULT_RECORD.comportamiento.promedioDiarioOperado,
+      remisionadoAcumulado: rawComp.remisionadoAcumulado !== undefined && rawComp.remisionadoAcumulado !== ''
+        ? Number(rawComp.remisionadoAcumulado) || 0
+        : DEFAULT_RECORD.comportamiento.remisionadoAcumulado
     },
     planProximo: {
-      ...DEFAULT_RECORD.planProximo,
-      ...(raw.planProximo || {}),
-      titulo: raw.planProximo?.titulo || getNextDayFormatted(targetDate),
-      cargasProgramadas: Number(raw.planProximo?.cargasProgramadas) || DEFAULT_RECORD.planProximo.cargasProgramadas,
+      titulo: rawPlanProx.titulo || getNextDayFormatted(targetDate),
+      cargasProgramadas: rawPlanProx.cargasProgramadas !== undefined && rawPlanProx.cargasProgramadas !== ''
+        ? Number(rawPlanProx.cargasProgramadas) || 0
+        : DEFAULT_RECORD.planProximo.cargasProgramadas,
       cargasPendientes
     },
     observacionesGenerales: raw.observacionesGenerales !== undefined 
@@ -211,25 +232,46 @@ const normalizeRecord = (raw, dateKey) => {
 };
 
 export const PlanColocacionView = () => {
+  const toDateKey = (date) => {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const d = String(date.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+  };
+
   const [records, setRecords] = useState(() => {
     try {
       const saved = window.localStorage.getItem(STORAGE_KEY);
       if (saved) {
         const parsed = JSON.parse(saved);
         if (parsed && typeof parsed === 'object') {
-          return {
-            '2026-10-11': DEFAULT_RECORD,
-            ...parsed
-          };
+          return parsed;
         }
       }
-    } catch {
-      return { '2026-10-11': DEFAULT_RECORD };
-    }
+    } catch {}
     return { '2026-10-11': DEFAULT_RECORD };
   });
 
-  const [currentDate, setCurrentDate] = useState('2026-10-11');
+  const [currentDate, setCurrentDate] = useState(() => {
+    try {
+      const savedLast = window.localStorage.getItem('baz_plan_colocacion_active_date');
+      if (savedLast) return savedLast;
+    } catch {}
+    const now = new Date();
+    const y = now.getFullYear();
+    const m = String(now.getMonth() + 1).padStart(2, '0');
+    const d = String(now.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+  });
+
+  const handleDateChange = (newDate) => {
+    if (!newDate) return;
+    setCurrentDate(newDate);
+    try {
+      window.localStorage.setItem('baz_plan_colocacion_active_date', newDate);
+    } catch {}
+  };
+
   const [isEditing, setIsEditing] = useState(false);
   const [editForm, setEditForm] = useState(null);
   const [activeTab, setActiveTab] = useState('kpis');
@@ -240,13 +282,6 @@ export const PlanColocacionView = () => {
 
   const flyerRef = useRef(null);
 
-  const toDateKey = (date) => {
-    const y = date.getFullYear();
-    const m = String(date.getMonth() + 1).padStart(2, '0');
-    const d = String(date.getDate()).padStart(2, '0');
-    return `${y}-${m}-${d}`;
-  };
-
   const applyCloudRows = (rows) => {
     if (!rows) {
       setCloudStatus('error');
@@ -256,12 +291,7 @@ export const PlanColocacionView = () => {
       const next = { ...prev };
       rows.forEach((row) => {
         if (!row.fecha) return;
-        const local = next[row.fecha];
-        const cloudTime = row.updated_at ? new Date(row.updated_at).getTime() : 0;
-        const localTime = local?.updatedAt ? new Date(local.updatedAt).getTime() : 0;
-        if (!local || cloudTime >= localTime) {
-          next[row.fecha] = normalizeRecord({ ...row.datos, updatedAt: row.updated_at }, row.fecha);
-        }
+        next[row.fecha] = normalizeRecord({ ...row.datos, updatedAt: row.updated_at }, row.fecha);
       });
       return next;
     });
@@ -321,16 +351,16 @@ export const PlanColocacionView = () => {
 
   const handlePrevDay = () => {
     const [y, m, d] = currentDate.split('-').map(Number);
-    setCurrentDate(toDateKey(new Date(y, m - 1, d - 1)));
+    handleDateChange(toDateKey(new Date(y, m - 1, d - 1)));
   };
 
   const handleNextDay = () => {
     const [y, m, d] = currentDate.split('-').map(Number);
-    setCurrentDate(toDateKey(new Date(y, m - 1, d + 1)));
+    handleDateChange(toDateKey(new Date(y, m - 1, d + 1)));
   };
 
   const handleToday = () => {
-    setCurrentDate(toDateKey(new Date()));
+    handleDateChange(toDateKey(new Date()));
   };
 
   const handleOpenEdit = () => {
@@ -338,7 +368,6 @@ export const PlanColocacionView = () => {
     setEditForm({
       ...base,
       kpis: {
-        ...base.kpis,
         planProgramado: String(base.kpis.planProgramado ?? ''),
         cargasEjecutadas: String(base.kpis.cargasEjecutadas ?? ''),
         pendientes: String(base.kpis.pendientes ?? ''),
@@ -350,9 +379,8 @@ export const PlanColocacionView = () => {
         capacidad: String(c.capacidad ?? '')
       })),
       piezas: {
-        ...base.piezas,
-        ppes: String(base.piezas.ppes ?? ''),
-        dotCom: String(base.piezas.dotCom ?? ''),
+        ppes: String(base.piezas?.ppes ?? ''),
+        dotCom: String(base.piezas?.dotCom ?? ''),
         categorias: base.piezas.categorias.map((cat) => ({
           ...cat,
           cantidad: String(cat.cantidad ?? '')
@@ -394,9 +422,7 @@ export const PlanColocacionView = () => {
         [targetFecha]: normalized
       }));
 
-      if (targetFecha !== currentDate) {
-        setCurrentDate(targetFecha);
-      }
+      handleDateChange(targetFecha);
 
       setIsEditing(false);
       setEditForm(null);
@@ -719,7 +745,7 @@ export const PlanColocacionView = () => {
               type="date" 
               className="colocacion-date-input" 
               value={currentDate}
-              onChange={(e) => setCurrentDate(e.target.value)}
+              onChange={(e) => handleDateChange(e.target.value)}
             />
           </div>
 
@@ -735,7 +761,7 @@ export const PlanColocacionView = () => {
             <select
               className="colocacion-saved-select"
               value={savedDates.includes(currentDate) ? currentDate : ''}
-              onChange={(e) => e.target.value && setCurrentDate(e.target.value)}
+              onChange={(e) => e.target.value && handleDateChange(e.target.value)}
               title="Ir a un día guardado"
             >
               <option value="">Días guardados ({savedDates.length})</option>
