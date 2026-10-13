@@ -20,63 +20,20 @@ import {
   RefreshCw,
   Sparkles,
   Save,
+  RotateCcw,
   X
 } from 'lucide-react';
 
 const STORAGE_KEY = 'baz_plan_colocacion_records_v1';
 
-const DEFAULT_RECORD = {
-  fecha: '2026-10-11',
-  fechaTexto: '11 DE OCTUBRE DE 2026',
-  plaza: 'VILLAHERMOSA',
-  kpis: {
-    planProgramado: 36,
-    cargasEjecutadas: 33,
-    pendientes: 3,
-    cumplimiento: 91.7,
-    metrosRemisionados: 1237
-  },
-  cargasEjecutadas: [
-    { id: 1, destino: 'Frontera', tipo: 'Retail', capacidad: 18, linea: 'LTI - VHS', estatus: 'Ejecutada' },
-    { id: 2, destino: 'Cárdenas Tabasco', tipo: 'Foráneo', capacidad: 50, linea: 'VALLEY', estatus: 'Ejecutada' },
-    { id: 3, destino: 'Jalpa de Méndez', tipo: 'HUB', capacidad: 50, linea: 'BRITO', estatus: 'Ejecutada' },
-    { id: 4, destino: 'HUB Tuxtla', tipo: 'Retail', capacidad: 153, linea: 'VALLEY', estatus: 'Ejecutada' },
-    { id: 5, destino: 'Coatzacoalcos', tipo: 'Foráneo', capacidad: 50, linea: 'VALLEY', estatus: 'Ejecutada' },
-    { id: 6, destino: 'Tonalá Chiapas', tipo: 'Foráneo', capacidad: 90, linea: 'LIBRA EXPRESS', estatus: 'Ejecutada' },
-    { id: 7, destino: 'Tapachula', tipo: 'Foráneo', capacidad: 110, linea: 'VALLEY', estatus: 'Ejecutada' },
-    { id: 8, destino: 'Matías Romero', tipo: 'HUB', capacidad: 110, linea: 'BRITO', estatus: 'Ejecutada' },
-    { id: 9, destino: 'Pichucalco', tipo: 'Foráneo', capacidad: 50, linea: 'LTI - VHS', estatus: 'Ejecutada' },
-    { id: 10, destino: 'Las Choapas', tipo: 'Foráneo', capacidad: 50, linea: 'LTI - VHS', estatus: 'Ejecutada' },
-    { id: 11, destino: 'Huimanguillo', tipo: 'Foráneo', capacidad: 110, linea: 'LIBRA EXPRESS', estatus: 'Ejecutada' }
-  ],
-  piezas: {
-    ppes: 0,
-    dotCom: 0,
-    categorias: [
-      { id: 1, categoria: 'Italikas', cantidad: 484 },
-      { id: 2, categoria: 'Conectividad', cantidad: 378 },
-      { id: 3, categoria: 'Colchones y Box', cantidad: 61 },
-      { id: 4, categoria: 'Entretenimiento', cantidad: 479 },
-      { id: 5, categoria: 'Muebles y Hogar', cantidad: 29 },
-      { id: 6, categoria: 'LB Enseres', cantidad: 312 }
-    ]
-  },
-  comportamiento: {
-    promedioDiarioAsignadoFC: 2797,
-    promedioDiarioOperado: 1539,
-    remisionadoAcumulado: 16624
-  },
-  planProximo: {
-    titulo: 'TOTAL PLAN DE CARGAS N-02 12 OCTUBRE 2026',
-    cargasProgramadas: 58,
-    cargasPendientes: [
-      { id: 1, folioDestino: 'CS00381549 - 2077 EKT OCOSINGO DE 50M', capacidad: 50, observacion: 'UNA UNIDAD ESCALONADA POR DIA' },
-      { id: 2, folioDestino: 'CS00381519 - 7809 EKT ACAYUCAN DE 50M', capacidad: 50, observacion: 'AFECTACION QUE TUVO CEDIS CON SISTEMAS PARA EL VALLEY' },
-      { id: 3, folioDestino: 'CS00381535 - 7579 EKT MEGA PALENQUE 50M', capacidad: 50, observacion: 'UNIDAD INGRESO A TALLER' }
-    ]
-  },
-  observacionesGenerales: 'SE SUMAN LAS CARGAS PENDIENTES CON LAS DEL PLAN N-02'
-};
+const DEFAULT_CATEGORIES = [
+  { id: 1, categoria: 'Italikas', cantidad: 0 },
+  { id: 2, categoria: 'Conectividad', cantidad: 0 },
+  { id: 3, categoria: 'Colchones y Box', cantidad: 0 },
+  { id: 4, categoria: 'Entretenimiento', cantidad: 0 },
+  { id: 5, categoria: 'Muebles y Hogar', cantidad: 0 },
+  { id: 6, categoria: 'LB Enseres', cantidad: 0 }
+];
 
 const formatDateToSpanish = (dateStr) => {
   if (!dateStr) return '';
@@ -111,6 +68,49 @@ const getNextDayFormatted = (dateStr) => {
   return `TOTAL PLAN DE CARGAS N-02 ${nextDate.getDate()} ${meses[nextDate.getMonth()]} ${nextDate.getFullYear()}`;
 };
 
+const getEmptyRecord = (targetDate) => ({
+  fecha: targetDate,
+  fechaTexto: formatDateToSpanish(targetDate),
+  plaza: 'VILLAHERMOSA',
+  kpis: {
+    planProgramado: 0,
+    cargasEjecutadas: 0,
+    pendientes: 0,
+    cumplimiento: 0,
+    metrosRemisionados: 0
+  },
+  cargasEjecutadas: [],
+  piezas: {
+    ppes: 0,
+    dotCom: 0,
+    categorias: DEFAULT_CATEGORIES.map((c) => ({ ...c }))
+  },
+  comportamiento: {
+    promedioDiarioAsignadoFC: 0,
+    promedioDiarioOperado: 0,
+    remisionadoAcumulado: 0
+  },
+  planProximo: {
+    titulo: getNextDayFormatted(targetDate),
+    cargasProgramadas: 0,
+    cargasPendientes: []
+  },
+  observacionesGenerales: 'SE SUMAN LAS CARGAS PENDIENTES CON LAS DEL PLAN N-02'
+});
+
+const cleanNumericInput = (val, isDecimal = false) => {
+  if (val === undefined || val === null) return '';
+  const str = String(val);
+  let cleaned = isDecimal ? str.replace(/[^0-9.]/g, '') : str.replace(/[^0-9]/g, '');
+  if (isDecimal) {
+    const parts = cleaned.split('.');
+    if (parts.length > 2) cleaned = `${parts[0]}.${parts.slice(1).join('')}`;
+  } else if (cleaned.length > 1 && cleaned.startsWith('0')) {
+    cleaned = cleaned.replace(/^0+/, '');
+  }
+  return cleaned;
+};
+
 const BoxParcelIcon = () => (
   <svg width="38" height="38" viewBox="0 0 48 48" fill="none" className="parcel-svg-icon">
     <path d="M24 4L42 14L24 24L6 14L24 4Z" fill="#d99859" stroke="#b46f2e" strokeWidth="1.5" />
@@ -124,25 +124,17 @@ const BoxParcelIcon = () => (
 const normalizeRecord = (raw, dateKey) => {
   const targetDate = (raw && raw.fecha) || dateKey || '2026-10-12';
   if (!raw || typeof raw !== 'object') {
-    return {
-      ...DEFAULT_RECORD,
-      fecha: targetDate,
-      fechaTexto: formatDateToSpanish(targetDate),
-      planProximo: {
-        ...DEFAULT_RECORD.planProximo,
-        titulo: getNextDayFormatted(targetDate)
-      }
-    };
+    return getEmptyRecord(targetDate);
   }
 
   const rawKpis = raw.kpis || {};
   const planProg = rawKpis.planProgramado !== undefined && rawKpis.planProgramado !== ''
     ? Number(rawKpis.planProgramado) || 0
-    : DEFAULT_RECORD.kpis.planProgramado;
+    : 0;
 
   const rawCargas = Array.isArray(raw.cargasEjecutadas)
     ? raw.cargasEjecutadas
-    : DEFAULT_RECORD.cargasEjecutadas;
+    : [];
   const cargasEjec = rawCargas.map((c, i) => ({
     id: c.id ?? i + 1,
     destino: c.destino || '',
@@ -154,7 +146,7 @@ const normalizeRecord = (raw, dateKey) => {
 
   const ejecCount = rawKpis.cargasEjecutadas !== undefined && rawKpis.cargasEjecutadas !== ''
     ? Number(rawKpis.cargasEjecutadas) || 0
-    : (cargasEjec.length > 0 ? cargasEjec.length : DEFAULT_RECORD.kpis.cargasEjecutadas);
+    : cargasEjec.length;
 
   const pendCount = rawKpis.pendientes !== undefined && rawKpis.pendientes !== ''
     ? Number(rawKpis.pendientes) || 0
@@ -168,11 +160,11 @@ const normalizeRecord = (raw, dateKey) => {
 
   const metrosRem = rawKpis.metrosRemisionados !== undefined && rawKpis.metrosRemisionados !== ''
     ? Number(rawKpis.metrosRemisionados) || 0
-    : (totalMetros > 0 ? totalMetros : DEFAULT_RECORD.kpis.metrosRemisionados);
+    : totalMetros;
 
   const rawCategorias = Array.isArray(raw.piezas?.categorias)
     ? raw.piezas.categorias
-    : DEFAULT_RECORD.piezas.categorias;
+    : DEFAULT_CATEGORIES;
   const categorias = rawCategorias.map((cat, i) => ({
     id: cat.id ?? i + 1,
     categoria: cat.categoria || '',
@@ -181,7 +173,7 @@ const normalizeRecord = (raw, dateKey) => {
 
   const rawPendientes = Array.isArray(raw.planProximo?.cargasPendientes)
     ? raw.planProximo.cargasPendientes
-    : DEFAULT_RECORD.planProximo.cargasPendientes;
+    : [];
   const cargasPendientes = rawPendientes.map((p, i) => ({
     id: p.id ?? i + 1,
     folioDestino: p.folioDestino || '',
@@ -194,8 +186,6 @@ const normalizeRecord = (raw, dateKey) => {
   const rawPlanProx = raw.planProximo || {};
 
   return {
-    ...DEFAULT_RECORD,
-    ...raw,
     fecha: targetDate,
     fechaTexto: raw.fechaTexto || formatDateToSpanish(targetDate),
     plaza: raw.plaza || 'VILLAHERMOSA',
@@ -216,19 +206,19 @@ const normalizeRecord = (raw, dateKey) => {
     comportamiento: {
       promedioDiarioAsignadoFC: rawComp.promedioDiarioAsignadoFC !== undefined && rawComp.promedioDiarioAsignadoFC !== ''
         ? Number(rawComp.promedioDiarioAsignadoFC) || 0
-        : DEFAULT_RECORD.comportamiento.promedioDiarioAsignadoFC,
+        : 0,
       promedioDiarioOperado: rawComp.promedioDiarioOperado !== undefined && rawComp.promedioDiarioOperado !== ''
         ? Number(rawComp.promedioDiarioOperado) || 0
-        : DEFAULT_RECORD.comportamiento.promedioDiarioOperado,
+        : 0,
       remisionadoAcumulado: rawComp.remisionadoAcumulado !== undefined && rawComp.remisionadoAcumulado !== ''
         ? Number(rawComp.remisionadoAcumulado) || 0
-        : DEFAULT_RECORD.comportamiento.remisionadoAcumulado
+        : 0
     },
     planProximo: {
       titulo: rawPlanProx.titulo || getNextDayFormatted(targetDate),
       cargasProgramadas: rawPlanProx.cargasProgramadas !== undefined && rawPlanProx.cargasProgramadas !== ''
         ? Number(rawPlanProx.cargasProgramadas) || 0
-        : DEFAULT_RECORD.planProximo.cargasProgramadas,
+        : 0,
       cargasPendientes
     },
     observacionesGenerales: raw.observacionesGenerales !== undefined 
@@ -255,7 +245,7 @@ export const PlanColocacionView = () => {
         }
       }
     } catch {}
-    return { '2026-10-11': DEFAULT_RECORD };
+    return {};
   });
 
   const [currentDate, setCurrentDate] = useState(() => {
@@ -543,11 +533,7 @@ export const PlanColocacionView = () => {
 
   const handleKpiChange = (field, rawVal) => {
     const isDecimal = field === 'cumplimiento';
-    let val = isDecimal ? rawVal.replace(/[^0-9.]/g, '') : rawVal.replace(/[^0-9]/g, '');
-    if (isDecimal) {
-      const parts = val.split('.');
-      if (parts.length > 2) val = `${parts[0]}.${parts.slice(1).join('')}`;
-    }
+    const val = cleanNumericInput(rawVal, isDecimal);
 
     setEditForm((prev) => {
       const nextKpis = { ...prev.kpis, [field]: val };
@@ -593,7 +579,7 @@ export const PlanColocacionView = () => {
       ...prev,
       cargasEjecutadas: prev.cargasEjecutadas.map((c) => {
         if (c.id === id) {
-          const val = field === 'capacidad' ? value.replace(/[^0-9]/g, '') : value;
+          const val = field === 'capacidad' ? cleanNumericInput(value) : value;
           return { ...c, [field]: val };
         }
         return c;
@@ -625,7 +611,7 @@ export const PlanColocacionView = () => {
   };
 
   const handleUpdatePieza = (field, value) => {
-    const cleaned = value.replace(/[^0-9]/g, '');
+    const cleaned = cleanNumericInput(value);
     setEditForm((prev) => ({
       ...prev,
       piezas: {
@@ -642,7 +628,7 @@ export const PlanColocacionView = () => {
         ...prev.piezas,
         categorias: prev.piezas.categorias.map((c) => {
           if (c.id === id) {
-            const val = field === 'cantidad' ? value.replace(/[^0-9]/g, '') : value;
+            const val = field === 'cantidad' ? cleanNumericInput(value) : value;
             return { ...c, [field]: val };
           }
           return c;
@@ -662,7 +648,7 @@ export const PlanColocacionView = () => {
   };
 
   const handleUpdateComportamiento = (field, value) => {
-    const cleaned = value.replace(/[^0-9]/g, '');
+    const cleaned = cleanNumericInput(value);
     setEditForm((prev) => ({
       ...prev,
       comportamiento: {
@@ -673,7 +659,7 @@ export const PlanColocacionView = () => {
   };
 
   const handleUpdateCargasProgramadas = (value) => {
-    const cleaned = value.replace(/[^0-9]/g, '');
+    const cleaned = cleanNumericInput(value);
     setEditForm((prev) => ({
       ...prev,
       planProximo: {
@@ -704,12 +690,12 @@ export const PlanColocacionView = () => {
       ...prev,
       planProximo: {
         ...prev.planProximo,
-        cargasPendientes: prev.planProximo.cargasPendientes.map((c) => {
-          if (c.id === id) {
-            const val = field === 'capacidad' ? value.replace(/[^0-9]/g, '') : value;
-            return { ...c, [field]: val };
+        cargasPendientes: prev.planProximo.cargasPendientes.map((p) => {
+          if (p.id === id) {
+            const val = field === 'capacidad' ? cleanNumericInput(value) : value;
+            return { ...p, [field]: val };
           }
-          return c;
+          return p;
         })
       }
     }));
@@ -723,6 +709,54 @@ export const PlanColocacionView = () => {
         cargasPendientes: prev.planProximo.cargasPendientes.filter((c) => c.id !== id)
       }
     }));
+  };
+
+  const handleResetToZero = () => {
+    if (!editForm) return;
+    const targetFecha = editForm.fecha || currentDate;
+    const empty = getEmptyRecord(targetFecha);
+    setEditForm({
+      ...empty,
+      kpis: {
+        planProgramado: '0',
+        cargasEjecutadas: '0',
+        pendientes: '0',
+        cumplimiento: '0',
+        metrosRemisionados: '0'
+      },
+      cargasEjecutadas: [],
+      piezas: {
+        ppes: '0',
+        dotCom: '0',
+        categorias: DEFAULT_CATEGORIES.map((cat) => ({
+          ...cat,
+          cantidad: '0'
+        }))
+      },
+      comportamiento: {
+        promedioDiarioAsignadoFC: '0',
+        promedioDiarioOperado: '0',
+        remisionadoAcumulado: '0'
+      },
+      planProximo: {
+        titulo: getNextDayFormatted(targetFecha),
+        cargasProgramadas: '0',
+        cargasPendientes: []
+      },
+      observacionesGenerales: 'SE SUMAN LAS CARGAS PENDIENTES CON LAS DEL PLAN N-02'
+    });
+    showToast('Valores del formulario reiniciados a 0');
+  };
+
+  const handleResetCurrentDay = () => {
+    if (window.confirm(`¿Deseas reiniciar todos los valores del ${formatDateToSpanish(currentDate)} a 0?`)) {
+      const empty = getEmptyRecord(currentDate);
+      setRecords((prev) => ({
+        ...prev,
+        [currentDate]: empty
+      }));
+      showToast(`Día ${formatDateToSpanish(currentDate)} reiniciado a 0`);
+    }
   };
 
   const totalCargasCount = currentData.cargasEjecutadas.length;
@@ -820,6 +854,15 @@ export const PlanColocacionView = () => {
           >
             <Edit3 size={15} />
             <span>Editar Datos</span>
+          </button>
+
+          <button 
+            className="btn btn-secondary btn-header-action"
+            onClick={handleResetCurrentDay}
+            title="Reiniciar todos los valores de este día a 0"
+          >
+            <RotateCcw size={15} />
+            <span>Poner en 0</span>
           </button>
 
           <button 
@@ -978,21 +1021,29 @@ export const PlanColocacionView = () => {
                       </tr>
                     </thead>
                     <tbody>
-                      {currentData.cargasEjecutadas.map((c, idx) => (
-                        <tr key={c.id || idx} className={idx % 2 === 0 ? 'row-even' : 'row-odd'}>
-                          <td className="cell-num">{idx + 1}</td>
-                          <td className="cell-dest">{c.destino}</td>
-                          <td className="cell-tipo">{c.tipo}</td>
-                          <td className="cell-cap">{c.capacidad} m³</td>
-                          <td className="cell-linea">{c.linea}</td>
-                          <td className="cell-estatus">
-                            <span className="badge-ejecutada">
-                              <span className="badge-check-icon">✓</span>
-                              <span>Ejecutada</span>
-                            </span>
+                      {currentData.cargasEjecutadas.length === 0 ? (
+                        <tr>
+                          <td colSpan={6} style={{ textAlign: 'center', padding: '1.25rem', color: '#64748b', fontWeight: 700, fontSize: '0.85rem' }}>
+                            Sin cargas ejecutadas registradas
                           </td>
                         </tr>
-                      ))}
+                      ) : (
+                        currentData.cargasEjecutadas.map((c, idx) => (
+                          <tr key={c.id || idx} className={idx % 2 === 0 ? 'row-even' : 'row-odd'}>
+                            <td className="cell-num">{idx + 1}</td>
+                            <td className="cell-dest">{c.destino}</td>
+                            <td className="cell-tipo">{c.tipo}</td>
+                            <td className="cell-cap">{c.capacidad} m³</td>
+                            <td className="cell-linea">{c.linea}</td>
+                            <td className="cell-estatus">
+                              <span className="badge-ejecutada">
+                                <span className="badge-check-icon">✓</span>
+                                <span>Ejecutada</span>
+                              </span>
+                            </td>
+                          </tr>
+                        ))
+                      )}
                     </tbody>
                   </table>
                 </div>
@@ -1156,9 +1207,21 @@ export const PlanColocacionView = () => {
                   <p className="modal-subtitle">Captura diaria de métricas, cargas ejecutadas, movimientos y plan N-02</p>
                 </div>
               </div>
-              <button className="btn-close-modal modal-close" onClick={handleCloseEdit} title="Cerrar ventana">
-                <X size={18} />
-              </button>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                <button 
+                  type="button" 
+                  className="btn btn-secondary btn-sm"
+                  style={{ fontSize: '0.8rem', padding: '0.35rem 0.65rem', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
+                  onClick={handleResetToZero}
+                  title="Reiniciar todos los campos del formulario a 0"
+                >
+                  <RotateCcw size={14} />
+                  <span>Poner en 0</span>
+                </button>
+                <button className="btn-close-modal modal-close" onClick={handleCloseEdit} title="Cerrar ventana">
+                  <X size={18} />
+                </button>
+              </div>
             </div>
 
             <div className="colocacion-edit-tabs">
@@ -1288,7 +1351,12 @@ export const PlanColocacionView = () => {
                   </div>
 
                   <div className="cargas-edit-list">
-                    {editForm.cargasEjecutadas.map((carga, index) => (
+                    {editForm.cargasEjecutadas.length === 0 ? (
+                      <div style={{ textAlign: 'center', padding: '1.25rem', color: '#94a3b8', fontStyle: 'italic', fontSize: '0.85rem', background: 'rgba(255,255,255,0.02)', borderRadius: '6px', border: '1px dashed rgba(255,255,255,0.1)' }}>
+                        No hay cargas ejecutadas registradas. Haz clic en "Agregar Carga" para añadir una.
+                      </div>
+                    ) : (
+                      editForm.cargasEjecutadas.map((carga, index) => (
                       <div key={carga.id} className="carga-edit-row">
                         <span className="carga-row-index">#{index + 1}</span>
 
@@ -1340,7 +1408,7 @@ export const PlanColocacionView = () => {
                           <Trash2 size={16} />
                         </button>
                       </div>
-                    ))}
+                    )))}
                   </div>
 
                   <div className="form-group full-width" style={{ marginTop: '1.25rem' }}>
