@@ -140,7 +140,9 @@ const normalizeRecord = (raw, dateKey) => {
     ? Number(rawKpis.planProgramado) || 0
     : DEFAULT_RECORD.kpis.planProgramado;
 
-  const rawCargas = Array.isArray(raw.cargasEjecutadas) ? raw.cargasEjecutadas : DEFAULT_RECORD.cargasEjecutadas;
+  const rawCargas = (Array.isArray(raw.cargasEjecutadas) && raw.cargasEjecutadas.length > 0)
+    ? raw.cargasEjecutadas
+    : DEFAULT_RECORD.cargasEjecutadas;
   const cargasEjec = rawCargas.map((c, i) => ({
     id: c.id ?? i + 1,
     destino: c.destino || '',
@@ -168,14 +170,18 @@ const normalizeRecord = (raw, dateKey) => {
     ? Number(rawKpis.metrosRemisionados) || 0
     : (totalMetros > 0 ? totalMetros : DEFAULT_RECORD.kpis.metrosRemisionados);
 
-  const rawCategorias = Array.isArray(raw.piezas?.categorias) ? raw.piezas.categorias : DEFAULT_RECORD.piezas.categorias;
+  const rawCategorias = (Array.isArray(raw.piezas?.categorias) && raw.piezas.categorias.length > 0)
+    ? raw.piezas.categorias
+    : DEFAULT_RECORD.piezas.categorias;
   const categorias = rawCategorias.map((cat, i) => ({
     id: cat.id ?? i + 1,
     categoria: cat.categoria || '',
     cantidad: Number(cat.cantidad) || 0
   }));
 
-  const rawPendientes = Array.isArray(raw.planProximo?.cargasPendientes) ? raw.planProximo.cargasPendientes : DEFAULT_RECORD.planProximo.cargasPendientes;
+  const rawPendientes = (Array.isArray(raw.planProximo?.cargasPendientes) && raw.planProximo.cargasPendientes.length > 0)
+    ? raw.planProximo.cargasPendientes
+    : DEFAULT_RECORD.planProximo.cargasPendientes;
   const cargasPendientes = rawPendientes.map((p, i) => ({
     id: p.id ?? i + 1,
     folioDestino: p.folioDestino || '',
