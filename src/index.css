@@ -3780,7 +3780,7 @@ body {
   display: grid;
   grid-template-columns: 1.15fr 1fr;
   gap: 0.75rem;
-  align-items: stretch;
+  align-items: start;
 }
 
 .flyer-col-left {
@@ -3791,11 +3791,9 @@ body {
 .panel-resumen-cargas {
   display: flex;
   flex-direction: column;
-  height: 100%;
 }
 
 .panel-table-wrap {
-  flex: 1;
   display: flex;
   flex-direction: column;
 }
@@ -3846,14 +3844,14 @@ body {
   background: #b5ceb4;
   color: #163d20;
   font-weight: 900;
-  padding: 0.35rem 0.45rem;
+  padding: 0.4rem 0.45rem;
   border: 1px solid #9bbe98;
   font-size: 0.82rem;
   text-transform: uppercase;
 }
 
 .table-cargas td {
-  padding: 0.38rem 0.45rem;
+  padding: 0.42rem 0.45rem;
   border: 1px solid #c4dbc2;
   font-size: 0.82rem;
 }
