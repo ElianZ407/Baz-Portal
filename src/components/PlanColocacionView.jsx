@@ -1092,7 +1092,7 @@ export const PlanColocacionView = () => {
               <div className="flyer-panel panel-n2-pendientes">
                 <div className="panel-header header-forest" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <span>4. CARGAS PENDIENTES / ESCALONADAS</span>
-                  <span style={{ fontSize: '0.78rem', background: 'rgba(255, 255, 255, 0.22)', padding: '0.15rem 0.55rem', borderRadius: '4px', fontWeight: 900 }}>
+                  <span style={{ fontSize: '0.86rem', background: 'rgba(255, 255, 255, 0.22)', padding: '0.18rem 0.65rem', borderRadius: '4px', fontWeight: 900 }}>
                     N-02 + PENDIENTES: {totalN2MasPendientes} CARGAS
                   </span>
                 </div>
@@ -1126,13 +1126,13 @@ export const PlanColocacionView = () => {
                         ))
                       )}
                       <tr className="n2-total-row">
-                        <td className="n2-total-lbl" style={{ textAlign: 'left', paddingLeft: '0.55rem' }}>
+                        <td className="n2-total-lbl" style={{ textAlign: 'left', paddingLeft: '0.65rem' }}>
                           TOTAL N-02 + PENDIENTES:
                         </td>
                         <td className="n2-total-val" style={{ whiteSpace: 'nowrap', color: '#fef08a' }}>
                           {totalN2MasPendientes} cargas
                         </td>
-                        <td style={{ fontSize: '0.74rem', fontWeight: 700, paddingRight: '0.55rem', textAlign: 'right', color: '#e2e8f0' }}>
+                        <td style={{ fontSize: '0.82rem', fontWeight: 700, paddingRight: '0.65rem', textAlign: 'right', color: '#e2e8f0' }}>
                           ({cargasN2} N-02 + {cargasPendientesKpi} pendientes){totalPendientesMetros > 0 ? ` · ${totalPendientesMetros} m³` : ''}
                         </td>
                       </tr>
