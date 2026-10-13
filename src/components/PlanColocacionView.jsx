@@ -121,6 +121,95 @@ const BoxParcelIcon = () => (
   </svg>
 );
 
+const normalizeRecord = (raw, dateKey) => {
+  const targetDate = (raw && raw.fecha) || dateKey || '2026-10-11';
+  if (!raw || typeof raw !== 'object') {
+    return {
+      ...DEFAULT_RECORD,
+      fecha: targetDate,
+      fechaTexto: formatDateToSpanish(targetDate),
+      planProximo: {
+        ...DEFAULT_RECORD.planProximo,
+        titulo: getNextDayFormatted(targetDate)
+      }
+    };
+  }
+
+  const planProg = Number(raw.kpis?.planProgramado) || 0;
+  const rawCargas = Array.isArray(raw.cargasEjecutadas) ? raw.cargasEjecutadas : DEFAULT_RECORD.cargasEjecutadas;
+  const cargasEjec = rawCargas.map((c, i) => ({
+    id: c.id ?? i + 1,
+    destino: c.destino || '',
+    tipo: c.tipo || 'Foráneo',
+    capacidad: Number(c.capacidad) || 0,
+    linea: c.linea || 'VALLEY',
+    estatus: c.estatus || 'Ejecutada'
+  }));
+
+  const ejecCount = cargasEjec.length || (Number(raw.kpis?.cargasEjecutadas) || 0);
+  const pendCount = Math.max(0, planProg - ejecCount);
+  const cumpl = planProg > 0 ? Number(((ejecCount / planProg) * 100).toFixed(1)) : 0;
+  const totalMetros = cargasEjec.reduce((acc, c) => acc + (Number(c.capacidad) || 0), 0);
+
+  const rawCategorias = Array.isArray(raw.piezas?.categorias) ? raw.piezas.categorias : DEFAULT_RECORD.piezas.categorias;
+  const categorias = rawCategorias.map((cat, i) => ({
+    id: cat.id ?? i + 1,
+    categoria: cat.categoria || '',
+    cantidad: Number(cat.cantidad) || 0
+  }));
+
+  const rawPendientes = Array.isArray(raw.planProximo?.cargasPendientes) ? raw.planProximo.cargasPendientes : DEFAULT_RECORD.planProximo.cargasPendientes;
+  const cargasPendientes = rawPendientes.map((p, i) => ({
+    id: p.id ?? i + 1,
+    folioDestino: p.folioDestino || '',
+    capacidad: Number(p.capacidad) || 0,
+    observacion: p.observacion || ''
+  }));
+
+  return {
+    ...DEFAULT_RECORD,
+    ...raw,
+    fecha: targetDate,
+    fechaTexto: raw.fechaTexto || formatDateToSpanish(targetDate),
+    plaza: raw.plaza || 'VILLAHERMOSA',
+    updatedAt: raw.updatedAt || undefined,
+    kpis: {
+      ...DEFAULT_RECORD.kpis,
+      ...(raw.kpis || {}),
+      planProgramado: planProg,
+      cargasEjecutadas: ejecCount,
+      pendientes: raw.kpis?.pendientes !== undefined ? Number(raw.kpis.pendientes) : pendCount,
+      cumplimiento: raw.kpis?.cumplimiento !== undefined ? Number(raw.kpis.cumplimiento) : cumpl,
+      metrosRemisionados: totalMetros > 0 ? totalMetros : (Number(raw.kpis?.metrosRemisionados) || DEFAULT_RECORD.kpis.metrosRemisionados)
+    },
+    cargasEjecutadas: cargasEjec,
+    piezas: {
+      ...DEFAULT_RECORD.piezas,
+      ...(raw.piezas || {}),
+      ppes: Number(raw.piezas?.ppes) || 0,
+      dotCom: Number(raw.piezas?.dotCom) || 0,
+      categorias
+    },
+    comportamiento: {
+      ...DEFAULT_RECORD.comportamiento,
+      ...(raw.comportamiento || {}),
+      promedioDiarioAsignadoFC: Number(raw.comportamiento?.promedioDiarioAsignadoFC) || DEFAULT_RECORD.comportamiento.promedioDiarioAsignadoFC,
+      promedioDiarioOperado: Number(raw.comportamiento?.promedioDiarioOperado) || DEFAULT_RECORD.comportamiento.promedioDiarioOperado,
+      remisionadoAcumulado: Number(raw.comportamiento?.remisionadoAcumulado) || DEFAULT_RECORD.comportamiento.remisionadoAcumulado
+    },
+    planProximo: {
+      ...DEFAULT_RECORD.planProximo,
+      ...(raw.planProximo || {}),
+      titulo: raw.planProximo?.titulo || getNextDayFormatted(targetDate),
+      cargasProgramadas: Number(raw.planProximo?.cargasProgramadas) || DEFAULT_RECORD.planProximo.cargasProgramadas,
+      cargasPendientes
+    },
+    observacionesGenerales: raw.observacionesGenerales !== undefined 
+      ? raw.observacionesGenerales 
+      : DEFAULT_RECORD.observacionesGenerales
+  };
+};
+
 export const PlanColocacionView = () => {
   const [records, setRecords] = useState(() => {
     try {
@@ -166,11 +255,12 @@ export const PlanColocacionView = () => {
     setRecords((prev) => {
       const next = { ...prev };
       rows.forEach((row) => {
+        if (!row.fecha) return;
         const local = next[row.fecha];
         const cloudTime = row.updated_at ? new Date(row.updated_at).getTime() : 0;
         const localTime = local?.updatedAt ? new Date(local.updatedAt).getTime() : 0;
         if (!local || cloudTime >= localTime) {
-          next[row.fecha] = { ...row.datos, updatedAt: row.updated_at };
+          next[row.fecha] = normalizeRecord({ ...row.datos, updatedAt: row.updated_at }, row.fecha);
         }
       });
       return next;
@@ -220,22 +310,11 @@ export const PlanColocacionView = () => {
     setToastMessage(msg);
     window.setTimeout(() => {
       setToastMessage('');
-    }, 3500);
+    }, 4000);
   };
 
   const currentData = useMemo(() => {
-    if (records[currentDate]) {
-      return records[currentDate];
-    }
-    return {
-      ...DEFAULT_RECORD,
-      fecha: currentDate,
-      fechaTexto: formatDateToSpanish(currentDate),
-      planProximo: {
-        ...DEFAULT_RECORD.planProximo,
-        titulo: getNextDayFormatted(currentDate)
-      }
-    };
+    return normalizeRecord(records[currentDate], currentDate);
   }, [records, currentDate]);
 
   const savedDates = useMemo(() => Object.keys(records).sort().reverse(), [records]);
@@ -255,7 +334,44 @@ export const PlanColocacionView = () => {
   };
 
   const handleOpenEdit = () => {
-    setEditForm(JSON.parse(JSON.stringify(currentData)));
+    const base = normalizeRecord(currentData, currentDate);
+    setEditForm({
+      ...base,
+      kpis: {
+        ...base.kpis,
+        planProgramado: String(base.kpis.planProgramado ?? ''),
+        cargasEjecutadas: String(base.kpis.cargasEjecutadas ?? ''),
+        pendientes: String(base.kpis.pendientes ?? ''),
+        cumplimiento: String(base.kpis.cumplimiento ?? ''),
+        metrosRemisionados: String(base.kpis.metrosRemisionados ?? '')
+      },
+      cargasEjecutadas: base.cargasEjecutadas.map((c) => ({
+        ...c,
+        capacidad: String(c.capacidad ?? '')
+      })),
+      piezas: {
+        ...base.piezas,
+        ppes: String(base.piezas.ppes ?? ''),
+        dotCom: String(base.piezas.dotCom ?? ''),
+        categorias: base.piezas.categorias.map((cat) => ({
+          ...cat,
+          cantidad: String(cat.cantidad ?? '')
+        }))
+      },
+      comportamiento: {
+        promedioDiarioAsignadoFC: String(base.comportamiento?.promedioDiarioAsignadoFC ?? ''),
+        promedioDiarioOperado: String(base.comportamiento?.promedioDiarioOperado ?? ''),
+        remisionadoAcumulado: String(base.comportamiento?.remisionadoAcumulado ?? '')
+      },
+      planProximo: {
+        ...base.planProximo,
+        cargasProgramadas: String(base.planProximo?.cargasProgramadas ?? ''),
+        cargasPendientes: base.planProximo.cargasPendientes.map((p) => ({
+          ...p,
+          capacidad: String(p.capacidad ?? '')
+        }))
+      }
+    });
     setIsEditing(true);
     setActiveTab('kpis');
   };
@@ -268,78 +384,56 @@ export const PlanColocacionView = () => {
   const handleSaveEdit = async () => {
     if (!editForm) return;
 
-    const totalCargasM3 = (editForm.cargasEjecutadas || []).reduce((acc, c) => acc + (Number(c.capacidad) || 0), 0);
-    const ejec = editForm.cargasEjecutadas?.length || editForm.kpis.cargasEjecutadas;
-    const prog = Number(editForm.kpis.planProgramado) || 0;
-    const cumpl = prog > 0 ? Number(((ejec / prog) * 100).toFixed(1)) : 0;
-    const pend = Math.max(0, prog - ejec);
+    try {
+      const targetFecha = editForm.fecha || currentDate;
+      const normalized = normalizeRecord(editForm, targetFecha);
+      normalized.updatedAt = new Date().toISOString();
 
-    const updated = {
-      ...editForm,
-      fechaTexto: formatDateToSpanish(editForm.fecha),
-      updatedAt: new Date().toISOString(),
-      kpis: {
-        ...editForm.kpis,
-        cargasEjecutadas: ejec,
-        pendientes: pend,
-        cumplimiento: cumpl,
-        metrosRemisionados: totalCargasM3 > 0 ? totalCargasM3 : editForm.kpis.metrosRemisionados
+      setRecords((prev) => ({
+        ...prev,
+        [targetFecha]: normalized
+      }));
+
+      if (targetFecha !== currentDate) {
+        setCurrentDate(targetFecha);
       }
-    };
 
-    setRecords((prev) => ({
-      ...prev,
-      [updated.fecha]: updated
-    }));
+      setIsEditing(false);
+      setEditForm(null);
 
-    if (updated.fecha !== currentDate) {
-      setCurrentDate(updated.fecha);
-    }
-
-    setIsEditing(false);
-    setEditForm(null);
-
-    const ok = await persistToCloud(updated);
-    if (ok) {
-      showToast('¡Guardado en la nube! Ya puedes consultarlo desde cualquier equipo.');
-    } else if (isSupabaseConfigured()) {
-      showToast('Se guardó en este equipo, pero falló la nube. Revisa la tabla plan_colocacion en Supabase.');
-    } else {
-      showToast('Guardado solo en este equipo (Supabase no está configurado).');
+      const ok = await persistToCloud(normalized);
+      if (ok) {
+        showToast(`¡Plan del ${formatDateToSpanish(targetFecha)} guardado en la nube!`);
+      } else if (isSupabaseConfigured()) {
+        showToast('Guardado en este equipo, pero falló la sincronización con la nube.');
+      } else {
+        showToast('Guardado localmente en este equipo.');
+      }
+    } catch {
+      showToast('Error al guardar los datos del día.');
     }
   };
 
   const handleSaveDay = async () => {
-    const totalCargasM3 = (currentData.cargasEjecutadas || []).reduce((acc, c) => acc + (Number(c.capacidad) || 0), 0);
-    const ejec = currentData.cargasEjecutadas?.length || currentData.kpis.cargasEjecutadas;
-    const prog = Number(currentData.kpis.planProgramado) || 0;
-    const cumpl = prog > 0 ? Number(((ejec / prog) * 100).toFixed(1)) : 0;
-    const pend = Math.max(0, prog - ejec);
+    try {
+      const normalized = normalizeRecord(currentData, currentDate);
+      normalized.updatedAt = new Date().toISOString();
 
-    const updated = {
-      ...currentData,
-      updatedAt: new Date().toISOString(),
-      kpis: {
-        ...currentData.kpis,
-        cargasEjecutadas: ejec,
-        pendientes: pend,
-        cumplimiento: cumpl,
-        metrosRemisionados: totalCargasM3 > 0 ? totalCargasM3 : currentData.kpis.metrosRemisionados
+      setRecords((prev) => ({
+        ...prev,
+        [currentDate]: normalized
+      }));
+
+      const ok = await persistToCloud(normalized);
+      if (ok) {
+        showToast(`¡Día guardado en la nube con éxito! (${formatDateToSpanish(currentDate)})`);
+      } else if (isSupabaseConfigured()) {
+        showToast('Guardado en este equipo, pero falló la sincronización con Supabase.');
+      } else {
+        showToast('Guardado localmente en este equipo.');
       }
-    };
-
-    setRecords((prev) => ({
-      ...prev,
-      [currentDate]: updated
-    }));
-
-    const ok = await persistToCloud(updated);
-    if (ok) {
-      showToast(`¡Día guardado en la nube! (${formatDateToSpanish(currentDate)})`);
-    } else if (isSupabaseConfigured()) {
-      showToast('Se guardó en este equipo, pero falló la sincronización con la nube.');
-    } else {
-      showToast('Guardado en este equipo.');
+    } catch {
+      showToast('Ocurrió un error al guardar el día.');
     }
   };
 
@@ -415,17 +509,38 @@ export const PlanColocacionView = () => {
     }
   };
 
-  const handleKpiChange = (field, val) => {
+  const handleKpiChange = (field, rawVal) => {
+    const isDecimal = field === 'cumplimiento';
+    let val = isDecimal ? rawVal.replace(/[^0-9.]/g, '') : rawVal.replace(/[^0-9]/g, '');
+    if (isDecimal) {
+      const parts = val.split('.');
+      if (parts.length > 2) val = `${parts[0]}.${parts.slice(1).join('')}`;
+    }
+
     setEditForm((prev) => {
-      const nextKpis = { ...prev.kpis, [field]: Number(val) || 0 };
+      const nextKpis = { ...prev.kpis, [field]: val };
       if (field === 'planProgramado' || field === 'cargasEjecutadas') {
-        const prog = field === 'planProgramado' ? Number(val) || 0 : nextKpis.planProgramado;
-        const ejec = field === 'cargasEjecutadas' ? Number(val) || 0 : nextKpis.cargasEjecutadas;
-        nextKpis.pendientes = Math.max(0, prog - ejec);
-        nextKpis.cumplimiento = prog > 0 ? Number(((ejec / prog) * 100).toFixed(1)) : 0;
+        const prog = Number(field === 'planProgramado' ? val : nextKpis.planProgramado) || 0;
+        const ejec = Number(field === 'cargasEjecutadas' ? val : nextKpis.cargasEjecutadas) || 0;
+        nextKpis.pendientes = String(Math.max(0, prog - ejec));
+        nextKpis.cumplimiento = prog > 0 ? String(Number(((ejec / prog) * 100).toFixed(1))) : '0';
       }
       return { ...prev, kpis: nextKpis };
     });
+  };
+
+  const handleNumericKeyDown = (e, currentValue, onChangeFn, step = 1, isDecimal = false) => {
+    if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      const num = Number(currentValue) || 0;
+      const next = isDecimal ? Number((num + step).toFixed(1)) : num + step;
+      onChangeFn(String(next));
+    } else if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      const num = Number(currentValue) || 0;
+      const next = Math.max(0, isDecimal ? Number((num - step).toFixed(1)) : num - step);
+      onChangeFn(String(next));
+    }
   };
 
   const handleAddCarga = () => {
@@ -435,7 +550,7 @@ export const PlanColocacionView = () => {
         ...prev,
         cargasEjecutadas: [
           ...prev.cargasEjecutadas,
-          { id: newId, destino: 'Nuevo Destino', tipo: 'Foráneo', capacidad: 50, linea: 'VALLEY', estatus: 'Ejecutada' }
+          { id: newId, destino: 'Nuevo Destino', tipo: 'Foráneo', capacidad: '50', linea: 'VALLEY', estatus: 'Ejecutada' }
         ]
       };
     });
@@ -446,7 +561,8 @@ export const PlanColocacionView = () => {
       ...prev,
       cargasEjecutadas: prev.cargasEjecutadas.map((c) => {
         if (c.id === id) {
-          return { ...c, [field]: field === 'capacidad' ? Number(value) || 0 : value };
+          const val = field === 'capacidad' ? value.replace(/[^0-9]/g, '') : value;
+          return { ...c, [field]: val };
         }
         return c;
       })
@@ -469,11 +585,22 @@ export const PlanColocacionView = () => {
           ...prev.piezas,
           categorias: [
             ...prev.piezas.categorias,
-            { id: newId, categoria: 'Nueva Categoría', cantidad: 0 }
+            { id: newId, categoria: 'Nueva Categoría', cantidad: '0' }
           ]
         }
       };
     });
+  };
+
+  const handleUpdatePieza = (field, value) => {
+    const cleaned = value.replace(/[^0-9]/g, '');
+    setEditForm((prev) => ({
+      ...prev,
+      piezas: {
+        ...prev.piezas,
+        [field]: cleaned
+      }
+    }));
   };
 
   const handleUpdateCategoriaPieza = (id, field, value) => {
@@ -483,7 +610,8 @@ export const PlanColocacionView = () => {
         ...prev.piezas,
         categorias: prev.piezas.categorias.map((c) => {
           if (c.id === id) {
-            return { ...c, [field]: field === 'cantidad' ? Number(value) || 0 : value };
+            const val = field === 'cantidad' ? value.replace(/[^0-9]/g, '') : value;
+            return { ...c, [field]: val };
           }
           return c;
         })
@@ -501,6 +629,28 @@ export const PlanColocacionView = () => {
     }));
   };
 
+  const handleUpdateComportamiento = (field, value) => {
+    const cleaned = value.replace(/[^0-9]/g, '');
+    setEditForm((prev) => ({
+      ...prev,
+      comportamiento: {
+        ...prev.comportamiento,
+        [field]: cleaned
+      }
+    }));
+  };
+
+  const handleUpdateCargasProgramadas = (value) => {
+    const cleaned = value.replace(/[^0-9]/g, '');
+    setEditForm((prev) => ({
+      ...prev,
+      planProximo: {
+        ...prev.planProximo,
+        cargasProgramadas: cleaned
+      }
+    }));
+  };
+
   const handleAddCargaPendiente = () => {
     setEditForm((prev) => {
       const newId = (prev.planProximo.cargasPendientes.length > 0 ? Math.max(...prev.planProximo.cargasPendientes.map((c) => c.id)) : 0) + 1;
@@ -510,7 +660,7 @@ export const PlanColocacionView = () => {
           ...prev.planProximo,
           cargasPendientes: [
             ...prev.planProximo.cargasPendientes,
-            { id: newId, folioDestino: 'CS00000000 - NUEVO DESTINO', capacidad: 50, observacion: 'MOTIVO / OBSERVACION' }
+            { id: newId, folioDestino: 'CS00000000 - NUEVO DESTINO', capacidad: '50', observacion: 'MOTIVO / OBSERVACION' }
           ]
         }
       };
@@ -524,7 +674,8 @@ export const PlanColocacionView = () => {
         ...prev.planProximo,
         cargasPendientes: prev.planProximo.cargasPendientes.map((c) => {
           if (c.id === id) {
-            return { ...c, [field]: field === 'capacidad' ? Number(value) || 0 : value };
+            const val = field === 'capacidad' ? value.replace(/[^0-9]/g, '') : value;
+            return { ...c, [field]: val };
           }
           return c;
         })
@@ -614,8 +765,17 @@ export const PlanColocacionView = () => {
             disabled={cloudStatus === 'saving'}
             title="Guardar y respaldar los datos de este día en la nube (Supabase)"
           >
-            <Save size={15} />
-            <span>Guardar Día</span>
+            {cloudStatus === 'saving' ? (
+              <>
+                <RefreshCw size={15} className="spin-icon" />
+                <span>Guardando...</span>
+              </>
+            ) : (
+              <>
+                <Save size={15} />
+                <span>Guardar Día</span>
+              </>
+            )}
           </button>
 
           <button 
@@ -930,8 +1090,8 @@ export const PlanColocacionView = () => {
       </div>
 
       {isEditing && editForm && (
-        <div className="modal-overlay">
-          <div className="modal-content modal-colocacion-edit">
+        <div className="modal-overlay" onClick={handleCloseEdit}>
+          <div className="modal-content modal-colocacion-edit" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <div className="modal-title-with-icon">
                 <Edit3 size={20} color="#38bdf8" />
@@ -940,7 +1100,7 @@ export const PlanColocacionView = () => {
                   <p className="modal-subtitle">Captura diaria de métricas, cargas ejecutadas, movimientos y plan N-02</p>
                 </div>
               </div>
-              <button className="btn-close-modal" onClick={handleCloseEdit}>
+              <button className="btn-close-modal modal-close" onClick={handleCloseEdit} title="Cerrar ventana">
                 <X size={18} />
               </button>
             </div>
@@ -998,51 +1158,64 @@ export const PlanColocacionView = () => {
                   <div className="form-group">
                     <label>Plan Programado (cargas)</label>
                     <input 
-                      type="number" 
+                      type="text" 
+                      inputMode="numeric"
                       className="form-control"
+                      placeholder="Ej: 36"
                       value={editForm.kpis.planProgramado}
                       onChange={(e) => handleKpiChange('planProgramado', e.target.value)}
+                      onKeyDown={(e) => handleNumericKeyDown(e, editForm.kpis.planProgramado, (v) => handleKpiChange('planProgramado', v))}
                     />
                   </div>
 
                   <div className="form-group">
                     <label>Cargas Ejecutadas</label>
                     <input 
-                      type="number" 
+                      type="text" 
+                      inputMode="numeric"
                       className="form-control"
+                      placeholder="Ej: 33"
                       value={editForm.kpis.cargasEjecutadas}
                       onChange={(e) => handleKpiChange('cargasEjecutadas', e.target.value)}
+                      onKeyDown={(e) => handleNumericKeyDown(e, editForm.kpis.cargasEjecutadas, (v) => handleKpiChange('cargasEjecutadas', v))}
                     />
                   </div>
 
                   <div className="form-group">
                     <label>Pendientes (Calculado)</label>
                     <input 
-                      type="number" 
+                      type="text" 
+                      inputMode="numeric"
                       className="form-control"
                       value={editForm.kpis.pendientes}
                       onChange={(e) => handleKpiChange('pendientes', e.target.value)}
+                      onKeyDown={(e) => handleNumericKeyDown(e, editForm.kpis.pendientes, (v) => handleKpiChange('pendientes', v))}
                     />
                   </div>
 
                   <div className="form-group">
                     <label>Cumplimiento (%)</label>
                     <input 
-                      type="number" 
-                      step="0.1"
+                      type="text" 
+                      inputMode="decimal"
                       className="form-control"
+                      placeholder="Ej: 91.7"
                       value={editForm.kpis.cumplimiento}
                       onChange={(e) => handleKpiChange('cumplimiento', e.target.value)}
+                      onKeyDown={(e) => handleNumericKeyDown(e, editForm.kpis.cumplimiento, (v) => handleKpiChange('cumplimiento', v), 0.1, true)}
                     />
                   </div>
 
                   <div className="form-group full-width">
                     <label>Metros Remisionados (m³)</label>
                     <input 
-                      type="number" 
+                      type="text" 
+                      inputMode="numeric"
                       className="form-control"
+                      placeholder="Ej: 1237"
                       value={editForm.kpis.metrosRemisionados}
                       onChange={(e) => handleKpiChange('metrosRemisionados', e.target.value)}
+                      onKeyDown={(e) => handleNumericKeyDown(e, editForm.kpis.metrosRemisionados, (v) => handleKpiChange('metrosRemisionados', v))}
                     />
                     <small className="form-hint">Nota: Se actualiza también al sumar las capacidades de las cargas ejecutadas.</small>
                   </div>
@@ -1084,11 +1257,13 @@ export const PlanColocacionView = () => {
 
                         <div className="input-with-unit">
                           <input 
-                            type="number" 
+                            type="text" 
+                            inputMode="numeric"
                             className="form-control input-cap" 
                             placeholder="m³"
                             value={carga.capacidad}
                             onChange={(e) => handleUpdateCarga(carga.id, 'capacidad', e.target.value)}
+                            onKeyDown={(e) => handleNumericKeyDown(e, carga.capacidad, (v) => handleUpdateCarga(carga.id, 'capacidad', v))}
                           />
                           <span className="unit-label">m³</span>
                         </div>
@@ -1131,26 +1306,26 @@ export const PlanColocacionView = () => {
                     <div className="form-group">
                       <label>PPE'S</label>
                       <input 
-                        type="number" 
+                        type="text" 
+                        inputMode="numeric"
                         className="form-control"
+                        placeholder="0"
                         value={editForm.piezas.ppes}
-                        onChange={(e) => setEditForm({
-                          ...editForm,
-                          piezas: { ...editForm.piezas, ppes: Number(e.target.value) || 0 }
-                        })}
+                        onChange={(e) => handleUpdatePieza('ppes', e.target.value)}
+                        onKeyDown={(e) => handleNumericKeyDown(e, editForm.piezas.ppes, (v) => handleUpdatePieza('ppes', v))}
                       />
                     </div>
 
                     <div className="form-group">
                       <label>.COM</label>
                       <input 
-                        type="number" 
+                        type="text" 
+                        inputMode="numeric"
                         className="form-control"
+                        placeholder="0"
                         value={editForm.piezas.dotCom}
-                        onChange={(e) => setEditForm({
-                          ...editForm,
-                          piezas: { ...editForm.piezas, dotCom: Number(e.target.value) || 0 }
-                        })}
+                        onChange={(e) => handleUpdatePieza('dotCom', e.target.value)}
+                        onKeyDown={(e) => handleNumericKeyDown(e, editForm.piezas.dotCom, (v) => handleUpdatePieza('dotCom', v))}
                       />
                     </div>
                   </div>
@@ -1174,11 +1349,13 @@ export const PlanColocacionView = () => {
                         />
 
                         <input 
-                          type="number" 
+                          type="text" 
+                          inputMode="numeric"
                           className="form-control input-qty" 
-                          placeholder="Cantidad de piezas"
+                          placeholder="Cantidad"
                           value={cat.cantidad}
                           onChange={(e) => handleUpdateCategoriaPieza(cat.id, 'cantidad', e.target.value)}
+                          onKeyDown={(e) => handleNumericKeyDown(e, cat.cantidad, (v) => handleUpdateCategoriaPieza(cat.id, 'cantidad', v))}
                         />
 
                         <button 
@@ -1201,39 +1378,36 @@ export const PlanColocacionView = () => {
                     <div className="form-group">
                       <label>Promedio Diario Asignado a FC (m³)</label>
                       <input 
-                        type="number" 
+                        type="text" 
+                        inputMode="numeric"
                         className="form-control"
                         value={editForm.comportamiento.promedioDiarioAsignadoFC}
-                        onChange={(e) => setEditForm({
-                          ...editForm,
-                          comportamiento: { ...editForm.comportamiento, promedioDiarioAsignadoFC: Number(e.target.value) || 0 }
-                        })}
+                        onChange={(e) => handleUpdateComportamiento('promedioDiarioAsignadoFC', e.target.value)}
+                        onKeyDown={(e) => handleNumericKeyDown(e, editForm.comportamiento.promedioDiarioAsignadoFC, (v) => handleUpdateComportamiento('promedioDiarioAsignadoFC', v))}
                       />
                     </div>
 
                     <div className="form-group">
                       <label>Promedio Diario Operado (m³)</label>
                       <input 
-                        type="number" 
+                        type="text" 
+                        inputMode="numeric"
                         className="form-control"
                         value={editForm.comportamiento.promedioDiarioOperado}
-                        onChange={(e) => setEditForm({
-                          ...editForm,
-                          comportamiento: { ...editForm.comportamiento, promedioDiarioOperado: Number(e.target.value) || 0 }
-                        })}
+                        onChange={(e) => handleUpdateComportamiento('promedioDiarioOperado', e.target.value)}
+                        onKeyDown={(e) => handleNumericKeyDown(e, editForm.comportamiento.promedioDiarioOperado, (v) => handleUpdateComportamiento('promedioDiarioOperado', v))}
                       />
                     </div>
 
                     <div className="form-group full-width">
                       <label>Remisionado Acumulado (m³)</label>
                       <input 
-                        type="number" 
+                        type="text" 
+                        inputMode="numeric"
                         className="form-control"
                         value={editForm.comportamiento.remisionadoAcumulado}
-                        onChange={(e) => setEditForm({
-                          ...editForm,
-                          comportamiento: { ...editForm.comportamiento, remisionadoAcumulado: Number(e.target.value) || 0 }
-                        })}
+                        onChange={(e) => handleUpdateComportamiento('remisionadoAcumulado', e.target.value)}
+                        onKeyDown={(e) => handleNumericKeyDown(e, editForm.comportamiento.remisionadoAcumulado, (v) => handleUpdateComportamiento('remisionadoAcumulado', v))}
                       />
                     </div>
                   </div>
@@ -1256,13 +1430,12 @@ export const PlanColocacionView = () => {
                     <div className="form-group">
                       <label>Total Cargas Programadas N-02</label>
                       <input 
-                        type="number" 
+                        type="text" 
+                        inputMode="numeric"
                         className="form-control"
                         value={editForm.planProximo.cargasProgramadas}
-                        onChange={(e) => setEditForm({
-                          ...editForm,
-                          planProximo: { ...editForm.planProximo, cargasProgramadas: Number(e.target.value) || 0 }
-                        })}
+                        onChange={(e) => handleUpdateCargasProgramadas(e.target.value)}
+                        onKeyDown={(e) => handleNumericKeyDown(e, editForm.planProximo.cargasProgramadas, handleUpdateCargasProgramadas)}
                       />
                     </div>
                   </div>
@@ -1287,11 +1460,13 @@ export const PlanColocacionView = () => {
 
                         <div className="input-with-unit">
                           <input 
-                            type="number" 
+                            type="text" 
+                            inputMode="numeric"
                             className="form-control input-cap" 
                             placeholder="m³"
                             value={p.capacidad}
                             onChange={(e) => handleUpdateCargaPendiente(p.id, 'capacidad', e.target.value)}
+                            onKeyDown={(e) => handleNumericKeyDown(e, p.capacidad, (v) => handleUpdateCargaPendiente(p.id, 'capacidad', v))}
                           />
                           <span className="unit-label">m³</span>
                         </div>
@@ -1333,8 +1508,20 @@ export const PlanColocacionView = () => {
               <button className="btn btn-secondary" onClick={handleCloseEdit}>
                 Cancelar
               </button>
-              <button className="btn btn-primary" onClick={handleSaveEdit}>
-                <Save size={16} /> Guardar Cambios
+              <button 
+                className="btn btn-primary" 
+                onClick={handleSaveEdit}
+                disabled={cloudStatus === 'saving'}
+              >
+                {cloudStatus === 'saving' ? (
+                  <>
+                    <RefreshCw size={16} className="spin-icon" /> Guardando en la Nube...
+                  </>
+                ) : (
+                  <>
+                    <Save size={16} /> Guardar Día en la Nube
+                  </>
+                )}
               </button>
             </div>
           </div>
