@@ -140,7 +140,7 @@ const normalizeRecord = (raw, dateKey) => {
     ? Number(rawKpis.planProgramado) || 0
     : DEFAULT_RECORD.kpis.planProgramado;
 
-  const rawCargas = (Array.isArray(raw.cargasEjecutadas) && raw.cargasEjecutadas.length > 0)
+  const rawCargas = Array.isArray(raw.cargasEjecutadas)
     ? raw.cargasEjecutadas
     : DEFAULT_RECORD.cargasEjecutadas;
   const cargasEjec = rawCargas.map((c, i) => ({
@@ -170,7 +170,7 @@ const normalizeRecord = (raw, dateKey) => {
     ? Number(rawKpis.metrosRemisionados) || 0
     : (totalMetros > 0 ? totalMetros : DEFAULT_RECORD.kpis.metrosRemisionados);
 
-  const rawCategorias = (Array.isArray(raw.piezas?.categorias) && raw.piezas.categorias.length > 0)
+  const rawCategorias = Array.isArray(raw.piezas?.categorias)
     ? raw.piezas.categorias
     : DEFAULT_RECORD.piezas.categorias;
   const categorias = rawCategorias.map((cat, i) => ({
@@ -179,7 +179,7 @@ const normalizeRecord = (raw, dateKey) => {
     cantidad: Number(cat.cantidad) || 0
   }));
 
-  const rawPendientes = (Array.isArray(raw.planProximo?.cargasPendientes) && raw.planProximo.cargasPendientes.length > 0)
+  const rawPendientes = Array.isArray(raw.planProximo?.cargasPendientes)
     ? raw.planProximo.cargasPendientes
     : DEFAULT_RECORD.planProximo.cargasPendientes;
   const cargasPendientes = rawPendientes.map((p, i) => ({
@@ -1100,13 +1100,21 @@ export const PlanColocacionView = () => {
                       </tr>
                     </thead>
                     <tbody>
-                      {currentData.planProximo.cargasPendientes.map((p, idx) => (
-                        <tr key={p.id || idx} className={idx % 2 === 0 ? 'row-n2-even' : 'row-n2-odd'}>
-                          <td className="n2-folio-cell">{p.folioDestino}</td>
-                          <td className="n2-cap-cell">{p.capacidad} m³</td>
-                          <td className="n2-obs-cell">{p.observacion || '-'}</td>
+                      {currentData.planProximo.cargasPendientes.length === 0 ? (
+                        <tr>
+                          <td colSpan={3} style={{ textAlign: 'center', padding: '0.85rem', color: '#64748b', fontStyle: 'italic', fontSize: '0.85rem' }}>
+                            Sin cargas pendientes o escalonadas
+                          </td>
                         </tr>
-                      ))}
+                      ) : (
+                        currentData.planProximo.cargasPendientes.map((p, idx) => (
+                          <tr key={p.id || idx} className={idx % 2 === 0 ? 'row-n2-even' : 'row-n2-odd'}>
+                            <td className="n2-folio-cell">{p.folioDestino}</td>
+                            <td className="n2-cap-cell">{p.capacidad} m³</td>
+                            <td className="n2-obs-cell">{p.observacion || '-'}</td>
+                          </tr>
+                        ))
+                      )}
                       <tr className="n2-total-row">
                         <td className="n2-total-lbl">TOTAL:</td>
                         <td className="n2-total-val">{totalPendientesMetros} m³</td>
@@ -1480,46 +1488,52 @@ export const PlanColocacionView = () => {
                   </div>
 
                   <div className="piezas-edit-list">
-                    {editForm.planProximo.cargasPendientes.map((p) => (
-                      <div key={p.id} className="pendiente-edit-row">
-                        <input 
-                          type="text" 
-                          className="form-control input-folio" 
-                          placeholder="Folio y Destino"
-                          value={p.folioDestino}
-                          onChange={(e) => handleUpdateCargaPendiente(p.id, 'folioDestino', e.target.value)}
-                        />
-
-                        <div className="input-with-unit">
+                    {editForm.planProximo.cargasPendientes.length === 0 ? (
+                      <div style={{ textAlign: 'center', padding: '1rem', color: '#94a3b8', fontStyle: 'italic', fontSize: '0.85rem', background: 'rgba(255,255,255,0.02)', borderRadius: '6px', border: '1px dashed rgba(255,255,255,0.1)' }}>
+                        No hay cargas pendientes registradas. Puedes agregar una con el botón superior.
+                      </div>
+                    ) : (
+                      editForm.planProximo.cargasPendientes.map((p) => (
+                        <div key={p.id} className="pendiente-edit-row">
                           <input 
                             type="text" 
-                            inputMode="numeric"
-                            className="form-control input-cap" 
-                            placeholder="m³"
-                            value={p.capacidad}
-                            onChange={(e) => handleUpdateCargaPendiente(p.id, 'capacidad', e.target.value)}
-                            onKeyDown={(e) => handleNumericKeyDown(e, p.capacidad, (v) => handleUpdateCargaPendiente(p.id, 'capacidad', v))}
+                            className="form-control input-folio" 
+                            placeholder="Folio y Destino"
+                            value={p.folioDestino}
+                            onChange={(e) => handleUpdateCargaPendiente(p.id, 'folioDestino', e.target.value)}
                           />
-                          <span className="unit-label">m³</span>
+
+                          <div className="input-with-unit">
+                            <input 
+                              type="text" 
+                              inputMode="numeric"
+                              className="form-control input-cap" 
+                              placeholder="m³"
+                              value={p.capacidad}
+                              onChange={(e) => handleUpdateCargaPendiente(p.id, 'capacidad', e.target.value)}
+                              onKeyDown={(e) => handleNumericKeyDown(e, p.capacidad, (v) => handleUpdateCargaPendiente(p.id, 'capacidad', v))}
+                            />
+                            <span className="unit-label">m³</span>
+                          </div>
+
+                          <input 
+                            type="text" 
+                            className="form-control input-obs" 
+                            placeholder="Observaciones (ej: UNA UNIDAD ESCALONADA POR DIA)"
+                            value={p.observacion || ''}
+                            onChange={(e) => handleUpdateCargaPendiente(p.id, 'observacion', e.target.value)}
+                          />
+
+                          <button 
+                            className="btn-delete-row"
+                            onClick={() => handleRemoveCargaPendiente(p.id)}
+                            title="Eliminar fila"
+                          >
+                            <Trash2 size={16} />
+                          </button>
                         </div>
-
-                        <input 
-                          type="text" 
-                          className="form-control input-obs" 
-                          placeholder="Observaciones (ej: UNA UNIDAD ESCALONADA POR DIA)"
-                          value={p.observacion || ''}
-                          onChange={(e) => handleUpdateCargaPendiente(p.id, 'observacion', e.target.value)}
-                        />
-
-                        <button 
-                          className="btn-delete-row"
-                          onClick={() => handleRemoveCargaPendiente(p.id)}
-                          title="Eliminar fila"
-                        >
-                          <Trash2 size={16} />
-                        </button>
-                      </div>
-                    ))}
+                      ))
+                    )}
                   </div>
 
                   <div className="form-group full-width" style={{ marginTop: '1.25rem' }}>
