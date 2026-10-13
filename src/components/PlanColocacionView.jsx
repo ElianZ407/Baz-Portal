@@ -75,7 +75,7 @@ const DEFAULT_RECORD = {
       { id: 3, folioDestino: 'CS00381535 - 7579 EKT MEGA PALENQUE 50M', capacidad: 50, observacion: 'UNIDAD INGRESO A TALLER' }
     ]
   },
-  observacionesGenerales: 'UNA UNIDAD ESCALONADA POR DÍA. AFECTACIÓN QUE TUVO CEDIS CON SISTEMAS PARA EL VALLEY. UNIDAD INGRESÓ A TALLER.'
+  observacionesGenerales: 'PENDIENTES POR FALTA DE UNIDADES'
 };
 
 const formatDateToSpanish = (dateStr) => {
@@ -233,7 +233,7 @@ const normalizeRecord = (raw, dateKey) => {
     },
     observacionesGenerales: raw.observacionesGenerales !== undefined 
       ? raw.observacionesGenerales 
-      : DEFAULT_RECORD.observacionesGenerales
+      : 'PENDIENTES POR FALTA DE UNIDADES'
   };
 };
 
@@ -729,6 +729,9 @@ export const PlanColocacionView = () => {
   const totalCargasMetros = currentData.cargasEjecutadas.reduce((acc, c) => acc + (Number(c.capacidad) || 0), 0);
   const totalPiezasCount = currentData.piezas.categorias.reduce((acc, cat) => acc + (Number(cat.cantidad) || 0), 0);
   const totalPendientesMetros = currentData.planProximo.cargasPendientes.reduce((acc, c) => acc + (Number(c.capacidad) || 0), 0);
+  const cargasN2 = Number(currentData.planProximo.cargasProgramadas) || 0;
+  const cargasPendientesKpi = Number(currentData.kpis.pendientes) || 0;
+  const totalN2MasPendientes = cargasN2 + cargasPendientesKpi;
 
   return (
     <div className="plan-colocacion-page">
@@ -1003,7 +1006,7 @@ export const PlanColocacionView = () => {
                 <div className="flyer-observaciones-cargas">
                   <span className="obs-cargas-badge">OBSERVACIONES:</span>
                   <span className="obs-cargas-text">
-                    {currentData.observacionesGenerales || 'Sin observaciones registradas.'}
+                    {currentData.observacionesGenerales || 'PENDIENTES POR FALTA DE UNIDADES'}
                   </span>
                 </div>
               </div>
@@ -1087,8 +1090,11 @@ export const PlanColocacionView = () => {
               </div>
 
               <div className="flyer-panel panel-n2-pendientes">
-                <div className="panel-header header-forest">
+                <div className="panel-header header-forest" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <span>4. CARGAS PENDIENTES / ESCALONADAS</span>
+                  <span style={{ fontSize: '0.78rem', background: 'rgba(255, 255, 255, 0.22)', padding: '0.15rem 0.55rem', borderRadius: '4px', fontWeight: 900 }}>
+                    N-02 + PENDIENTES: {totalN2MasPendientes} CARGAS
+                  </span>
                 </div>
                 <div className="panel-body body-n2-right">
                   <table className="flyer-table table-n2">
@@ -1102,8 +1108,12 @@ export const PlanColocacionView = () => {
                     <tbody>
                       {currentData.planProximo.cargasPendientes.length === 0 ? (
                         <tr>
-                          <td colSpan={3} style={{ textAlign: 'center', padding: '0.85rem', color: '#64748b', fontStyle: 'italic', fontSize: '0.85rem' }}>
-                            Sin cargas pendientes o escalonadas
+                          <td className="n2-folio-cell" style={{ fontWeight: 800, color: '#166534' }}>
+                            {cargasPendientesKpi > 0 ? `${cargasPendientesKpi} CARGAS PENDIENTES` : 'Sin cargas pendientes'}
+                          </td>
+                          <td className="n2-cap-cell">-</td>
+                          <td className="n2-obs-cell">
+                            PENDIENTES POR FALTA DE UNIDADES
                           </td>
                         </tr>
                       ) : (
@@ -1111,14 +1121,20 @@ export const PlanColocacionView = () => {
                           <tr key={p.id || idx} className={idx % 2 === 0 ? 'row-n2-even' : 'row-n2-odd'}>
                             <td className="n2-folio-cell">{p.folioDestino}</td>
                             <td className="n2-cap-cell">{p.capacidad} m³</td>
-                            <td className="n2-obs-cell">{p.observacion || '-'}</td>
+                            <td className="n2-obs-cell">{p.observacion || 'PENDIENTES POR FALTA DE UNIDADES'}</td>
                           </tr>
                         ))
                       )}
                       <tr className="n2-total-row">
-                        <td className="n2-total-lbl">TOTAL:</td>
-                        <td className="n2-total-val">{totalPendientesMetros} m³</td>
-                        <td className="n2-total-empty"></td>
+                        <td className="n2-total-lbl" style={{ textAlign: 'left', paddingLeft: '0.55rem' }}>
+                          TOTAL N-02 + PENDIENTES:
+                        </td>
+                        <td className="n2-total-val" style={{ whiteSpace: 'nowrap', color: '#fef08a' }}>
+                          {totalN2MasPendientes} cargas
+                        </td>
+                        <td style={{ fontSize: '0.74rem', fontWeight: 700, paddingRight: '0.55rem', textAlign: 'right', color: '#e2e8f0' }}>
+                          ({cargasN2} N-02 + {cargasPendientesKpi} pendientes){totalPendientesMetros > 0 ? ` · ${totalPendientesMetros} m³` : ''}
+                        </td>
                       </tr>
                     </tbody>
                   </table>
@@ -1332,7 +1348,7 @@ export const PlanColocacionView = () => {
                     <textarea 
                       className="form-control"
                       rows={2}
-                      placeholder="Observaciones de la operación (ej: UNA UNIDAD ESCALONADA POR DÍA...)"
+                      placeholder="Observaciones de la operación (ej: PENDIENTES POR FALTA DE UNIDADES)"
                       value={editForm.observacionesGenerales || ''}
                       onChange={(e) => setEditForm({ ...editForm, observacionesGenerales: e.target.value })}
                     />
@@ -1541,7 +1557,7 @@ export const PlanColocacionView = () => {
                     <textarea 
                       className="form-control"
                       rows={2}
-                      placeholder="Notas u observaciones generales para el pie de la infografía..."
+                      placeholder="Notas u observaciones generales (ej: PENDIENTES POR FALTA DE UNIDADES)..."
                       value={editForm.observacionesGenerales || ''}
                       onChange={(e) => setEditForm({ ...editForm, observacionesGenerales: e.target.value })}
                     />
