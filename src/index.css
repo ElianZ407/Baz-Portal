@@ -3779,8 +3779,8 @@ body {
 .flyer-content-grid {
   display: grid;
   grid-template-columns: 1.15fr 1fr;
-  gap: 0.75rem;
-  align-items: start;
+  gap: 0.65rem;
+  align-items: stretch;
 }
 
 .flyer-col-left {
@@ -3791,11 +3791,19 @@ body {
 .panel-resumen-cargas {
   display: flex;
   flex-direction: column;
+  height: 100%;
 }
 
 .panel-table-wrap {
   display: flex;
   flex-direction: column;
+  flex: 1;
+}
+
+.flyer-col-right {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
 }
 
 .flyer-panel {
@@ -4228,8 +4236,13 @@ body {
   border-color: #1e5a36 !important;
 }
 
-.panel-pv-activo {
+.flyer-pv-full-wrap {
   margin-top: 0.65rem;
+  width: 100%;
+}
+
+.panel-pv-activo {
+  width: 100%;
   border-radius: 7px;
   overflow: hidden;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
@@ -4257,16 +4270,16 @@ body {
   background: #70ad47;
   color: #000000;
   font-weight: 900;
-  font-size: 0.90rem;
+  font-size: 0.94rem;
   text-transform: uppercase;
-  letter-spacing: 0.03em;
-  padding: 0.5rem 0.65rem;
+  letter-spacing: 0.04em;
+  padding: 0.45rem 0.65rem;
   border: 1px solid #000000;
   text-align: center;
 }
 
 .pv-th-operacion {
-  width: 28%;
+  width: 22%;
   vertical-align: middle;
 }
 
@@ -4286,13 +4299,13 @@ body {
 }
 
 .pv-col-tipo {
-  width: 22%;
+  width: 20%;
   text-align: left !important;
-  padding-left: 0.65rem !important;
+  padding-left: 0.75rem !important;
 }
 
 .pv-col-num {
-  width: 10%;
+  width: 11%;
 }
 
 .pv-col-pct {
@@ -4303,10 +4316,10 @@ body {
   background: #f2f2f2;
   color: #000000;
   font-weight: 900;
-  font-size: 0.88rem;
+  font-size: 0.92rem;
   text-align: center;
   vertical-align: middle;
-  padding: 0.65rem 0.5rem;
+  padding: 0.55rem 0.65rem;
   border: 1px solid #000000;
   letter-spacing: 0.02em;
   line-height: 1.25;
@@ -4322,8 +4335,8 @@ body {
   background: #ffffff;
   color: #000000;
   font-weight: 800;
-  font-size: 0.86rem;
-  padding: 0.4rem 0.65rem;
+  font-size: 0.88rem;
+  padding: 0.38rem 0.75rem;
   border: 1px solid #000000;
   text-align: left;
 }
@@ -4332,8 +4345,8 @@ body {
   background: #ffffff;
   color: #000000;
   font-weight: 800;
-  font-size: 0.90rem;
-  padding: 0.4rem 0.45rem;
+  font-size: 0.92rem;
+  padding: 0.38rem 0.45rem;
   border: 1px solid #000000;
   text-align: center;
 }
@@ -4390,25 +4403,25 @@ body {
   background: #e2e8f0;
   color: #000000;
   font-weight: 900;
-  padding: 0.45rem 0.5rem;
-  border: 1px solid #000000;
+  padding: 0.42rem 0.5rem;
+  border: 1.5px solid #000000;
   border-top: 2px solid #000000;
 }
 
 .pv-td-total-lbl {
   text-align: right !important;
-  font-size: 0.88rem;
-  padding-right: 0.65rem !important;
+  font-size: 0.90rem;
+  padding-right: 0.75rem !important;
   letter-spacing: 0.02em;
 }
 
 .pv-td-total-num {
   text-align: center;
-  font-size: 0.92rem;
+  font-size: 0.94rem;
 }
 
 .pv-td-grand-total {
-  font-size: 1rem;
+  font-size: 1.02rem;
   color: #0f172a;
 }
 
@@ -4420,7 +4433,7 @@ body {
   display: inline-block;
   background: #15803d;
   color: #ffffff;
-  padding: 0.15rem 0.5rem;
+  padding: 0.12rem 0.5rem;
   border-radius: 4px;
   font-weight: 900;
   font-size: 0.88rem;
