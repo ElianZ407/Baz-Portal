@@ -1439,7 +1439,7 @@ export const PlanColocacionView = () => {
                           <tr key={f.tipo || idx} className={idx % 2 === 0 ? 'pv-row-even' : 'pv-row-odd'}>
                             <td className="pv-td-tipo">{f.tipo}</td>
                             <td className="pv-td-num">{act}</td>
-                            <td className="pv-td-num">{tal}</td>
+                            <td className="pv-td-num pv-td-taller">{tal}</td>
                             <td className="pv-td-num pv-td-total">{tot}</td>
                             <td className="pv-td-pct">
                               <span className={`pv-pct-badge ${Number(pct) >= 70 ? 'pct-high' : Number(pct) >= 40 ? 'pct-med' : 'pct-low'}`}>
@@ -1454,7 +1454,7 @@ export const PlanColocacionView = () => {
                           TOTAL FLOTA
                         </td>
                         <td className="pv-td-total-num">{pvSumActivas}</td>
-                        <td className="pv-td-total-num">{pvSumTaller}</td>
+                        <td className="pv-td-total-num pv-td-total-taller">{pvSumTaller}</td>
                         <td className="pv-td-total-num pv-td-grand-total">{pvSumTotal}</td>
                         <td className="pv-td-total-pct">
                           <span className="pv-total-pct-badge">
@@ -2045,7 +2045,7 @@ export const PlanColocacionView = () => {
                                   type="text"
                                   inputMode="numeric"
                                   className="form-control form-control-sm"
-                                  style={{ textAlign: 'center', fontWeight: 800 }}
+                                  style={{ textAlign: 'center', fontWeight: 800, color: '#dc2626' }}
                                   value={fila.taller}
                                   onChange={(e) => handleUpdatePvFila(fila.tipo, 'taller', e.target.value)}
                                   onKeyDown={(e) => handleNumericKeyDown(e, fila.taller, (v) => handleUpdatePvFila(fila.tipo, 'taller', v))}

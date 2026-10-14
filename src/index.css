@@ -4342,6 +4342,11 @@ body {
   background: #f8fafc;
 }
 
+.pv-td-taller {
+  color: #dc2626 !important;
+  font-weight: 900;
+}
+
 .pv-td-pct {
   background: #ffffff;
   padding: 0.26rem 0.35rem;
@@ -4405,6 +4410,11 @@ body {
 .pv-td-grand-total {
   font-size: 0.90rem;
   color: #fef08a !important;
+}
+
+.pv-td-total-taller {
+  color: #fca5a5 !important;
+  font-weight: 900;
 }
 
 .pv-td-total-pct {
