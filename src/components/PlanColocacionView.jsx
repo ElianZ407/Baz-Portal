@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import html2canvas from 'html2canvas';
 import { fetchPlanesColocacionDb, savePlanColocacionDb, isSupabaseConfigured } from '../lib/supabaseClient';
-import { useFleet } from '../context/FleetContext';
 import { 
   Calendar, 
   ChevronLeft, 
@@ -21,7 +20,6 @@ import {
   RefreshCw,
   Sparkles,
   Save,
-  RotateCcw,
   X
 } from 'lucide-react';
 
@@ -207,16 +205,28 @@ const normalizeRecord = (raw, dateKey) => {
   const rawComp = raw.comportamiento || {};
   const rawPlanProx = raw.planProximo || {};
 
+  const PV_ORDER = ['Camiones', 'Rabones', 'Tracto', 'Fulles'];
   const rawPv = raw.pvActivo || {};
   const rawFilas = Array.isArray(rawPv.filas) ? rawPv.filas : null;
-  const pvFilas = rawFilas
-    ? rawFilas.map((f) => ({
-        tipo: f.tipo || '',
-        activas: Number(f.activas) || 0,
-        taller: Number(f.taller) || 0,
-        siniestro: Number(f.siniestro) || 0
-      }))
-    : DEFAULT_PV_FILAS.map((f) => ({ ...f }));
+  const pvFilas = PV_ORDER.map((tipo) => {
+    const found = rawFilas
+      ? rawFilas.find((f) => {
+          const t = String(f.tipo || '').toLowerCase();
+          if (tipo === 'Camiones') return t.includes('camion');
+          if (tipo === 'Rabones') return t.includes('rabon') || t.includes('rabón');
+          if (tipo === 'Tracto') return t === 'tracto' || t.includes('sencillo');
+          if (tipo === 'Fulles') return t.includes('full');
+          return t === tipo.toLowerCase();
+        })
+      : null;
+    const fallback = DEFAULT_PV_FILAS.find((f) => f.tipo.toLowerCase() === tipo.toLowerCase()) || { activas: 0, taller: 0, siniestro: 0 };
+    return {
+      tipo,
+      activas: found ? (Number(found.activas) || 0) : fallback.activas,
+      taller: found ? (Number(found.taller) || 0) : fallback.taller,
+      siniestro: found ? (Number(found.siniestro) || 0) : fallback.siniestro
+    };
+  });
 
   const pvActivo = {
     operacion: rawPv.operacion || 'CD VILLAHERMOSA LOCAL',
@@ -272,8 +282,6 @@ const normalizeRecord = (raw, dateKey) => {
 };
 
 export const PlanColocacionView = () => {
-  const { catalogoFlota } = useFleet();
-
   const toDateKey = (date) => {
     const y = date.getFullYear();
     const m = String(date.getMonth() + 1).padStart(2, '0');
@@ -795,134 +803,6 @@ export const PlanColocacionView = () => {
     }));
   };
 
-  const handleAutoCalcPvFromFleet = () => {
-    if (!catalogoFlota || !Array.isArray(catalogoFlota) || catalogoFlota.length === 0) {
-      showToast('No hay unidades en el catálogo de flota para calcular.');
-      return;
-    }
-
-    const flota = catalogoFlota.filter((u) => String(u.estatus || 'ACTIVO').toUpperCase() !== 'BAJA');
-
-    const countByCaps = (caps) => {
-      const matching = flota.filter((u) => caps.includes(Number(u.capUnidad || u.capacidad)));
-      const siniestro = matching.filter((u) => String(u.estatus || '').toUpperCase().includes('SINIESTRO')).length;
-      const taller = matching.filter((u) => String(u.estatus || '').toUpperCase().includes('TALLER')).length;
-      const activas = Math.max(0, matching.length - taller - siniestro);
-      return { activas, taller, siniestro };
-    };
-
-    const camiones = countByCaps([18]);
-    const rabones = countByCaps([40, 50]);
-    const tracto = countByCaps([90, 110]);
-    const fulles = countByCaps([180]);
-
-    setEditForm((prev) => ({
-      ...prev,
-      pvActivo: {
-        operacion: prev.pvActivo?.operacion || 'CD VILLAHERMOSA LOCAL',
-        filas: [
-          { tipo: 'Camiones', activas: String(camiones.activas), taller: String(camiones.taller), siniestro: String(camiones.siniestro) },
-          { tipo: 'Rabones', activas: String(rabones.activas), taller: String(rabones.taller), siniestro: String(rabones.siniestro) },
-          { tipo: 'Tracto', activas: String(tracto.activas), taller: String(tracto.taller), siniestro: String(tracto.siniestro) },
-          { tipo: 'Fulles', activas: String(fulles.activas), taller: String(fulles.taller), siniestro: String(fulles.siniestro) }
-        ]
-      }
-    }));
-    showToast('¡Valores de PV calculados desde la flota del sistema!');
-  };
-
-  const handleResetPvToZero = () => {
-    setEditForm((prev) => ({
-      ...prev,
-      pvActivo: {
-        operacion: prev.pvActivo?.operacion || 'CD VILLAHERMOSA LOCAL',
-        filas: getEmptyPvFilas().map((f) => ({
-          tipo: f.tipo,
-          activas: '0',
-          taller: '0',
-          siniestro: '0'
-        }))
-      }
-    }));
-    showToast('Contadores de PV puestos en 0');
-  };
-
-  const handleRestorePvDefaults = () => {
-    setEditForm((prev) => ({
-      ...prev,
-      pvActivo: {
-        operacion: prev.pvActivo?.operacion || 'CD VILLAHERMOSA LOCAL',
-        filas: DEFAULT_PV_FILAS.map((f) => ({
-          tipo: f.tipo,
-          activas: String(f.activas),
-          taller: String(f.taller),
-          siniestro: String(f.siniestro)
-        }))
-      }
-    }));
-    showToast('Valores estándar de PV restaurados');
-  };
-
-  const handleResetToZero = () => {
-    if (!editForm) return;
-    const targetFecha = editForm.fecha || currentDate;
-    const empty = getEmptyRecord(targetFecha);
-    setEditForm({
-      ...empty,
-      kpis: {
-        planProgramado: '0',
-        cargasEjecutadas: '0',
-        pendientes: '0',
-        cumplimiento: '0',
-        metrosRemisionados: '0'
-      },
-      cargasEjecutadas: [],
-      piezas: {
-        ppes: '0',
-        dotCom: '0',
-        categorias: DEFAULT_CATEGORIES.map((cat) => ({
-          ...cat,
-          cantidad: '0'
-        }))
-      },
-      comportamiento: {
-        promedioDiarioAsignadoFC: '0',
-        promedioDiarioOperado: '0',
-        remisionadoAcumulado: '0'
-      },
-      planProximo: {
-        titulo: getNextDayFormatted(targetFecha),
-        cargasProgramadas: '0',
-        resumenFolio: '',
-        resumenM3: '',
-        observacionPendientes: 'SE SUMAN LAS CARGAS PENDIENTES CON LAS DEL PLAN N-02',
-        cargasPendientes: []
-      },
-      pvActivo: {
-        operacion: 'CD VILLAHERMOSA LOCAL',
-        filas: getEmptyPvFilas().map((f) => ({
-          tipo: f.tipo,
-          activas: '0',
-          taller: '0',
-          siniestro: '0'
-        }))
-      },
-      observacionesGenerales: 'SE SUMAN LAS CARGAS PENDIENTES CON LAS DEL PLAN N-02'
-    });
-    showToast('Valores del formulario reiniciados a 0');
-  };
-
-  const handleResetCurrentDay = () => {
-    if (window.confirm(`¿Deseas reiniciar todos los valores del ${formatDateToSpanish(currentDate)} a 0?`)) {
-      const empty = getEmptyRecord(currentDate);
-      setRecords((prev) => ({
-        ...prev,
-        [currentDate]: empty
-      }));
-      showToast(`Día ${formatDateToSpanish(currentDate)} reiniciado a 0`);
-    }
-  };
-
   const totalCargasCount = currentData.cargasEjecutadas.length;
   const totalCargasMetros = currentData.cargasEjecutadas.reduce((acc, c) => acc + (Number(c.capacidad) || 0), 0);
   const totalPiezasCount = currentData.piezas.categorias.reduce((acc, cat) => acc + (Number(cat.cantidad) || 0), 0);
@@ -1025,15 +905,6 @@ export const PlanColocacionView = () => {
           >
             <Edit3 size={15} />
             <span>Editar Datos</span>
-          </button>
-
-          <button 
-            className="btn btn-secondary btn-header-action"
-            onClick={handleResetCurrentDay}
-            title="Reiniciar todos los valores de este día a 0"
-          >
-            <RotateCcw size={15} />
-            <span>Poner en 0</span>
           </button>
 
           <button 
@@ -1476,13 +1347,23 @@ export const PlanColocacionView = () => {
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
                 <button 
                   type="button" 
-                  className="btn btn-secondary btn-sm"
-                  style={{ fontSize: '0.8rem', padding: '0.35rem 0.65rem', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
-                  onClick={handleResetToZero}
-                  title="Reiniciar todos los campos del formulario a 0"
+                  className="btn btn-primary btn-sm btn-save-modal-action"
+                  style={{ fontSize: '0.82rem', padding: '0.4rem 0.75rem', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
+                  onClick={handleSaveEdit}
+                  disabled={cloudStatus === 'saving'}
+                  title="Guardar todos los cambios"
                 >
-                  <RotateCcw size={14} />
-                  <span>Poner en 0</span>
+                  {cloudStatus === 'saving' ? (
+                    <>
+                      <RefreshCw size={14} className="spin-icon" />
+                      <span>Guardando...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Save size={14} />
+                      <span>Guardar</span>
+                    </>
+                  )}
                 </button>
                 <button className="btn-close-modal modal-close" onClick={handleCloseEdit} title="Cerrar ventana">
                   <X size={18} />
@@ -1971,41 +1852,8 @@ export const PlanColocacionView = () => {
 
               {activeTab === 'pvActivo' && (
                 <div className="edit-pv-section">
-                  <div className="edit-section-header-bar" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
+                  <div className="edit-section-header-bar">
                     <span>Parque Vehicular (PV Activo)</span>
-                    <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
-                      {catalogoFlota && catalogoFlota.length > 0 && (
-                        <button 
-                          type="button" 
-                          className="btn btn-sm btn-secondary"
-                          onClick={handleAutoCalcPvFromFleet}
-                          title="Calcular automáticamente las unidades activas y en taller desde el padrón del sistema"
-                          style={{ fontSize: '0.78rem', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
-                        >
-                          <RefreshCw size={13} />
-                          <span>Calcular de Flota Real</span>
-                        </button>
-                      )}
-                      <button 
-                        type="button" 
-                        className="btn btn-sm btn-secondary"
-                        onClick={handleResetPvToZero}
-                        title="Poner todos los contadores de PV a 0"
-                        style={{ fontSize: '0.78rem', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
-                      >
-                        <RotateCcw size={13} />
-                        <span>Poner en 0</span>
-                      </button>
-                      <button 
-                        type="button" 
-                        className="btn btn-sm btn-secondary"
-                        onClick={handleRestorePvDefaults}
-                        title="Restaurar valores estándar"
-                        style={{ fontSize: '0.78rem' }}
-                      >
-                        Valores Estándar
-                      </button>
-                    </div>
                   </div>
 
                   <div className="form-group" style={{ marginTop: '0.85rem', marginBottom: '1rem' }}>
