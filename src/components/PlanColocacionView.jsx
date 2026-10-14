@@ -48,6 +48,20 @@ const getEmptyPvFilas = () => [
   { tipo: 'Fulles', activas: 0, taller: 0 }
 ];
 
+const DEFAULT_HC_FILAS = [
+  { tipo: 'Camiones', autorizado: 15, activo: 13, vacantes: 1, incapacidades: 1 },
+  { tipo: 'Rabones', autorizado: 19, activo: 16, vacantes: 2, incapacidades: 1 },
+  { tipo: 'Tracto', autorizado: 1, activo: 1, vacantes: 0, incapacidades: 0 },
+  { tipo: 'Fulles', autorizado: 0, activo: 0, vacantes: 0, incapacidades: 0 }
+];
+
+const getEmptyHcFilas = () => [
+  { tipo: 'Camiones', autorizado: 0, activo: 0, vacantes: 0, incapacidades: 0 },
+  { tipo: 'Rabones', autorizado: 0, activo: 0, vacantes: 0, incapacidades: 0 },
+  { tipo: 'Tracto', autorizado: 0, activo: 0, vacantes: 0, incapacidades: 0 },
+  { tipo: 'Fulles', autorizado: 0, activo: 0, vacantes: 0, incapacidades: 0 }
+];
+
 const formatDateToSpanish = (dateStr) => {
   if (!dateStr) return '';
   const [year, month, day] = dateStr.split('-').map(Number);
@@ -113,6 +127,9 @@ const getEmptyRecord = (targetDate) => ({
   },
   pvActivo: {
     filas: getEmptyPvFilas()
+  },
+  headcount: {
+    filas: getEmptyHcFilas()
   },
   observacionesGenerales: ''
 });
@@ -230,6 +247,34 @@ const normalizeRecord = (raw, dateKey) => {
     filas: pvFilas
   };
 
+  const HC_ORDER = ['Camiones', 'Rabones', 'Tracto', 'Fulles'];
+  const rawHc = raw.headcount || {};
+  const rawHcFilas = Array.isArray(rawHc.filas) ? rawHc.filas : null;
+  const hcFilas = HC_ORDER.map((tipo) => {
+    const found = rawHcFilas
+      ? rawHcFilas.find((f) => {
+          const t = String(f.tipo || '').toLowerCase();
+          if (tipo === 'Camiones') return t.includes('camion');
+          if (tipo === 'Rabones') return t.includes('rabon') || t.includes('rabón');
+          if (tipo === 'Tracto') return t === 'tracto' || t.includes('sencillo');
+          if (tipo === 'Fulles') return t.includes('full');
+          return t === tipo.toLowerCase();
+        })
+      : null;
+    const fallback = DEFAULT_HC_FILAS.find((f) => f.tipo.toLowerCase() === tipo.toLowerCase()) || { autorizado: 0, activo: 0, vacantes: 0, incapacidades: 0 };
+    return {
+      tipo,
+      autorizado: found ? (Number(found.autorizado) || 0) : fallback.autorizado,
+      activo: found ? (Number(found.activo) || 0) : fallback.activo,
+      vacantes: found ? (Number(found.vacantes) || 0) : fallback.vacantes,
+      incapacidades: found ? (Number(found.incapacidades) || 0) : fallback.incapacidades
+    };
+  });
+
+  const headcount = {
+    filas: hcFilas
+  };
+
   return {
     fecha: targetDate,
     fechaTexto: raw.fechaTexto || formatDateToSpanish(targetDate),
@@ -272,6 +317,7 @@ const normalizeRecord = (raw, dateKey) => {
       cargasPendientes
     },
     pvActivo,
+    headcount,
     observacionesGenerales: raw.observacionesGenerales !== undefined 
       ? raw.observacionesGenerales 
       : ''
@@ -454,6 +500,15 @@ export const PlanColocacionView = () => {
           tipo: f.tipo,
           activas: String(f.activas ?? 0),
           taller: String(f.taller ?? 0)
+        }))
+      },
+      headcount: {
+        filas: (base.headcount?.filas || DEFAULT_HC_FILAS).map((f) => ({
+          tipo: f.tipo,
+          autorizado: String(f.autorizado ?? 0),
+          activo: String(f.activo ?? 0),
+          vacantes: String(f.vacantes ?? 0),
+          incapacidades: String(f.incapacidades ?? 0)
         }))
       }
     });
@@ -808,6 +863,22 @@ export const PlanColocacionView = () => {
     }));
   };
 
+  const handleUpdateHcFila = (tipo, field, value) => {
+    const cleaned = cleanNumericInput(value);
+    setEditForm((prev) => ({
+      ...prev,
+      headcount: {
+        ...prev.headcount,
+        filas: (prev.headcount?.filas || DEFAULT_HC_FILAS).map((f) => {
+          if (f.tipo === tipo) {
+            return { ...f, [field]: cleaned };
+          }
+          return f;
+        })
+      }
+    }));
+  };
+
   const totalCargasCount = currentData.cargasEjecutadas.length;
   const totalCargasMetros = currentData.cargasEjecutadas.reduce((acc, c) => acc + (Number(c.capacidad) || 0), 0);
   const totalPiezasCount = currentData.piezas.categorias.reduce((acc, cat) => acc + (Number(cat.cantidad) || 0), 0);
@@ -819,6 +890,14 @@ export const PlanColocacionView = () => {
   const pvSumTaller = pvFilas.reduce((acc, f) => acc + (Number(f.taller) || 0), 0);
   const pvSumTotal = pvSumActivas + pvSumTaller;
   const pvSumPct = pvSumTotal > 0 ? ((pvSumActivas / pvSumTotal) * 100).toFixed(1) : '0.0';
+
+  const hcFilas = currentData.headcount?.filas || DEFAULT_HC_FILAS;
+  const hcSumAutorizado = hcFilas.reduce((acc, f) => acc + (Number(f.autorizado) || 0), 0);
+  const hcSumActivo = hcFilas.reduce((acc, f) => acc + (Number(f.activo) || 0), 0);
+  const hcSumVacantes = hcFilas.reduce((acc, f) => acc + (Number(f.vacantes) || 0), 0);
+  const hcSumIncapacidades = hcFilas.reduce((acc, f) => acc + (Number(f.incapacidades) || 0), 0);
+  const hcSumPctActivo = hcSumAutorizado > 0 ? ((hcSumActivo / hcSumAutorizado) * 100).toFixed(1) : '0.0';
+  const hcSumPctAutorizado = hcSumAutorizado > 0 ? (((hcSumAutorizado - hcSumVacantes) / hcSumAutorizado) * 100).toFixed(1) : '0.0';
 
   return (
     <div className="plan-colocacion-page">
@@ -1103,6 +1182,85 @@ export const PlanColocacionView = () => {
                   <span>
                     TOTAL {totalCargasCount} cargas – {Number(totalCargasMetros).toLocaleString()} metros remisionados
                   </span>
+                </div>
+              </div>
+
+              <div className="flyer-panel panel-hc-operadores">
+                <div className="panel-header header-navy">
+                  <span>6. PLANTILLA / HEADCOUNT OPERADORES</span>
+                </div>
+                <div 
+                  className="hc-operadores-card"
+                  onClick={() => handleOpenEdit('headcount')}
+                  title="Clic para editar Headcount de Operadores"
+                >
+                  <table className="pv-table hc-table">
+                    <thead>
+                      <tr className="pv-header-row-sub hc-header-row">
+                        <th className="pv-th-sub hc-col-tipo">Tipo de Unidad</th>
+                        <th className="pv-th-sub hc-col-num">HC Autorizado</th>
+                        <th className="pv-th-sub hc-col-num">HC Activo</th>
+                        <th className="pv-th-sub hc-col-num">- Vacantes</th>
+                        <th className="pv-th-sub hc-col-num">- Incapacidades</th>
+                        <th className="pv-th-sub hc-col-pct">% Total Activo</th>
+                        <th className="pv-th-sub hc-col-pct">% Autorizado</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {hcFilas.map((f, idx) => {
+                        const aut = Number(f.autorizado) || 0;
+                        const act = Number(f.activo) || 0;
+                        const vac = Number(f.vacantes) || 0;
+                        const inc = Number(f.incapacidades) || 0;
+                        const pctActivo = aut > 0 ? ((act / aut) * 100).toFixed(1) : '0.0';
+                        const pctAutorizado = aut > 0 ? (((aut - vac) / aut) * 100).toFixed(1) : '0.0';
+                        return (
+                          <tr key={f.tipo || idx} className={idx % 2 === 0 ? 'pv-row-even' : 'pv-row-odd'}>
+                            <td className="pv-td-tipo hc-td-tipo">{f.tipo}</td>
+                            <td className="pv-td-num">{aut}</td>
+                            <td className="pv-td-num">{act}</td>
+                            <td className="pv-td-num" style={{ color: vac > 0 ? '#dc2626' : undefined, fontWeight: vac > 0 ? 800 : undefined }}>
+                              {vac > 0 ? `-${vac}` : '0'}
+                            </td>
+                            <td className="pv-td-num" style={{ color: inc > 0 ? '#d97706' : undefined, fontWeight: inc > 0 ? 800 : undefined }}>
+                              {inc > 0 ? `-${inc}` : '0'}
+                            </td>
+                            <td className="pv-td-pct">
+                              <span className={`pv-pct-badge ${Number(pctActivo) >= 85 ? 'pct-high' : Number(pctActivo) >= 70 ? 'pct-med' : 'pct-low'}`}>
+                                {aut > 0 ? `${pctActivo}%` : '—'}
+                              </span>
+                            </td>
+                            <td className="pv-td-pct">
+                              <span className={`pv-pct-badge ${Number(pctAutorizado) >= 90 ? 'pct-high' : Number(pctAutorizado) >= 75 ? 'pct-med' : 'pct-low'}`}>
+                                {aut > 0 ? `${pctAutorizado}%` : '—'}
+                              </span>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                      <tr className="pv-row-total hc-row-total">
+                        <td className="pv-td-total-lbl hc-td-total-lbl">TOTAL PLANTILLA</td>
+                        <td className="pv-td-total-num">{hcSumAutorizado}</td>
+                        <td className="pv-td-total-num">{hcSumActivo}</td>
+                        <td className="pv-td-total-num" style={{ color: hcSumVacantes > 0 ? '#fca5a5' : undefined }}>
+                          {hcSumVacantes > 0 ? `-${hcSumVacantes}` : '0'}
+                        </td>
+                        <td className="pv-td-total-num" style={{ color: hcSumIncapacidades > 0 ? '#fde68a' : undefined }}>
+                          {hcSumIncapacidades > 0 ? `-${hcSumIncapacidades}` : '0'}
+                        </td>
+                        <td className="pv-td-total-pct">
+                          <span className="hc-total-pct-badge">
+                            {hcSumAutorizado > 0 ? `${hcSumPctActivo}%` : '0.0%'}
+                          </span>
+                        </td>
+                        <td className="pv-td-total-pct">
+                          <span className="hc-total-pct-badge">
+                            {hcSumAutorizado > 0 ? `${hcSumPctAutorizado}%` : '0.0%'}
+                          </span>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
                 </div>
               </div>
             </div>
@@ -1391,6 +1549,12 @@ export const PlanColocacionView = () => {
                 onClick={() => setActiveTab('pvActivo')}
               >
                 6. PV Activo
+              </button>
+              <button 
+                className={`edit-tab ${activeTab === 'headcount' ? 'active' : ''}`}
+                onClick={() => setActiveTab('headcount')}
+              >
+                7. Headcount ({editForm.headcount?.filas?.reduce((acc, f) => acc + (Number(f.activo) || 0), 0) || 0}/{editForm.headcount?.filas?.reduce((acc, f) => acc + (Number(f.autorizado) || 0), 0) || 0})
               </button>
             </div>
 
@@ -1889,6 +2053,96 @@ export const PlanColocacionView = () => {
                               </td>
                               <td style={{ textAlign: 'center', fontWeight: 900, color: Number(pct) >= 70 ? '#22c55e' : '#f59e0b' }}>
                                 {tot > 0 ? `${pct}%` : '—'}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
+              {activeTab === 'headcount' && (
+                <div className="edit-pv-section">
+                  <div className="edit-section-header-bar">
+                    <span>Plantilla / Headcount Operadores</span>
+                  </div>
+
+                  <div className="pv-edit-table-wrap">
+                    <table className="flyer-table pv-edit-table hc-edit-table">
+                      <thead>
+                        <tr>
+                          <th style={{ textAlign: 'left', padding: '0.45rem 0.65rem' }}>Tipo de Unidad</th>
+                          <th style={{ textAlign: 'center', width: '90px' }}>HC Autorizado</th>
+                          <th style={{ textAlign: 'center', width: '90px' }}>HC Activo</th>
+                          <th style={{ textAlign: 'center', width: '90px' }}>- Vacantes</th>
+                          <th style={{ textAlign: 'center', width: '90px' }}>- Incapacidades</th>
+                          <th style={{ textAlign: 'center', width: '100px' }}>% Total Activo</th>
+                          <th style={{ textAlign: 'center', width: '100px' }}>% Autorizado</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {(editForm.headcount?.filas || []).map((fila) => {
+                          const aut = Number(fila.autorizado) || 0;
+                          const act = Number(fila.activo) || 0;
+                          const vac = Number(fila.vacantes) || 0;
+                          const pctActivo = aut > 0 ? ((act / aut) * 100).toFixed(1) : '0.0';
+                          const pctAutorizado = aut > 0 ? (((aut - vac) / aut) * 100).toFixed(1) : '0.0';
+                          return (
+                            <tr key={fila.tipo}>
+                              <td style={{ fontWeight: 800, color: 'var(--text-primary)', padding: '0.45rem 0.65rem' }}>
+                                {fila.tipo}
+                              </td>
+                              <td style={{ padding: '0.25rem' }}>
+                                <input 
+                                  type="text"
+                                  inputMode="numeric"
+                                  className="form-control form-control-sm"
+                                  style={{ textAlign: 'center', fontWeight: 800 }}
+                                  value={fila.autorizado}
+                                  onChange={(e) => handleUpdateHcFila(fila.tipo, 'autorizado', e.target.value)}
+                                  onKeyDown={(e) => handleNumericKeyDown(e, fila.autorizado, (v) => handleUpdateHcFila(fila.tipo, 'autorizado', v))}
+                                />
+                              </td>
+                              <td style={{ padding: '0.25rem' }}>
+                                <input 
+                                  type="text"
+                                  inputMode="numeric"
+                                  className="form-control form-control-sm"
+                                  style={{ textAlign: 'center', fontWeight: 800 }}
+                                  value={fila.activo}
+                                  onChange={(e) => handleUpdateHcFila(fila.tipo, 'activo', e.target.value)}
+                                  onKeyDown={(e) => handleNumericKeyDown(e, fila.activo, (v) => handleUpdateHcFila(fila.tipo, 'activo', v))}
+                                />
+                              </td>
+                              <td style={{ padding: '0.25rem' }}>
+                                <input 
+                                  type="text"
+                                  inputMode="numeric"
+                                  className="form-control form-control-sm"
+                                  style={{ textAlign: 'center', fontWeight: 800, color: '#dc2626' }}
+                                  value={fila.vacantes}
+                                  onChange={(e) => handleUpdateHcFila(fila.tipo, 'vacantes', e.target.value)}
+                                  onKeyDown={(e) => handleNumericKeyDown(e, fila.vacantes, (v) => handleUpdateHcFila(fila.tipo, 'vacantes', v))}
+                                />
+                              </td>
+                              <td style={{ padding: '0.25rem' }}>
+                                <input 
+                                  type="text"
+                                  inputMode="numeric"
+                                  className="form-control form-control-sm"
+                                  style={{ textAlign: 'center', fontWeight: 800, color: '#d97706' }}
+                                  value={fila.incapacidades}
+                                  onChange={(e) => handleUpdateHcFila(fila.tipo, 'incapacidades', e.target.value)}
+                                  onKeyDown={(e) => handleNumericKeyDown(e, fila.incapacidades, (v) => handleUpdateHcFila(fila.tipo, 'incapacidades', v))}
+                                />
+                              </td>
+                              <td style={{ textAlign: 'center', fontWeight: 900, color: Number(pctActivo) >= 85 ? '#22c55e' : '#f59e0b' }}>
+                                {aut > 0 ? `${pctActivo}%` : '—'}
+                              </td>
+                              <td style={{ textAlign: 'center', fontWeight: 900, color: Number(pctAutorizado) >= 90 ? '#22c55e' : '#f59e0b' }}>
+                                {aut > 0 ? `${pctAutorizado}%` : '—'}
                               </td>
                             </tr>
                           );
