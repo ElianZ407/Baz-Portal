@@ -4134,57 +4134,6 @@ body {
   flex-direction: column;
 }
 
-.inline-flyer-input {
-  background: transparent;
-  border: 1px dashed transparent;
-  color: inherit;
-  font-family: inherit;
-  font-size: inherit;
-  font-weight: inherit;
-  letter-spacing: inherit;
-  text-transform: inherit;
-  line-height: inherit;
-  width: 100%;
-  padding: 0.1rem 0.2rem;
-  margin: 0;
-  outline: none;
-  box-sizing: border-box;
-  border-radius: 4px;
-  transition: all 0.15s ease;
-}
-
-.inline-flyer-input:hover {
-  background: rgba(255, 255, 255, 0.7);
-  border-color: #cbd5e1;
-}
-
-.inline-flyer-input:focus {
-  background: #ffffff !important;
-  border: 1px solid #0284c7 !important;
-  box-shadow: 0 0 0 2px rgba(2, 132, 199, 0.2);
-  color: #0f172a !important;
-}
-
-.inline-cap-input {
-  text-align: center;
-}
-
-.inline-folio-input {
-  color: #14532d;
-  font-weight: 800;
-}
-
-.inline-obs-input {
-  color: #3730a3;
-  font-weight: 800;
-}
-
-.inline-obs-footer-input {
-  font-weight: 700;
-  font-size: 0.78rem;
-  color: #1e3a8a;
-}
-
 .body-n2-right {
   background: #ffffff;
   border: 1px solid #cbd5e1;
@@ -4246,6 +4195,8 @@ body {
   letter-spacing: 0.01em;
   background: rgba(224, 231, 255, 0.5);
   line-height: 1.35;
+  white-space: normal;
+  word-break: break-word;
 }
 
 .n2-total-row {

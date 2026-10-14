@@ -773,62 +773,6 @@ export const PlanColocacionView = () => {
     }
   };
 
-  const handleDirectUpdateCuadro4 = (field, value) => {
-    setRecords((prev) => {
-      const current = prev[currentDate] || getEmptyRecord(currentDate);
-      const nextPlanProximo = {
-        ...current.planProximo,
-        [field]: value
-      };
-      const updated = {
-        ...current,
-        planProximo: nextPlanProximo,
-        updatedAt: new Date().toISOString()
-      };
-      return {
-        ...prev,
-        [currentDate]: updated
-      };
-    });
-  };
-
-  const handleDirectUpdateField = (field, value) => {
-    setRecords((prev) => {
-      const current = prev[currentDate] || getEmptyRecord(currentDate);
-      const updated = {
-        ...current,
-        [field]: value,
-        updatedAt: new Date().toISOString()
-      };
-      return {
-        ...prev,
-        [currentDate]: updated
-      };
-    });
-  };
-
-  const handleDirectUpdateCargaPendienteItem = (id, field, value) => {
-    setRecords((prev) => {
-      const current = prev[currentDate] || getEmptyRecord(currentDate);
-      const nextPendientes = current.planProximo.cargasPendientes.map((p) => {
-        if (p.id !== id) return p;
-        return { ...p, [field]: value };
-      });
-      const updated = {
-        ...current,
-        planProximo: {
-          ...current.planProximo,
-          cargasPendientes: nextPendientes
-        },
-        updatedAt: new Date().toISOString()
-      };
-      return {
-        ...prev,
-        [currentDate]: updated
-      };
-    });
-  };
-
   const totalCargasCount = currentData.cargasEjecutadas.length;
   const totalCargasMetros = currentData.cargasEjecutadas.reduce((acc, c) => acc + (Number(c.capacidad) || 0), 0);
   const totalPiezasCount = currentData.piezas.categorias.reduce((acc, cat) => acc + (Number(cat.cantidad) || 0), 0);
@@ -1130,20 +1074,9 @@ export const PlanColocacionView = () => {
 
                 <div className="flyer-observaciones-cargas">
                   <span className="obs-cargas-badge">OBSERVACIONES:</span>
-                  {isExporting ? (
-                    <span className="obs-cargas-text">
-                      {currentData.observacionesGenerales || 'SE SUMAN LAS CARGAS PENDIENTES CON LAS DEL PLAN N-02'}
-                    </span>
-                  ) : (
-                    <input
-                      type="text"
-                      className="inline-flyer-input inline-obs-footer-input"
-                      value={currentData.observacionesGenerales || ''}
-                      placeholder="SE SUMAN LAS CARGAS PENDIENTES CON LAS DEL PLAN N-02"
-                      onChange={(e) => handleDirectUpdateField('observacionesGenerales', e.target.value)}
-                      title="Haz clic para escribir o editar directamente"
-                    />
-                  )}
+                  <span className="obs-cargas-text">
+                    {currentData.observacionesGenerales || 'SE SUMAN LAS CARGAS PENDIENTES CON LAS DEL PLAN N-02'}
+                  </span>
                 </div>
               </div>
             </div>
@@ -1243,102 +1176,37 @@ export const PlanColocacionView = () => {
                     </thead>
                     <tbody>
                       {currentData.planProximo.cargasPendientes.length === 0 ? (
-                        <tr>
+                        <tr 
+                          onClick={() => handleOpenEdit('pendientes')}
+                          style={{ cursor: 'pointer' }}
+                          title="Clic para editar Cuadro 4"
+                        >
                           <td className="n2-folio-cell" style={{ fontWeight: 800, color: '#166534' }}>
-                            {isExporting ? (
-                              <span>
-                                {currentData.planProximo.resumenFolio || (cargasPendientesKpi > 0 ? `${cargasPendientesKpi} CARGAS PENDIENTES` : 'Sin cargas pendientes')}
-                              </span>
-                            ) : (
-                              <input
-                                type="text"
-                                className="inline-flyer-input inline-folio-input"
-                                value={currentData.planProximo.resumenFolio || ''}
-                                placeholder={cargasPendientesKpi > 0 ? `${cargasPendientesKpi} CARGAS PENDIENTES` : 'Sin cargas pendientes'}
-                                onChange={(e) => handleDirectUpdateCuadro4('resumenFolio', e.target.value)}
-                                title="Haz clic para escribir o editar directamente"
-                              />
-                            )}
+                            {currentData.planProximo.resumenFolio || (cargasPendientesKpi > 0 ? `${cargasPendientesKpi} CARGAS PENDIENTES` : 'Sin cargas pendientes')}
                           </td>
                           <td className="n2-cap-cell">
-                            {isExporting ? (
-                              <span>
-                                {currentData.planProximo.resumenM3
-                                  ? (currentData.planProximo.resumenM3.includes('m') || currentData.planProximo.resumenM3 === '-'
-                                      ? currentData.planProximo.resumenM3
-                                      : `${currentData.planProximo.resumenM3} m³`)
-                                  : '-'}
-                              </span>
-                            ) : (
-                              <input
-                                type="text"
-                                className="inline-flyer-input inline-cap-input"
-                                value={currentData.planProximo.resumenM3 || ''}
-                                placeholder="-"
-                                onChange={(e) => handleDirectUpdateCuadro4('resumenM3', e.target.value)}
-                                title="Haz clic para editar m³ directamente"
-                              />
-                            )}
+                            {currentData.planProximo.resumenM3
+                              ? (currentData.planProximo.resumenM3.includes('m') || currentData.planProximo.resumenM3 === '-'
+                                  ? currentData.planProximo.resumenM3
+                                  : `${currentData.planProximo.resumenM3} m³`)
+                              : '-'}
                           </td>
                           <td className="n2-obs-cell">
-                            {isExporting ? (
-                              <span>
-                                {currentData.planProximo.observacionPendientes || 'SE SUMAN LAS CARGAS PENDIENTES CON LAS DEL PLAN N-02'}
-                              </span>
-                            ) : (
-                              <input
-                                type="text"
-                                className="inline-flyer-input inline-obs-input"
-                                value={currentData.planProximo.observacionPendientes || ''}
-                                placeholder="SE SUMAN LAS CARGAS PENDIENTES CON LAS DEL PLAN N-02"
-                                onChange={(e) => handleDirectUpdateCuadro4('observacionPendientes', e.target.value)}
-                                title="Haz clic para editar la observación directamente"
-                              />
-                            )}
+                            {currentData.planProximo.observacionPendientes || 'SE SUMAN LAS CARGAS PENDIENTES CON LAS DEL PLAN N-02'}
                           </td>
                         </tr>
                       ) : (
                         currentData.planProximo.cargasPendientes.map((p, idx) => (
-                          <tr key={p.id || idx} className={idx % 2 === 0 ? 'row-n2-even' : 'row-n2-odd'}>
-                            <td className="n2-folio-cell">
-                              {isExporting ? (
-                                <span>{p.folioDestino}</span>
-                              ) : (
-                                <input
-                                  type="text"
-                                  className="inline-flyer-input inline-folio-input"
-                                  value={p.folioDestino || ''}
-                                  placeholder="Folio / Destino"
-                                  onChange={(e) => handleDirectUpdateCargaPendienteItem(p.id, 'folioDestino', e.target.value)}
-                                />
-                              )}
-                            </td>
-                            <td className="n2-cap-cell">
-                              {isExporting ? (
-                                <span>{p.capacidad ? `${p.capacidad} m³` : '-'}</span>
-                              ) : (
-                                <input
-                                  type="text"
-                                  className="inline-flyer-input inline-cap-input"
-                                  value={p.capacidad || ''}
-                                  placeholder="m³"
-                                  onChange={(e) => handleDirectUpdateCargaPendienteItem(p.id, 'capacidad', e.target.value)}
-                                />
-                              )}
-                            </td>
-                            <td className="n2-obs-cell">
-                              {isExporting ? (
-                                <span>{p.observacion || currentData.planProximo.observacionPendientes || 'SE SUMAN LAS CARGAS PENDIENTES CON LAS DEL PLAN N-02'}</span>
-                              ) : (
-                                <input
-                                  type="text"
-                                  className="inline-flyer-input inline-obs-input"
-                                  value={p.observacion || ''}
-                                  placeholder={currentData.planProximo.observacionPendientes || 'SE SUMAN LAS CARGAS PENDIENTES CON LAS DEL PLAN N-02'}
-                                  onChange={(e) => handleDirectUpdateCargaPendienteItem(p.id, 'observacion', e.target.value)}
-                                />
-                              )}
-                            </td>
+                          <tr 
+                            key={p.id || idx} 
+                            className={idx % 2 === 0 ? 'row-n2-even' : 'row-n2-odd'}
+                            onClick={() => handleOpenEdit('pendientes')}
+                            style={{ cursor: 'pointer' }}
+                            title="Clic para editar Cuadro 4"
+                          >
+                            <td className="n2-folio-cell">{p.folioDestino}</td>
+                            <td className="n2-cap-cell">{p.capacidad ? `${p.capacidad} m³` : '-'}</td>
+                            <td className="n2-obs-cell">{p.observacion || currentData.planProximo.observacionPendientes || 'SE SUMAN LAS CARGAS PENDIENTES CON LAS DEL PLAN N-02'}</td>
                           </tr>
                         ))
                       )}
