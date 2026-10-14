@@ -526,13 +526,23 @@ export const PlanColocacionView = () => {
     showToast('Generando imagen de alta resolución...');
 
     try {
-      const canvas = await html2canvas(flyerRef.current, {
-        scale: 2.5,
+      const flyerEl = flyerRef.current;
+      const flyerWidth = flyerEl.offsetWidth || 1260;
+      const flyerHeight = flyerEl.offsetHeight;
+
+      const canvas = await html2canvas(flyerEl, {
+        scale: 2,
         useCORS: true,
         allowTaint: true,
         backgroundColor: '#ffffff',
         logging: false,
-        windowWidth: 1240
+        width: flyerWidth,
+        height: flyerHeight,
+        windowWidth: flyerWidth + 40,
+        scrollX: 0,
+        scrollY: 0,
+        x: 0,
+        y: 0
       });
 
       const image = canvas.toDataURL('image/png');
@@ -556,13 +566,23 @@ export const PlanColocacionView = () => {
     showToast('Copiando infografía al portapapeles...');
 
     try {
-      const canvas = await html2canvas(flyerRef.current, {
-        scale: 2.5,
+      const flyerEl = flyerRef.current;
+      const flyerWidth = flyerEl.offsetWidth || 1260;
+      const flyerHeight = flyerEl.offsetHeight;
+
+      const canvas = await html2canvas(flyerEl, {
+        scale: 2,
         useCORS: true,
         allowTaint: true,
         backgroundColor: '#ffffff',
         logging: false,
-        windowWidth: 1240
+        width: flyerWidth,
+        height: flyerHeight,
+        windowWidth: flyerWidth + 40,
+        scrollX: 0,
+        scrollY: 0,
+        x: 0,
+        y: 0
       });
 
       canvas.toBlob(async (blob) => {
@@ -927,6 +947,8 @@ export const PlanColocacionView = () => {
                 src="/baz-entregas-logo-clean.png" 
                 alt="baz entregas" 
                 className="flyer-logo-img"
+                width="245"
+                height="54"
               />
             </div>
 
@@ -947,9 +969,11 @@ export const PlanColocacionView = () => {
             <div className="flyer-header-right">
               <div className="flyer-cedis-photo-card" title="CEDIS Villahermosa - Andenes y Flota de Tractos">
                 <img 
-                  src="/cedis-patio-trucks.png" 
+                  src="/cedis-patio-trucks-header.png" 
                   alt="Flota de tractocamiones en andenes CEDIS Villahermosa" 
                   className="flyer-cedis-img"
+                  width="370"
+                  height="160"
                 />
               </div>
             </div>
@@ -1065,8 +1089,7 @@ export const PlanColocacionView = () => {
                             <td className="cell-linea">{c.linea}</td>
                             <td className="cell-estatus">
                               <span className="badge-ejecutada">
-                                <span className="badge-check-icon">✓</span>
-                                <span>Ejecutada</span>
+                                <span className="badge-check-icon">✓</span>Ejecutada
                               </span>
                             </td>
                           </tr>
