@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import html2canvas from 'html2canvas';
 import { fetchPlanesColocacionDb, savePlanColocacionDb, isSupabaseConfigured } from '../lib/supabaseClient';
+import { useFleet } from '../context/FleetContext';
 import { 
   Calendar, 
   ChevronLeft, 
@@ -33,6 +34,20 @@ const DEFAULT_CATEGORIES = [
   { id: 4, categoria: 'Entretenimiento', cantidad: 0 },
   { id: 5, categoria: 'Muebles y Hogar', cantidad: 0 },
   { id: 6, categoria: 'LB Enseres', cantidad: 0 }
+];
+
+const DEFAULT_PV_FILAS = [
+  { tipo: 'Camiones', activas: 8, taller: 5, siniestro: 2 },
+  { tipo: 'Rabones', activas: 12, taller: 7, siniestro: 0 },
+  { tipo: 'Tracto', activas: 1, taller: 0, siniestro: 0 },
+  { tipo: 'Fulles', activas: 0, taller: 0, siniestro: 0 }
+];
+
+const getEmptyPvFilas = () => [
+  { tipo: 'Camiones', activas: 0, taller: 0, siniestro: 0 },
+  { tipo: 'Rabones', activas: 0, taller: 0, siniestro: 0 },
+  { tipo: 'Tracto', activas: 0, taller: 0, siniestro: 0 },
+  { tipo: 'Fulles', activas: 0, taller: 0, siniestro: 0 }
 ];
 
 const formatDateToSpanish = (dateStr) => {
@@ -97,6 +112,10 @@ const getEmptyRecord = (targetDate) => ({
     resumenFolio: '',
     resumenM3: '',
     observacionPendientes: 'SE SUMAN LAS CARGAS PENDIENTES CON LAS DEL PLAN N-02'
+  },
+  pvActivo: {
+    operacion: 'CD VILLAHERMOSA LOCAL',
+    filas: getEmptyPvFilas()
   },
   observacionesGenerales: 'SE SUMAN LAS CARGAS PENDIENTES CON LAS DEL PLAN N-02'
 });
@@ -188,6 +207,22 @@ const normalizeRecord = (raw, dateKey) => {
   const rawComp = raw.comportamiento || {};
   const rawPlanProx = raw.planProximo || {};
 
+  const rawPv = raw.pvActivo || {};
+  const rawFilas = Array.isArray(rawPv.filas) ? rawPv.filas : null;
+  const pvFilas = rawFilas
+    ? rawFilas.map((f) => ({
+        tipo: f.tipo || '',
+        activas: Number(f.activas) || 0,
+        taller: Number(f.taller) || 0,
+        siniestro: Number(f.siniestro) || 0
+      }))
+    : DEFAULT_PV_FILAS.map((f) => ({ ...f }));
+
+  const pvActivo = {
+    operacion: rawPv.operacion || 'CD VILLAHERMOSA LOCAL',
+    filas: pvFilas
+  };
+
   return {
     fecha: targetDate,
     fechaTexto: raw.fechaTexto || formatDateToSpanish(targetDate),
@@ -229,6 +264,7 @@ const normalizeRecord = (raw, dateKey) => {
         : 'SE SUMAN LAS CARGAS PENDIENTES CON LAS DEL PLAN N-02',
       cargasPendientes
     },
+    pvActivo,
     observacionesGenerales: raw.observacionesGenerales !== undefined 
       ? raw.observacionesGenerales 
       : 'SE SUMAN LAS CARGAS PENDIENTES CON LAS DEL PLAN N-02'
@@ -236,6 +272,8 @@ const normalizeRecord = (raw, dateKey) => {
 };
 
 export const PlanColocacionView = () => {
+  const { catalogoFlota } = useFleet();
+
   const toDateKey = (date) => {
     const y = date.getFullYear();
     const m = String(date.getMonth() + 1).padStart(2, '0');
@@ -404,6 +442,15 @@ export const PlanColocacionView = () => {
         cargasPendientes: base.planProximo.cargasPendientes.map((p) => ({
           ...p,
           capacidad: String(p.capacidad ?? '')
+        }))
+      },
+      pvActivo: {
+        operacion: String(base.pvActivo?.operacion || 'CD VILLAHERMOSA LOCAL'),
+        filas: (base.pvActivo?.filas || DEFAULT_PV_FILAS).map((f) => ({
+          tipo: f.tipo,
+          activas: String(f.activas ?? 0),
+          taller: String(f.taller ?? 0),
+          siniestro: String(f.siniestro ?? 0)
         }))
       }
     });
@@ -722,6 +769,100 @@ export const PlanColocacionView = () => {
     }));
   };
 
+  const handleUpdatePvFila = (tipo, field, value) => {
+    const cleaned = cleanNumericInput(value);
+    setEditForm((prev) => ({
+      ...prev,
+      pvActivo: {
+        ...prev.pvActivo,
+        filas: (prev.pvActivo?.filas || DEFAULT_PV_FILAS).map((f) => {
+          if (f.tipo === tipo) {
+            return { ...f, [field]: cleaned };
+          }
+          return f;
+        })
+      }
+    }));
+  };
+
+  const handleUpdatePvOperacion = (value) => {
+    setEditForm((prev) => ({
+      ...prev,
+      pvActivo: {
+        ...prev.pvActivo,
+        operacion: value
+      }
+    }));
+  };
+
+  const handleAutoCalcPvFromFleet = () => {
+    if (!catalogoFlota || !Array.isArray(catalogoFlota) || catalogoFlota.length === 0) {
+      showToast('No hay unidades en el catálogo de flota para calcular.');
+      return;
+    }
+
+    const flota = catalogoFlota.filter((u) => String(u.estatus || 'ACTIVO').toUpperCase() !== 'BAJA');
+
+    const countByCaps = (caps) => {
+      const matching = flota.filter((u) => caps.includes(Number(u.capUnidad || u.capacidad)));
+      const siniestro = matching.filter((u) => String(u.estatus || '').toUpperCase().includes('SINIESTRO')).length;
+      const taller = matching.filter((u) => String(u.estatus || '').toUpperCase().includes('TALLER')).length;
+      const activas = Math.max(0, matching.length - taller - siniestro);
+      return { activas, taller, siniestro };
+    };
+
+    const camiones = countByCaps([18]);
+    const rabones = countByCaps([40, 50]);
+    const tracto = countByCaps([90, 110]);
+    const fulles = countByCaps([180]);
+
+    setEditForm((prev) => ({
+      ...prev,
+      pvActivo: {
+        operacion: prev.pvActivo?.operacion || 'CD VILLAHERMOSA LOCAL',
+        filas: [
+          { tipo: 'Camiones', activas: String(camiones.activas), taller: String(camiones.taller), siniestro: String(camiones.siniestro) },
+          { tipo: 'Rabones', activas: String(rabones.activas), taller: String(rabones.taller), siniestro: String(rabones.siniestro) },
+          { tipo: 'Tracto', activas: String(tracto.activas), taller: String(tracto.taller), siniestro: String(tracto.siniestro) },
+          { tipo: 'Fulles', activas: String(fulles.activas), taller: String(fulles.taller), siniestro: String(fulles.siniestro) }
+        ]
+      }
+    }));
+    showToast('¡Valores de PV calculados desde la flota del sistema!');
+  };
+
+  const handleResetPvToZero = () => {
+    setEditForm((prev) => ({
+      ...prev,
+      pvActivo: {
+        operacion: prev.pvActivo?.operacion || 'CD VILLAHERMOSA LOCAL',
+        filas: getEmptyPvFilas().map((f) => ({
+          tipo: f.tipo,
+          activas: '0',
+          taller: '0',
+          siniestro: '0'
+        }))
+      }
+    }));
+    showToast('Contadores de PV puestos en 0');
+  };
+
+  const handleRestorePvDefaults = () => {
+    setEditForm((prev) => ({
+      ...prev,
+      pvActivo: {
+        operacion: prev.pvActivo?.operacion || 'CD VILLAHERMOSA LOCAL',
+        filas: DEFAULT_PV_FILAS.map((f) => ({
+          tipo: f.tipo,
+          activas: String(f.activas),
+          taller: String(f.taller),
+          siniestro: String(f.siniestro)
+        }))
+      }
+    }));
+    showToast('Valores estándar de PV restaurados');
+  };
+
   const handleResetToZero = () => {
     if (!editForm) return;
     const targetFecha = editForm.fecha || currentDate;
@@ -757,6 +898,15 @@ export const PlanColocacionView = () => {
         observacionPendientes: 'SE SUMAN LAS CARGAS PENDIENTES CON LAS DEL PLAN N-02',
         cargasPendientes: []
       },
+      pvActivo: {
+        operacion: 'CD VILLAHERMOSA LOCAL',
+        filas: getEmptyPvFilas().map((f) => ({
+          tipo: f.tipo,
+          activas: '0',
+          taller: '0',
+          siniestro: '0'
+        }))
+      },
       observacionesGenerales: 'SE SUMAN LAS CARGAS PENDIENTES CON LAS DEL PLAN N-02'
     });
     showToast('Valores del formulario reiniciados a 0');
@@ -780,6 +930,13 @@ export const PlanColocacionView = () => {
   const cargasN2 = Number(currentData.planProximo.cargasProgramadas) || 0;
   const cargasPendientesKpi = Number(currentData.kpis.pendientes) || 0;
   const totalN2MasPendientes = cargasN2 + cargasPendientesKpi;
+
+  const pvFilas = currentData.pvActivo?.filas || DEFAULT_PV_FILAS;
+  const pvSumActivas = pvFilas.reduce((acc, f) => acc + (Number(f.activas) || 0), 0);
+  const pvSumTaller = pvFilas.reduce((acc, f) => acc + (Number(f.taller) || 0), 0);
+  const pvSumSiniestro = pvFilas.reduce((acc, f) => acc + (Number(f.siniestro) || 0), 0);
+  const pvSumTotal = pvSumActivas + pvSumTaller + pvSumSiniestro;
+  const pvSumPct = pvSumTotal > 0 ? ((pvSumActivas / pvSumTotal) * 100).toFixed(1) : '0.0';
 
   return (
     <div className="plan-colocacion-page">
@@ -1079,6 +1236,79 @@ export const PlanColocacionView = () => {
                   </span>
                 </div>
               </div>
+
+              <div className="flyer-panel panel-pv-activo">
+                <div 
+                  className="pv-activo-card"
+                  onClick={() => handleOpenEdit('pvActivo')}
+                  title="Clic para editar Parque Vehicular (PV Activo)"
+                >
+                  <table className="pv-table">
+                    <thead>
+                      <tr className="pv-header-row-top">
+                        <th className="pv-th-operacion" rowSpan={2}>
+                          OPERACIÓN
+                        </th>
+                        <th className="pv-th-retail" colSpan={6}>
+                          PV OPERANDO EN RETAIL
+                        </th>
+                      </tr>
+                      <tr className="pv-header-row-sub">
+                        <th className="pv-th-sub pv-col-tipo">Tipo</th>
+                        <th className="pv-th-sub pv-col-num">Activas</th>
+                        <th className="pv-th-sub pv-col-num">Taller</th>
+                        <th className="pv-th-sub pv-col-num">Siniestro</th>
+                        <th className="pv-th-sub pv-col-num">Total</th>
+                        <th className="pv-th-sub pv-col-pct">% Activo</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {pvFilas.map((f, idx) => {
+                        const act = Number(f.activas) || 0;
+                        const tal = Number(f.taller) || 0;
+                        const sin = Number(f.siniestro) || 0;
+                        const tot = act + tal + sin;
+                        const pct = tot > 0 ? ((act / tot) * 100).toFixed(1) : '0.0';
+                        return (
+                          <tr key={f.tipo || idx} className={idx % 2 === 0 ? 'pv-row-even' : 'pv-row-odd'}>
+                            {idx === 0 && (
+                              <td className="pv-td-operacion" rowSpan={pvFilas.length}>
+                                <div className="pv-operacion-text">
+                                  {currentData.pvActivo?.operacion || 'CD VILLAHERMOSA LOCAL'}
+                                </div>
+                              </td>
+                            )}
+                            <td className="pv-td-tipo">{f.tipo}</td>
+                            <td className="pv-td-num">{act}</td>
+                            <td className="pv-td-num">{tal}</td>
+                            <td className="pv-td-num">{sin}</td>
+                            <td className="pv-td-num pv-td-total">{tot}</td>
+                            <td className="pv-td-pct">
+                              <span className={`pv-pct-badge ${Number(pct) >= 70 ? 'pct-high' : Number(pct) >= 40 ? 'pct-med' : 'pct-low'}`}>
+                                {tot > 0 ? `${pct}%` : '—'}
+                              </span>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                      <tr className="pv-row-total">
+                        <td className="pv-td-total-lbl" colSpan={2}>
+                          TOTAL FLOTA
+                        </td>
+                        <td className="pv-td-total-num">{pvSumActivas}</td>
+                        <td className="pv-td-total-num">{pvSumTaller}</td>
+                        <td className="pv-td-total-num">{pvSumSiniestro}</td>
+                        <td className="pv-td-total-num pv-td-grand-total">{pvSumTotal}</td>
+                        <td className="pv-td-total-pct">
+                          <span className="pv-total-pct-badge">
+                            {pvSumTotal > 0 ? `${pvSumPct}%` : '0.0%'}
+                          </span>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
             </div>
 
             <div className="flyer-col-right">
@@ -1288,6 +1518,12 @@ export const PlanColocacionView = () => {
                 onClick={() => setActiveTab('pendientes')}
               >
                 5. Cargas Pendientes (Cuadro 4)
+              </button>
+              <button 
+                className={`edit-tab ${activeTab === 'pvActivo' ? 'active' : ''}`}
+                onClick={() => setActiveTab('pvActivo')}
+              >
+                6. PV Activo (Flota)
               </button>
             </div>
 
@@ -1727,6 +1963,128 @@ export const PlanColocacionView = () => {
                       value={editForm.observacionesGenerales || ''}
                       onChange={(e) => setEditForm({ ...editForm, observacionesGenerales: e.target.value })}
                     />
+                  </div>
+                </div>
+              )}
+
+              {activeTab === 'pvActivo' && (
+                <div className="edit-pv-section">
+                  <div className="edit-section-header-bar" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
+                    <span>Parque Vehicular Activo (PV Operando en Retail)</span>
+                    <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
+                      {catalogoFlota && catalogoFlota.length > 0 && (
+                        <button 
+                          type="button" 
+                          className="btn btn-sm btn-secondary"
+                          onClick={handleAutoCalcPvFromFleet}
+                          title="Calcular automáticamente las unidades activas y en taller desde el padrón del sistema"
+                          style={{ fontSize: '0.78rem', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
+                        >
+                          <RefreshCw size={13} />
+                          <span>Calcular de Flota Real</span>
+                        </button>
+                      )}
+                      <button 
+                        type="button" 
+                        className="btn btn-sm btn-secondary"
+                        onClick={handleResetPvToZero}
+                        title="Poner todos los contadores de PV a 0"
+                        style={{ fontSize: '0.78rem', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
+                      >
+                        <RotateCcw size={13} />
+                        <span>Poner en 0</span>
+                      </button>
+                      <button 
+                        type="button" 
+                        className="btn btn-sm btn-secondary"
+                        onClick={handleRestorePvDefaults}
+                        title="Restaurar valores estándar"
+                        style={{ fontSize: '0.78rem' }}
+                      >
+                        Valores Estándar
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="form-group" style={{ marginTop: '0.85rem', marginBottom: '1rem' }}>
+                    <label>Nombre de Operación / Sede</label>
+                    <input 
+                      type="text" 
+                      className="form-control"
+                      value={editForm.pvActivo?.operacion || 'CD VILLAHERMOSA LOCAL'}
+                      onChange={(e) => handleUpdatePvOperacion(e.target.value)}
+                      placeholder="CD VILLAHERMOSA LOCAL"
+                    />
+                  </div>
+
+                  <div className="pv-edit-table-wrap">
+                    <table className="flyer-table pv-edit-table">
+                      <thead>
+                        <tr>
+                          <th style={{ textAlign: 'left', padding: '0.45rem 0.65rem' }}>Tipo de Unidad</th>
+                          <th style={{ textAlign: 'center', width: '90px' }}>Activas</th>
+                          <th style={{ textAlign: 'center', width: '90px' }}>Taller</th>
+                          <th style={{ textAlign: 'center', width: '90px' }}>Siniestro</th>
+                          <th style={{ textAlign: 'center', width: '90px' }}>Total</th>
+                          <th style={{ textAlign: 'center', width: '100px' }}>% Activo</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {(editForm.pvActivo?.filas || []).map((fila) => {
+                          const act = Number(fila.activas) || 0;
+                          const tal = Number(fila.taller) || 0;
+                          const sin = Number(fila.siniestro) || 0;
+                          const tot = act + tal + sin;
+                          const pct = tot > 0 ? ((act / tot) * 100).toFixed(1) : '0.0';
+                          return (
+                            <tr key={fila.tipo}>
+                              <td style={{ fontWeight: 800, color: 'var(--text-primary)', padding: '0.45rem 0.65rem' }}>
+                                {fila.tipo}
+                              </td>
+                              <td style={{ padding: '0.25rem' }}>
+                                <input 
+                                  type="text"
+                                  inputMode="numeric"
+                                  className="form-control form-control-sm"
+                                  style={{ textAlign: 'center', fontWeight: 800 }}
+                                  value={fila.activas}
+                                  onChange={(e) => handleUpdatePvFila(fila.tipo, 'activas', e.target.value)}
+                                  onKeyDown={(e) => handleNumericKeyDown(e, fila.activas, (v) => handleUpdatePvFila(fila.tipo, 'activas', v))}
+                                />
+                              </td>
+                              <td style={{ padding: '0.25rem' }}>
+                                <input 
+                                  type="text"
+                                  inputMode="numeric"
+                                  className="form-control form-control-sm"
+                                  style={{ textAlign: 'center', fontWeight: 800 }}
+                                  value={fila.taller}
+                                  onChange={(e) => handleUpdatePvFila(fila.tipo, 'taller', e.target.value)}
+                                  onKeyDown={(e) => handleNumericKeyDown(e, fila.taller, (v) => handleUpdatePvFila(fila.tipo, 'taller', v))}
+                                />
+                              </td>
+                              <td style={{ padding: '0.25rem' }}>
+                                <input 
+                                  type="text"
+                                  inputMode="numeric"
+                                  className="form-control form-control-sm"
+                                  style={{ textAlign: 'center', fontWeight: 800 }}
+                                  value={fila.siniestro}
+                                  onChange={(e) => handleUpdatePvFila(fila.tipo, 'siniestro', e.target.value)}
+                                  onKeyDown={(e) => handleNumericKeyDown(e, fila.siniestro, (v) => handleUpdatePvFila(fila.tipo, 'siniestro', v))}
+                                />
+                              </td>
+                              <td style={{ textAlign: 'center', fontWeight: 900, fontSize: '0.95rem' }}>
+                                {tot}
+                              </td>
+                              <td style={{ textAlign: 'center', fontWeight: 900, color: Number(pct) >= 70 ? '#22c55e' : '#f59e0b' }}>
+                                {tot > 0 ? `${pct}%` : '—'}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
                   </div>
                 </div>
               )}
