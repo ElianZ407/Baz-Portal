@@ -1081,13 +1081,6 @@ export const PlanColocacionView = () => {
                     TOTAL {totalCargasCount} cargas – {Number(totalCargasMetros).toLocaleString()} metros remisionados
                   </span>
                 </div>
-
-                <div className="flyer-observaciones-cargas">
-                  <span className="obs-cargas-badge">OBSERVACIONES:</span>
-                  <span className="obs-cargas-text">
-                    {currentData.observacionesGenerales || 'SE SUMAN LAS CARGAS PENDIENTES CON LAS DEL PLAN N-02'}
-                  </span>
-                </div>
               </div>
             </div>
 
@@ -1232,69 +1225,72 @@ export const PlanColocacionView = () => {
                   </table>
                 </div>
               </div>
+
+              <div className="flyer-panel panel-pv-activo">
+                <div className="panel-header header-emerald">
+                  <span>5. PARQUE VEHICULAR (PV ACTIVO)</span>
+                </div>
+                <div 
+                  className="pv-activo-card"
+                  onClick={() => handleOpenEdit('pvActivo')}
+                  title="Clic para editar Parque Vehicular (PV Activo)"
+                >
+                  <table className="pv-table">
+                    <thead>
+                      <tr className="pv-header-row-sub">
+                        <th className="pv-th-sub pv-col-tipo">Tipo de Unidad</th>
+                        <th className="pv-th-sub pv-col-num">Activas</th>
+                        <th className="pv-th-sub pv-col-num">Taller</th>
+                        <th className="pv-th-sub pv-col-num">Total Flota</th>
+                        <th className="pv-th-sub pv-col-pct">% Activo</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {pvFilas.map((f, idx) => {
+                        const act = Number(f.activas) || 0;
+                        const tal = Number(f.taller) || 0;
+                        const tot = act + tal;
+                        const pct = tot > 0 ? ((act / tot) * 100).toFixed(1) : '0.0';
+                        return (
+                          <tr key={f.tipo || idx} className={idx % 2 === 0 ? 'pv-row-even' : 'pv-row-odd'}>
+                            <td className="pv-td-tipo">{f.tipo}</td>
+                            <td className="pv-td-num">{act}</td>
+                            <td className="pv-td-num">{tal}</td>
+                            <td className="pv-td-num pv-td-total">{tot}</td>
+                            <td className="pv-td-pct">
+                              <span className={`pv-pct-badge ${Number(pct) >= 70 ? 'pct-high' : Number(pct) >= 40 ? 'pct-med' : 'pct-low'}`}>
+                                {tot > 0 ? `${pct}%` : '—'}
+                              </span>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                      <tr className="pv-row-total">
+                        <td className="pv-td-total-lbl">
+                          TOTAL FLOTA
+                        </td>
+                        <td className="pv-td-total-num">{pvSumActivas}</td>
+                        <td className="pv-td-total-num">{pvSumTaller}</td>
+                        <td className="pv-td-total-num pv-td-grand-total">{pvSumTotal}</td>
+                        <td className="pv-td-total-pct">
+                          <span className="pv-total-pct-badge">
+                            {pvSumTotal > 0 ? `${pvSumPct}%` : '0.0%'}
+                          </span>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
             </div>
           </main>
 
-          <section className="flyer-pv-full-wrap">
-            <div className="flyer-panel panel-pv-activo">
-              <div 
-                className="pv-activo-card"
-                onClick={() => handleOpenEdit('pvActivo')}
-                title="Clic para editar Parque Vehicular (PV Activo)"
-              >
-                <table className="pv-table">
-                  <thead>
-                    <tr className="pv-header-row-top">
-                      <th className="pv-th-retail" colSpan={5}>
-                        PV ACTIVO
-                      </th>
-                    </tr>
-                    <tr className="pv-header-row-sub">
-                      <th className="pv-th-sub pv-col-tipo">Tipo de Unidad</th>
-                      <th className="pv-th-sub pv-col-num">Activas</th>
-                      <th className="pv-th-sub pv-col-num">Taller</th>
-                      <th className="pv-th-sub pv-col-num">Total Flota</th>
-                      <th className="pv-th-sub pv-col-pct">% Activo</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {pvFilas.map((f, idx) => {
-                      const act = Number(f.activas) || 0;
-                      const tal = Number(f.taller) || 0;
-                      const tot = act + tal;
-                      const pct = tot > 0 ? ((act / tot) * 100).toFixed(1) : '0.0';
-                      return (
-                        <tr key={f.tipo || idx} className={idx % 2 === 0 ? 'pv-row-even' : 'pv-row-odd'}>
-                          <td className="pv-td-tipo">{f.tipo}</td>
-                          <td className="pv-td-num">{act}</td>
-                          <td className="pv-td-num">{tal}</td>
-                          <td className="pv-td-num pv-td-total">{tot}</td>
-                          <td className="pv-td-pct">
-                            <span className={`pv-pct-badge ${Number(pct) >= 70 ? 'pct-high' : Number(pct) >= 40 ? 'pct-med' : 'pct-low'}`}>
-                              {tot > 0 ? `${pct}%` : '—'}
-                            </span>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                    <tr className="pv-row-total">
-                      <td className="pv-td-total-lbl">
-                        TOTAL FLOTA
-                      </td>
-                      <td className="pv-td-total-num">{pvSumActivas}</td>
-                      <td className="pv-td-total-num">{pvSumTaller}</td>
-                      <td className="pv-td-total-num pv-td-grand-total">{pvSumTotal}</td>
-                      <td className="pv-td-total-pct">
-                        <span className="pv-total-pct-badge">
-                          {pvSumTotal > 0 ? `${pvSumPct}%` : '0.0%'}
-                        </span>
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </section>
+          <footer className="flyer-footer-obs">
+            <span className="obs-footer-badge">OBSERVACIONES:</span>
+            <span className="obs-footer-text">
+              {currentData.observacionesGenerales || 'Operación en curso sin novedades extraordinarias reportadas en CEDIS Villahermosa.'}
+            </span>
+          </footer>
         </div>
       </div>
 
@@ -1536,11 +1532,11 @@ export const PlanColocacionView = () => {
                   </div>
 
                   <div className="form-group full-width" style={{ marginTop: '1.25rem' }}>
-                    <label>Observaciones (Aparece abajo del Total de Cargas)</label>
+                    <label>Observaciones Generales del Día (Pie del Reporte)</label>
                     <textarea 
                       className="form-control"
                       rows={2}
-                      placeholder="Observaciones de la operación (ej: SE SUMAN LAS CARGAS PENDIENTES CON LAS DEL PLAN N-02)"
+                      placeholder="Observaciones de la operación..."
                       value={editForm.observacionesGenerales || ''}
                       onChange={(e) => setEditForm({ ...editForm, observacionesGenerales: e.target.value })}
                     />
@@ -1803,11 +1799,11 @@ export const PlanColocacionView = () => {
                   </div>
 
                   <div className="form-group full-width" style={{ marginTop: '1.25rem' }}>
-                    <label>Observaciones Generales del Día (Pie del Cuadro 1)</label>
+                    <label>Observaciones Generales del Día (Pie del Reporte)</label>
                     <textarea 
                       className="form-control"
                       rows={2}
-                      placeholder="Notas u observaciones generales (ej: SE SUMAN LAS CARGAS PENDIENTES CON LAS DEL PLAN N-02)..."
+                      placeholder="Notas u observaciones generales de la operación..."
                       value={editForm.observacionesGenerales || ''}
                       onChange={(e) => setEditForm({ ...editForm, observacionesGenerales: e.target.value })}
                     />
