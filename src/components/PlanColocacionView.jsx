@@ -50,7 +50,7 @@ const getEmptyPvFilas = () => [
 
 const DEFAULT_HC_FILAS = [
   { tipo: 'Op. Camioneta', autorizado: 15, activo: 13, vacantes: 1, incapacidades: 1 },
-  { tipo: 'Op. RM', autorizado: 19, activo: 16, vacantes: 2, incapacidades: 1 },
+  { tipo: 'Op. RM (Rango Medio)', autorizado: 19, activo: 16, vacantes: 2, incapacidades: 1 },
   { tipo: 'Op. Tractor', autorizado: 1, activo: 1, vacantes: 0, incapacidades: 0 },
   { tipo: 'Op. Fuller', autorizado: 0, activo: 0, vacantes: 0, incapacidades: 0 },
   { tipo: 'Auxiliares', autorizado: 25, activo: 23, vacantes: 1, incapacidades: 1 }
@@ -58,7 +58,7 @@ const DEFAULT_HC_FILAS = [
 
 const getEmptyHcFilas = () => [
   { tipo: 'Op. Camioneta', autorizado: 0, activo: 0, vacantes: 0, incapacidades: 0 },
-  { tipo: 'Op. RM', autorizado: 0, activo: 0, vacantes: 0, incapacidades: 0 },
+  { tipo: 'Op. RM (Rango Medio)', autorizado: 0, activo: 0, vacantes: 0, incapacidades: 0 },
   { tipo: 'Op. Tractor', autorizado: 0, activo: 0, vacantes: 0, incapacidades: 0 },
   { tipo: 'Op. Fuller', autorizado: 0, activo: 0, vacantes: 0, incapacidades: 0 },
   { tipo: 'Auxiliares', autorizado: 0, activo: 0, vacantes: 0, incapacidades: 0 }
@@ -249,7 +249,7 @@ const normalizeRecord = (raw, dateKey) => {
     filas: pvFilas
   };
 
-  const HC_ORDER = ['Op. Camioneta', 'Op. RM', 'Op. Tractor', 'Op. Fuller', 'Auxiliares'];
+  const HC_ORDER = ['Op. Camioneta', 'Op. RM (Rango Medio)', 'Op. Tractor', 'Op. Fuller', 'Auxiliares'];
   const rawHc = raw.headcount || {};
   const rawHcFilas = Array.isArray(rawHc.filas) ? rawHc.filas : null;
   const hcFilas = HC_ORDER.map((tipo) => {
@@ -257,7 +257,7 @@ const normalizeRecord = (raw, dateKey) => {
       ? rawHcFilas.find((f) => {
           const t = String(f.tipo || '').toLowerCase();
           if (tipo === 'Op. Camioneta') return t.includes('camion') || t.includes('camioneta');
-          if (tipo === 'Op. RM') return t.includes('rm') || t.includes('rabon') || t.includes('rabón') || t.includes('medio');
+          if (tipo.includes('RM') || tipo.includes('Rango Medio')) return t.includes('rm') || t.includes('rango medio') || t.includes('rabon') || t.includes('rabón') || t.includes('medio');
           if (tipo === 'Op. Tractor') return t.includes('tractor') || t === 'tracto' || t.includes('sencillo');
           if (tipo === 'Op. Fuller') return t.includes('full') || t.includes('fuller');
           if (tipo === 'Auxiliares') return t.includes('auxiliar') || t.includes('ayudante');
