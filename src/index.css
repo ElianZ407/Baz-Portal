@@ -4237,13 +4237,16 @@ body {
 }
 
 .flyer-pv-full-wrap {
-  margin-top: 0.65rem;
+  margin-top: 0.45rem;
   width: 100%;
+  display: flex;
+  justify-content: center;
 }
 
 .panel-pv-activo {
   width: 100%;
-  border-radius: 7px;
+  max-width: 620px;
+  border-radius: 6px;
   overflow: hidden;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
   border: 1.5px solid #000000;
@@ -4270,17 +4273,12 @@ body {
   background: #70ad47;
   color: #000000;
   font-weight: 900;
-  font-size: 0.94rem;
+  font-size: 0.84rem;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  padding: 0.45rem 0.65rem;
+  padding: 0.28rem 0.5rem;
   border: 1px solid #000000;
   text-align: center;
-}
-
-.pv-th-operacion {
-  width: 22%;
-  vertical-align: middle;
 }
 
 .pv-th-retail {
@@ -4291,52 +4289,33 @@ body {
   background: #70ad47;
   color: #000000;
   font-weight: 900;
-  font-size: 0.82rem;
+  font-size: 0.78rem;
   text-transform: uppercase;
-  padding: 0.35rem 0.45rem;
+  padding: 0.24rem 0.4rem;
   border: 1px solid #000000;
   text-align: center;
 }
 
 .pv-col-tipo {
-  width: 20%;
+  width: 34%;
   text-align: left !important;
-  padding-left: 0.75rem !important;
+  padding-left: 0.6rem !important;
 }
 
 .pv-col-num {
-  width: 11%;
+  width: 16%;
 }
 
 .pv-col-pct {
-  width: 14%;
-}
-
-.pv-td-operacion {
-  background: #f2f2f2;
-  color: #000000;
-  font-weight: 900;
-  font-size: 0.92rem;
-  text-align: center;
-  vertical-align: middle;
-  padding: 0.55rem 0.65rem;
-  border: 1px solid #000000;
-  letter-spacing: 0.02em;
-  line-height: 1.25;
-}
-
-.pv-operacion-text {
-  font-weight: 900;
-  color: #000000;
-  text-transform: uppercase;
+  width: 18%;
 }
 
 .pv-td-tipo {
   background: #ffffff;
   color: #000000;
   font-weight: 800;
-  font-size: 0.88rem;
-  padding: 0.38rem 0.75rem;
+  font-size: 0.80rem;
+  padding: 0.22rem 0.6rem;
   border: 1px solid #000000;
   text-align: left;
 }
@@ -4345,8 +4324,8 @@ body {
   background: #ffffff;
   color: #000000;
   font-weight: 800;
-  font-size: 0.92rem;
-  padding: 0.38rem 0.45rem;
+  font-size: 0.82rem;
+  padding: 0.22rem 0.35rem;
   border: 1px solid #000000;
   text-align: center;
 }
@@ -4358,7 +4337,7 @@ body {
 
 .pv-td-pct {
   background: #ffffff;
-  padding: 0.35rem 0.45rem;
+  padding: 0.20rem 0.35rem;
   border: 1px solid #000000;
   text-align: center;
 }
@@ -4371,17 +4350,12 @@ body {
   background: #fbfdfe;
 }
 
-.pv-row-odd .pv-td-operacion,
-.pv-row-even .pv-td-operacion {
-  background: #f2f2f2;
-}
-
 .pv-pct-badge {
   display: inline-block;
   font-weight: 900;
-  font-size: 0.85rem;
-  padding: 0.12rem 0.45rem;
-  border-radius: 4px;
+  font-size: 0.76rem;
+  padding: 0.06rem 0.35rem;
+  border-radius: 3px;
 }
 
 .pv-pct-badge.pct-high {
@@ -4403,25 +4377,25 @@ body {
   background: #e2e8f0;
   color: #000000;
   font-weight: 900;
-  padding: 0.42rem 0.5rem;
+  padding: 0.26rem 0.4rem;
   border: 1.5px solid #000000;
   border-top: 2px solid #000000;
 }
 
 .pv-td-total-lbl {
   text-align: right !important;
-  font-size: 0.90rem;
-  padding-right: 0.75rem !important;
+  font-size: 0.80rem;
+  padding-right: 0.6rem !important;
   letter-spacing: 0.02em;
 }
 
 .pv-td-total-num {
   text-align: center;
-  font-size: 0.94rem;
+  font-size: 0.82rem;
 }
 
 .pv-td-grand-total {
-  font-size: 1.02rem;
+  font-size: 0.88rem;
   color: #0f172a;
 }
 
@@ -4433,10 +4407,10 @@ body {
   display: inline-block;
   background: #15803d;
   color: #ffffff;
-  padding: 0.12rem 0.5rem;
-  border-radius: 4px;
+  padding: 0.06rem 0.35rem;
+  border-radius: 3px;
   font-weight: 900;
-  font-size: 0.88rem;
+  font-size: 0.78rem;
 }
 
 .pv-edit-table-wrap {

@@ -35,17 +35,17 @@ const DEFAULT_CATEGORIES = [
 ];
 
 const DEFAULT_PV_FILAS = [
-  { tipo: 'Camiones', activas: 8, taller: 5, siniestro: 2 },
-  { tipo: 'Rabones', activas: 12, taller: 7, siniestro: 0 },
-  { tipo: 'Tracto', activas: 1, taller: 0, siniestro: 0 },
-  { tipo: 'Fulles', activas: 0, taller: 0, siniestro: 0 }
+  { tipo: 'Camiones', activas: 8, taller: 5 },
+  { tipo: 'Rabones', activas: 12, taller: 7 },
+  { tipo: 'Tracto', activas: 1, taller: 0 },
+  { tipo: 'Fulles', activas: 0, taller: 0 }
 ];
 
 const getEmptyPvFilas = () => [
-  { tipo: 'Camiones', activas: 0, taller: 0, siniestro: 0 },
-  { tipo: 'Rabones', activas: 0, taller: 0, siniestro: 0 },
-  { tipo: 'Tracto', activas: 0, taller: 0, siniestro: 0 },
-  { tipo: 'Fulles', activas: 0, taller: 0, siniestro: 0 }
+  { tipo: 'Camiones', activas: 0, taller: 0 },
+  { tipo: 'Rabones', activas: 0, taller: 0 },
+  { tipo: 'Tracto', activas: 0, taller: 0 },
+  { tipo: 'Fulles', activas: 0, taller: 0 }
 ];
 
 const formatDateToSpanish = (dateStr) => {
@@ -109,13 +109,12 @@ const getEmptyRecord = (targetDate) => ({
     cargasPendientes: [],
     resumenFolio: '',
     resumenM3: '',
-    observacionPendientes: 'SE SUMAN LAS CARGAS PENDIENTES CON LAS DEL PLAN N-02'
+    observacionPendientes: ''
   },
   pvActivo: {
-    operacion: 'CD VILLAHERMOSA LOCAL',
     filas: getEmptyPvFilas()
   },
-  observacionesGenerales: 'SE SUMAN LAS CARGAS PENDIENTES CON LAS DEL PLAN N-02'
+  observacionesGenerales: ''
 });
 
 const cleanNumericInput = (val, isDecimal = false) => {
@@ -219,17 +218,15 @@ const normalizeRecord = (raw, dateKey) => {
           return t === tipo.toLowerCase();
         })
       : null;
-    const fallback = DEFAULT_PV_FILAS.find((f) => f.tipo.toLowerCase() === tipo.toLowerCase()) || { activas: 0, taller: 0, siniestro: 0 };
+    const fallback = DEFAULT_PV_FILAS.find((f) => f.tipo.toLowerCase() === tipo.toLowerCase()) || { activas: 0, taller: 0 };
     return {
       tipo,
       activas: found ? (Number(found.activas) || 0) : fallback.activas,
-      taller: found ? (Number(found.taller) || 0) : fallback.taller,
-      siniestro: found ? (Number(found.siniestro) || 0) : fallback.siniestro
+      taller: found ? (Number(found.taller) || 0) : fallback.taller
     };
   });
 
   const pvActivo = {
-    operacion: rawPv.operacion || 'CD VILLAHERMOSA LOCAL',
     filas: pvFilas
   };
 
@@ -271,13 +268,13 @@ const normalizeRecord = (raw, dateKey) => {
       resumenM3: rawPlanProx.resumenM3 !== undefined ? String(rawPlanProx.resumenM3) : '',
       observacionPendientes: rawPlanProx.observacionPendientes !== undefined 
         ? String(rawPlanProx.observacionPendientes) 
-        : 'SE SUMAN LAS CARGAS PENDIENTES CON LAS DEL PLAN N-02',
+        : '',
       cargasPendientes
     },
     pvActivo,
     observacionesGenerales: raw.observacionesGenerales !== undefined 
       ? raw.observacionesGenerales 
-      : 'SE SUMAN LAS CARGAS PENDIENTES CON LAS DEL PLAN N-02'
+      : ''
   };
 };
 
@@ -446,19 +443,17 @@ export const PlanColocacionView = () => {
         cargasProgramadas: String(base.planProximo?.cargasProgramadas ?? ''),
         resumenFolio: String(base.planProximo?.resumenFolio ?? ''),
         resumenM3: String(base.planProximo?.resumenM3 ?? ''),
-        observacionPendientes: String(base.planProximo?.observacionPendientes ?? 'SE SUMAN LAS CARGAS PENDIENTES CON LAS DEL PLAN N-02'),
+        observacionPendientes: String(base.planProximo?.observacionPendientes ?? ''),
         cargasPendientes: base.planProximo.cargasPendientes.map((p) => ({
           ...p,
           capacidad: String(p.capacidad ?? '')
         }))
       },
       pvActivo: {
-        operacion: String(base.pvActivo?.operacion || 'CD VILLAHERMOSA LOCAL'),
         filas: (base.pvActivo?.filas || DEFAULT_PV_FILAS).map((f) => ({
           tipo: f.tipo,
           activas: String(f.activas ?? 0),
-          taller: String(f.taller ?? 0),
-          siniestro: String(f.siniestro ?? 0)
+          taller: String(f.taller ?? 0)
         }))
       }
     });
@@ -793,29 +788,16 @@ export const PlanColocacionView = () => {
     }));
   };
 
-  const handleUpdatePvOperacion = (value) => {
-    setEditForm((prev) => ({
-      ...prev,
-      pvActivo: {
-        ...prev.pvActivo,
-        operacion: value
-      }
-    }));
-  };
-
   const totalCargasCount = currentData.cargasEjecutadas.length;
   const totalCargasMetros = currentData.cargasEjecutadas.reduce((acc, c) => acc + (Number(c.capacidad) || 0), 0);
   const totalPiezasCount = currentData.piezas.categorias.reduce((acc, cat) => acc + (Number(cat.cantidad) || 0), 0);
   const totalPendientesMetros = currentData.planProximo.cargasPendientes.reduce((acc, c) => acc + (Number(c.capacidad) || 0), 0);
-  const cargasN2 = Number(currentData.planProximo.cargasProgramadas) || 0;
   const cargasPendientesKpi = Number(currentData.kpis.pendientes) || 0;
-  const totalN2MasPendientes = cargasN2 + cargasPendientesKpi;
 
   const pvFilas = currentData.pvActivo?.filas || DEFAULT_PV_FILAS;
   const pvSumActivas = pvFilas.reduce((acc, f) => acc + (Number(f.activas) || 0), 0);
   const pvSumTaller = pvFilas.reduce((acc, f) => acc + (Number(f.taller) || 0), 0);
-  const pvSumSiniestro = pvFilas.reduce((acc, f) => acc + (Number(f.siniestro) || 0), 0);
-  const pvSumTotal = pvSumActivas + pvSumTaller + pvSumSiniestro;
+  const pvSumTotal = pvSumActivas + pvSumTaller;
   const pvSumPct = pvSumTotal > 0 ? ((pvSumActivas / pvSumTotal) * 100).toFixed(1) : '0.0';
 
   return (
@@ -1187,11 +1169,8 @@ export const PlanColocacionView = () => {
               </div>
 
               <div className="flyer-panel panel-n2-pendientes">
-                <div className="panel-header header-forest" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ whiteSpace: 'nowrap' }}>4. CARGAS PENDIENTES / ESCALONADAS</span>
-                  <span style={{ fontSize: '0.86rem', background: 'rgba(255, 255, 255, 0.22)', padding: '0.18rem 0.65rem', borderRadius: '4px', fontWeight: 900, whiteSpace: 'nowrap' }}>
-                    N-02 + PENDIENTES: {totalN2MasPendientes} CARGAS
-                  </span>
+                <div className="panel-header header-forest">
+                  <span>4. CARGAS PENDIENTES / ESCALONADAS</span>
                 </div>
                 <div className="panel-body body-n2-right">
                   <table className="flyer-table table-n2">
@@ -1220,7 +1199,7 @@ export const PlanColocacionView = () => {
                               : '-'}
                           </td>
                           <td className="n2-obs-cell">
-                            {currentData.planProximo.observacionPendientes || 'SE SUMAN LAS CARGAS PENDIENTES CON LAS DEL PLAN N-02'}
+                            {currentData.planProximo.observacionPendientes || ''}
                           </td>
                         </tr>
                       ) : (
@@ -1234,19 +1213,19 @@ export const PlanColocacionView = () => {
                           >
                             <td className="n2-folio-cell">{p.folioDestino}</td>
                             <td className="n2-cap-cell">{p.capacidad ? `${p.capacidad} m³` : '-'}</td>
-                            <td className="n2-obs-cell">{p.observacion || currentData.planProximo.observacionPendientes || 'SE SUMAN LAS CARGAS PENDIENTES CON LAS DEL PLAN N-02'}</td>
+                            <td className="n2-obs-cell">{p.observacion || currentData.planProximo.observacionPendientes || ''}</td>
                           </tr>
                         ))
                       )}
                       <tr className="n2-total-row">
                         <td className="n2-total-lbl" style={{ textAlign: 'left', paddingLeft: '0.65rem' }}>
-                          TOTAL N-02 + PENDIENTES:
+                          TOTAL PENDIENTES:
                         </td>
                         <td className="n2-total-val" style={{ whiteSpace: 'nowrap', color: '#fef08a' }}>
-                          {totalN2MasPendientes} cargas
+                          {currentData.planProximo.cargasPendientes.length || cargasPendientesKpi} cargas
                         </td>
                         <td style={{ fontSize: '0.82rem', fontWeight: 700, paddingRight: '0.65rem', textAlign: 'right', color: '#e2e8f0' }}>
-                          ({cargasN2} N-02 + {cargasPendientesKpi} pendientes){totalPendientesMetros > 0 ? ` · ${totalPendientesMetros} m³` : ''}
+                          {totalPendientesMetros > 0 ? `${totalPendientesMetros} m³` : ''}
                         </td>
                       </tr>
                     </tbody>
@@ -1266,10 +1245,7 @@ export const PlanColocacionView = () => {
                 <table className="pv-table">
                   <thead>
                     <tr className="pv-header-row-top">
-                      <th className="pv-th-operacion" rowSpan={2}>
-                        OPERACIÓN
-                      </th>
-                      <th className="pv-th-retail" colSpan={6}>
+                      <th className="pv-th-retail" colSpan={5}>
                         PV ACTIVO
                       </th>
                     </tr>
@@ -1277,7 +1253,6 @@ export const PlanColocacionView = () => {
                       <th className="pv-th-sub pv-col-tipo">Tipo de Unidad</th>
                       <th className="pv-th-sub pv-col-num">Activas</th>
                       <th className="pv-th-sub pv-col-num">Taller</th>
-                      <th className="pv-th-sub pv-col-num">Siniestro</th>
                       <th className="pv-th-sub pv-col-num">Total Flota</th>
                       <th className="pv-th-sub pv-col-pct">% Activo</th>
                     </tr>
@@ -1286,22 +1261,13 @@ export const PlanColocacionView = () => {
                     {pvFilas.map((f, idx) => {
                       const act = Number(f.activas) || 0;
                       const tal = Number(f.taller) || 0;
-                      const sin = Number(f.siniestro) || 0;
-                      const tot = act + tal + sin;
+                      const tot = act + tal;
                       const pct = tot > 0 ? ((act / tot) * 100).toFixed(1) : '0.0';
                       return (
                         <tr key={f.tipo || idx} className={idx % 2 === 0 ? 'pv-row-even' : 'pv-row-odd'}>
-                          {idx === 0 && (
-                            <td className="pv-td-operacion" rowSpan={pvFilas.length}>
-                              <div className="pv-operacion-text">
-                                {currentData.pvActivo?.operacion || 'CD VILLAHERMOSA LOCAL'}
-                              </div>
-                            </td>
-                          )}
                           <td className="pv-td-tipo">{f.tipo}</td>
                           <td className="pv-td-num">{act}</td>
                           <td className="pv-td-num">{tal}</td>
-                          <td className="pv-td-num">{sin}</td>
                           <td className="pv-td-num pv-td-total">{tot}</td>
                           <td className="pv-td-pct">
                             <span className={`pv-pct-badge ${Number(pct) >= 70 ? 'pct-high' : Number(pct) >= 40 ? 'pct-med' : 'pct-low'}`}>
@@ -1312,12 +1278,11 @@ export const PlanColocacionView = () => {
                       );
                     })}
                     <tr className="pv-row-total">
-                      <td className="pv-td-total-lbl" colSpan={2}>
+                      <td className="pv-td-total-lbl">
                         TOTAL FLOTA
                       </td>
                       <td className="pv-td-total-num">{pvSumActivas}</td>
                       <td className="pv-td-total-num">{pvSumTaller}</td>
-                      <td className="pv-td-total-num">{pvSumSiniestro}</td>
                       <td className="pv-td-total-num pv-td-grand-total">{pvSumTotal}</td>
                       <td className="pv-td-total-pct">
                         <span className="pv-total-pct-badge">
@@ -1856,17 +1821,6 @@ export const PlanColocacionView = () => {
                     <span>Parque Vehicular (PV Activo)</span>
                   </div>
 
-                  <div className="form-group" style={{ marginTop: '0.85rem', marginBottom: '1rem' }}>
-                    <label>Nombre de Operación / Sede</label>
-                    <input 
-                      type="text" 
-                      className="form-control"
-                      value={editForm.pvActivo?.operacion || 'CD VILLAHERMOSA LOCAL'}
-                      onChange={(e) => handleUpdatePvOperacion(e.target.value)}
-                      placeholder="CD VILLAHERMOSA LOCAL"
-                    />
-                  </div>
-
                   <div className="pv-edit-table-wrap">
                     <table className="flyer-table pv-edit-table">
                       <thead>
@@ -1874,7 +1828,6 @@ export const PlanColocacionView = () => {
                           <th style={{ textAlign: 'left', padding: '0.45rem 0.65rem' }}>Tipo de Unidad</th>
                           <th style={{ textAlign: 'center', width: '90px' }}>Activas</th>
                           <th style={{ textAlign: 'center', width: '90px' }}>Taller</th>
-                          <th style={{ textAlign: 'center', width: '90px' }}>Siniestro</th>
                           <th style={{ textAlign: 'center', width: '90px' }}>Total</th>
                           <th style={{ textAlign: 'center', width: '100px' }}>% Activo</th>
                         </tr>
@@ -1883,8 +1836,7 @@ export const PlanColocacionView = () => {
                         {(editForm.pvActivo?.filas || []).map((fila) => {
                           const act = Number(fila.activas) || 0;
                           const tal = Number(fila.taller) || 0;
-                          const sin = Number(fila.siniestro) || 0;
-                          const tot = act + tal + sin;
+                          const tot = act + tal;
                           const pct = tot > 0 ? ((act / tot) * 100).toFixed(1) : '0.0';
                           return (
                             <tr key={fila.tipo}>
@@ -1911,17 +1863,6 @@ export const PlanColocacionView = () => {
                                   value={fila.taller}
                                   onChange={(e) => handleUpdatePvFila(fila.tipo, 'taller', e.target.value)}
                                   onKeyDown={(e) => handleNumericKeyDown(e, fila.taller, (v) => handleUpdatePvFila(fila.tipo, 'taller', v))}
-                                />
-                              </td>
-                              <td style={{ padding: '0.25rem' }}>
-                                <input 
-                                  type="text"
-                                  inputMode="numeric"
-                                  className="form-control form-control-sm"
-                                  style={{ textAlign: 'center', fontWeight: 800 }}
-                                  value={fila.siniestro}
-                                  onChange={(e) => handleUpdatePvFila(fila.tipo, 'siniestro', e.target.value)}
-                                  onKeyDown={(e) => handleNumericKeyDown(e, fila.siniestro, (v) => handleUpdatePvFila(fila.tipo, 'siniestro', v))}
                                 />
                               </td>
                               <td style={{ textAlign: 'center', fontWeight: 900, fontSize: '0.95rem' }}>
