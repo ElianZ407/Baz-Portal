@@ -4132,6 +4132,12 @@ body {
   margin-top: 0.65rem;
   display: flex;
   flex-direction: column;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.panel-n2-pendientes:hover {
+  box-shadow: 0 4px 14px rgba(22, 101, 52, 0.25);
 }
 
 .body-n2-right {
@@ -4175,7 +4181,7 @@ body {
 .n2-folio-cell {
   font-weight: 800;
   color: #14532d;
-  font-size: 0.90rem;
+  font-size: 0.94rem;
   letter-spacing: -0.01em;
 }
 
@@ -4183,12 +4189,12 @@ body {
   text-align: center;
   font-weight: 800;
   color: #0f172a;
-  font-size: 0.92rem;
+  font-size: 0.94rem;
   white-space: nowrap;
 }
 
 .n2-obs-cell {
-  font-size: 0.88rem;
+  font-size: 0.92rem;
   font-weight: 800;
   color: #3730a3;
   text-transform: uppercase;
@@ -4504,4 +4510,147 @@ body {
 
 .btn-save-modal-action:hover {
   background: #0369a1 !important;
+}
+
+.colocacion-mobile-hint {
+  display: none;
+}
+
+@media (max-width: 1024px) {
+  .colocacion-mobile-hint {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    background: rgba(14, 165, 233, 0.12);
+    border: 1px solid rgba(56, 189, 248, 0.3);
+    color: #38bdf8;
+    font-size: 0.8rem;
+    font-weight: 700;
+    padding: 0.45rem 0.85rem;
+    border-radius: 8px;
+    margin-bottom: 0.35rem;
+    text-align: center;
+  }
+}
+
+@media (max-width: 768px) {
+  .plan-colocacion-page {
+    padding: 0.5rem 0.5rem 2rem;
+    gap: 0.75rem;
+  }
+
+  .colocacion-topbar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.65rem;
+    padding: 0.75rem;
+  }
+
+  .colocacion-date-nav {
+    width: 100%;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .colocacion-date-input-wrap {
+    flex: 1 1 auto;
+    min-width: 130px;
+  }
+
+  .colocacion-date-input {
+    width: 100%;
+    padding-left: 2rem;
+    font-size: 0.82rem;
+  }
+
+  .colocacion-saved-select {
+    width: 100%;
+    max-width: 100%;
+    font-size: 0.82rem;
+  }
+
+  .colocacion-actions {
+    width: 100%;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.45rem;
+  }
+
+  .colocacion-actions .btn-save-action {
+    grid-column: span 2;
+  }
+
+  .colocacion-actions .btn {
+    font-size: 0.78rem;
+    padding: 0.45rem 0.4rem;
+    justify-content: center;
+    white-space: nowrap;
+  }
+
+  .colocacion-flyer-outer {
+    justify-content: flex-start;
+    padding: 0.25rem 0 1rem;
+    -webkit-overflow-scrolling: touch;
+    width: 100%;
+  }
+
+  .modal-colocacion-edit {
+    width: 96vw !important;
+    max-width: 96vw !important;
+    max-height: 94vh !important;
+    margin: 0.5rem auto;
+  }
+
+  .colocacion-edit-tabs {
+    overflow-x: auto;
+    white-space: nowrap;
+    -webkit-overflow-scrolling: touch;
+    padding: 0 0.5rem;
+    gap: 0.25rem;
+  }
+
+  .edit-tab {
+    padding: 0.55rem 0.65rem;
+    font-size: 0.76rem;
+    flex-shrink: 0;
+  }
+
+  .colocacion-modal-body {
+    padding: 0.85rem;
+    max-height: 65vh;
+  }
+
+  .edit-section-grid {
+    grid-template-columns: 1fr;
+    gap: 0.65rem;
+  }
+
+  .edit-section-grid .full-width {
+    grid-column: span 1;
+  }
+
+  .carga-edit-row {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    padding: 0.6rem;
+  }
+
+  .pendiente-edit-row {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    padding: 0.6rem;
+  }
+
+  .pieza-edit-row {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    padding: 0.6rem;
+  }
 }

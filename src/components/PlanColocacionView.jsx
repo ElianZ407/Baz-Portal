@@ -21,6 +21,7 @@ import {
   Sparkles,
   Save,
   RotateCcw,
+  Clock,
   X
 } from 'lucide-react';
 
@@ -93,7 +94,10 @@ const getEmptyRecord = (targetDate) => ({
   planProximo: {
     titulo: getNextDayFormatted(targetDate),
     cargasProgramadas: 0,
-    cargasPendientes: []
+    cargasPendientes: [],
+    resumenFolio: '',
+    resumenM3: '',
+    observacionPendientes: 'SE SUMAN LAS CARGAS PENDIENTES CON LAS DEL PLAN N-02'
   },
   observacionesGenerales: 'SE SUMAN LAS CARGAS PENDIENTES CON LAS DEL PLAN N-02'
 });
@@ -219,6 +223,11 @@ const normalizeRecord = (raw, dateKey) => {
       cargasProgramadas: rawPlanProx.cargasProgramadas !== undefined && rawPlanProx.cargasProgramadas !== ''
         ? Number(rawPlanProx.cargasProgramadas) || 0
         : 0,
+      resumenFolio: rawPlanProx.resumenFolio !== undefined ? String(rawPlanProx.resumenFolio) : '',
+      resumenM3: rawPlanProx.resumenM3 !== undefined ? String(rawPlanProx.resumenM3) : '',
+      observacionPendientes: rawPlanProx.observacionPendientes !== undefined 
+        ? String(rawPlanProx.observacionPendientes) 
+        : 'SE SUMAN LAS CARGAS PENDIENTES CON LAS DEL PLAN N-02',
       cargasPendientes
     },
     observacionesGenerales: raw.observacionesGenerales !== undefined 
@@ -359,7 +368,7 @@ export const PlanColocacionView = () => {
     handleDateChange(toDateKey(new Date()));
   };
 
-  const handleOpenEdit = () => {
+  const handleOpenEdit = (tab = 'kpis') => {
     const base = normalizeRecord(currentData, currentDate);
     setEditForm({
       ...base,
@@ -390,6 +399,9 @@ export const PlanColocacionView = () => {
       planProximo: {
         ...base.planProximo,
         cargasProgramadas: String(base.planProximo?.cargasProgramadas ?? ''),
+        resumenFolio: String(base.planProximo?.resumenFolio ?? ''),
+        resumenM3: String(base.planProximo?.resumenM3 ?? ''),
+        observacionPendientes: String(base.planProximo?.observacionPendientes ?? 'SE SUMAN LAS CARGAS PENDIENTES CON LAS DEL PLAN N-02'),
         cargasPendientes: base.planProximo.cargasPendientes.map((p) => ({
           ...p,
           capacidad: String(p.capacidad ?? '')
@@ -397,7 +409,7 @@ export const PlanColocacionView = () => {
       }
     });
     setIsEditing(true);
-    setActiveTab('kpis');
+    setActiveTab(tab);
   };
 
   const handleCloseEdit = () => {
@@ -741,6 +753,9 @@ export const PlanColocacionView = () => {
       planProximo: {
         titulo: getNextDayFormatted(targetFecha),
         cargasProgramadas: '0',
+        resumenFolio: '',
+        resumenM3: '',
+        observacionPendientes: 'SE SUMAN LAS CARGAS PENDIENTES CON LAS DEL PLAN N-02',
         cargasPendientes: []
       },
       observacionesGenerales: 'SE SUMAN LAS CARGAS PENDIENTES CON LAS DEL PLAN N-02'
@@ -849,7 +864,7 @@ export const PlanColocacionView = () => {
 
           <button 
             className="btn btn-secondary btn-header-action"
-            onClick={handleOpenEdit}
+            onClick={() => handleOpenEdit('kpis')}
             title="Editar la información de este día"
           >
             <Edit3 size={15} />
@@ -885,6 +900,10 @@ export const PlanColocacionView = () => {
             <span>Descargar PNG HD</span>
           </button>
         </div>
+      </div>
+
+      <div className="colocacion-mobile-hint">
+        <span>↔ Desliza hacia los lados para explorar toda la infografía</span>
       </div>
 
       <div className="colocacion-flyer-outer">
@@ -1140,9 +1159,40 @@ export const PlanColocacionView = () => {
                 </div>
               </div>
 
-              <div className="flyer-panel panel-n2-pendientes">
+              <div 
+                className="flyer-panel panel-n2-pendientes"
+                onClick={() => handleOpenEdit('comportamiento')}
+                style={{ cursor: 'pointer' }}
+                title="Haz clic para editar observaciones y datos de cargas pendientes"
+              >
                 <div className="panel-header header-forest" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span>4. CARGAS PENDIENTES / ESCALONADAS</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <span>4. CARGAS PENDIENTES / ESCALONADAS</span>
+                    <button 
+                      type="button"
+                      className="btn-mini-panel-edit"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleOpenEdit('comportamiento');
+                      }}
+                      title="Editar observaciones y datos de cargas pendientes"
+                      style={{
+                        background: 'rgba(255, 255, 255, 0.22)',
+                        border: 'none',
+                        borderRadius: '4px',
+                        color: '#ffffff',
+                        cursor: 'pointer',
+                        padding: '0.15rem 0.55rem',
+                        fontSize: '0.74rem',
+                        fontWeight: 800,
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '0.25rem'
+                      }}
+                    >
+                      <Edit3 size={11} /> Editar
+                    </button>
+                  </div>
                   <span style={{ fontSize: '0.86rem', background: 'rgba(255, 255, 255, 0.22)', padding: '0.18rem 0.65rem', borderRadius: '4px', fontWeight: 900 }}>
                     N-02 + PENDIENTES: {totalN2MasPendientes} CARGAS
                   </span>
@@ -1160,19 +1210,25 @@ export const PlanColocacionView = () => {
                       {currentData.planProximo.cargasPendientes.length === 0 ? (
                         <tr>
                           <td className="n2-folio-cell" style={{ fontWeight: 800, color: '#166534' }}>
-                            {cargasPendientesKpi > 0 ? `${cargasPendientesKpi} CARGAS PENDIENTES` : 'Sin cargas pendientes'}
+                            {currentData.planProximo.resumenFolio || (cargasPendientesKpi > 0 ? `${cargasPendientesKpi} CARGAS PENDIENTES` : 'Sin cargas pendientes')}
                           </td>
-                          <td className="n2-cap-cell">-</td>
+                          <td className="n2-cap-cell">
+                            {currentData.planProximo.resumenM3
+                              ? (currentData.planProximo.resumenM3.includes('m') || currentData.planProximo.resumenM3 === '-'
+                                  ? currentData.planProximo.resumenM3
+                                  : `${currentData.planProximo.resumenM3} m³`)
+                              : '-'}
+                          </td>
                           <td className="n2-obs-cell">
-                            SE SUMAN LAS CARGAS PENDIENTES CON LAS DEL PLAN N-02
+                            {currentData.planProximo.observacionPendientes || 'SE SUMAN LAS CARGAS PENDIENTES CON LAS DEL PLAN N-02'}
                           </td>
                         </tr>
                       ) : (
                         currentData.planProximo.cargasPendientes.map((p, idx) => (
                           <tr key={p.id || idx} className={idx % 2 === 0 ? 'row-n2-even' : 'row-n2-odd'}>
                             <td className="n2-folio-cell">{p.folioDestino}</td>
-                            <td className="n2-cap-cell">{p.capacidad} m³</td>
-                            <td className="n2-obs-cell">{p.observacion || 'SE SUMAN LAS CARGAS PENDIENTES CON LAS DEL PLAN N-02'}</td>
+                            <td className="n2-cap-cell">{p.capacidad ? `${p.capacidad} m³` : '-'}</td>
+                            <td className="n2-obs-cell">{p.observacion || currentData.planProximo.observacionPendientes || 'SE SUMAN LAS CARGAS PENDIENTES CON LAS DEL PLAN N-02'}</td>
                           </tr>
                         ))
                       )}
@@ -1247,7 +1303,7 @@ export const PlanColocacionView = () => {
                 className={`edit-tab ${activeTab === 'comportamiento' ? 'active' : ''}`}
                 onClick={() => setActiveTab('comportamiento')}
               >
-                4. Comportamiento y N-02
+                4. Comportamiento, N-02 y Pendientes
               </button>
             </div>
 
@@ -1564,8 +1620,69 @@ export const PlanColocacionView = () => {
                     </div>
                   </div>
 
+                  <div style={{
+                    background: 'rgba(56, 189, 248, 0.08)',
+                    border: '1px solid rgba(56, 189, 248, 0.3)',
+                    borderRadius: '8px',
+                    padding: '1rem',
+                    marginBottom: '1.25rem'
+                  }}>
+                    <h4 className="edit-subheading" style={{ color: '#38bdf8', margin: '0 0 0.85rem 0', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <Clock size={16} /> 4. Cargas Pendientes y Observaciones del Cuadro 4
+                    </h4>
+                    <div className="edit-section-grid">
+                      <div className="form-group full-width">
+                        <label>Observaciones del Cuadro 4 (Texto en Azul)</label>
+                        <input 
+                          type="text" 
+                          className="form-control"
+                          placeholder="SE SUMAN LAS CARGAS PENDIENTES CON LAS DEL PLAN N-02"
+                          value={editForm.planProximo.observacionPendientes}
+                          onChange={(e) => setEditForm({
+                            ...editForm,
+                            planProximo: { ...editForm.planProximo, observacionPendientes: e.target.value }
+                          })}
+                        />
+                      </div>
+
+                      <div className="form-group">
+                        <label>Texto Folio / Destino (Resumen Cuadro 4)</label>
+                        <input 
+                          type="text" 
+                          className="form-control"
+                          placeholder={Number(editForm.kpis.pendientes) > 0 ? `${editForm.kpis.pendientes} CARGAS PENDIENTES` : 'Sin cargas pendientes'}
+                          value={editForm.planProximo.resumenFolio}
+                          onChange={(e) => setEditForm({
+                            ...editForm,
+                            planProximo: { ...editForm.planProximo, resumenFolio: e.target.value }
+                          })}
+                        />
+                        <small style={{ color: '#94a3b8', fontSize: '0.74rem', marginTop: '0.25rem', display: 'block' }}>
+                          Dejar en blanco para valor automático ({Number(editForm.kpis.pendientes) > 0 ? `${editForm.kpis.pendientes} CARGAS PENDIENTES` : 'Sin cargas pendientes'})
+                        </small>
+                      </div>
+
+                      <div className="form-group">
+                        <label>Metros Cúbicos m³ (Resumen Cuadro 4)</label>
+                        <input 
+                          type="text" 
+                          className="form-control"
+                          placeholder="-"
+                          value={editForm.planProximo.resumenM3}
+                          onChange={(e) => setEditForm({
+                            ...editForm,
+                            planProximo: { ...editForm.planProximo, resumenM3: e.target.value }
+                          })}
+                        />
+                        <small style={{ color: '#94a3b8', fontSize: '0.74rem', marginTop: '0.25rem', display: 'block' }}>
+                          Por defecto muestra &quot;-&quot;
+                        </small>
+                      </div>
+                    </div>
+                  </div>
+
                   <div className="edit-section-header-bar">
-                    <span>Cargas Pendientes / Escalonadas N-02</span>
+                    <span>Cargas Escalonadas Individuales (Detalle Opcional)</span>
                     <button className="btn btn-sm btn-primary" onClick={handleAddCargaPendiente}>
                       <Plus size={14} /> Agregar Escalonada
                     </button>
