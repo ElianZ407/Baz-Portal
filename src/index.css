@@ -4481,23 +4481,25 @@ body {
 }
 
 .hc-col-tipo {
-  width: 22%;
+  width: 24%;
   text-align: left !important;
   padding-left: 0.6rem !important;
+  white-space: nowrap;
 }
 
 .hc-col-num {
-  width: 13%;
+  width: 12.6%;
 }
 
 .hc-col-pct {
-  width: 13%;
+  width: 12.8%;
 }
 
 .hc-td-tipo {
-  font-size: 0.82rem;
+  font-size: 0.81rem;
   font-weight: 800;
   padding-left: 0.6rem !important;
+  white-space: nowrap;
 }
 
 .hc-row-total td {

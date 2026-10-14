@@ -49,17 +49,19 @@ const getEmptyPvFilas = () => [
 ];
 
 const DEFAULT_HC_FILAS = [
-  { tipo: 'Camiones', autorizado: 15, activo: 13, vacantes: 1, incapacidades: 1 },
-  { tipo: 'Rabones', autorizado: 19, activo: 16, vacantes: 2, incapacidades: 1 },
-  { tipo: 'Tracto', autorizado: 1, activo: 1, vacantes: 0, incapacidades: 0 },
-  { tipo: 'Fulles', autorizado: 0, activo: 0, vacantes: 0, incapacidades: 0 }
+  { tipo: 'Op. Camioneta', autorizado: 15, activo: 13, vacantes: 1, incapacidades: 1 },
+  { tipo: 'Op. RM', autorizado: 19, activo: 16, vacantes: 2, incapacidades: 1 },
+  { tipo: 'Op. Tractor', autorizado: 1, activo: 1, vacantes: 0, incapacidades: 0 },
+  { tipo: 'Op. Fuller', autorizado: 0, activo: 0, vacantes: 0, incapacidades: 0 },
+  { tipo: 'Auxiliares', autorizado: 25, activo: 23, vacantes: 1, incapacidades: 1 }
 ];
 
 const getEmptyHcFilas = () => [
-  { tipo: 'Camiones', autorizado: 0, activo: 0, vacantes: 0, incapacidades: 0 },
-  { tipo: 'Rabones', autorizado: 0, activo: 0, vacantes: 0, incapacidades: 0 },
-  { tipo: 'Tracto', autorizado: 0, activo: 0, vacantes: 0, incapacidades: 0 },
-  { tipo: 'Fulles', autorizado: 0, activo: 0, vacantes: 0, incapacidades: 0 }
+  { tipo: 'Op. Camioneta', autorizado: 0, activo: 0, vacantes: 0, incapacidades: 0 },
+  { tipo: 'Op. RM', autorizado: 0, activo: 0, vacantes: 0, incapacidades: 0 },
+  { tipo: 'Op. Tractor', autorizado: 0, activo: 0, vacantes: 0, incapacidades: 0 },
+  { tipo: 'Op. Fuller', autorizado: 0, activo: 0, vacantes: 0, incapacidades: 0 },
+  { tipo: 'Auxiliares', autorizado: 0, activo: 0, vacantes: 0, incapacidades: 0 }
 ];
 
 const formatDateToSpanish = (dateStr) => {
@@ -247,17 +249,18 @@ const normalizeRecord = (raw, dateKey) => {
     filas: pvFilas
   };
 
-  const HC_ORDER = ['Camiones', 'Rabones', 'Tracto', 'Fulles'];
+  const HC_ORDER = ['Op. Camioneta', 'Op. RM', 'Op. Tractor', 'Op. Fuller', 'Auxiliares'];
   const rawHc = raw.headcount || {};
   const rawHcFilas = Array.isArray(rawHc.filas) ? rawHc.filas : null;
   const hcFilas = HC_ORDER.map((tipo) => {
     const found = rawHcFilas
       ? rawHcFilas.find((f) => {
           const t = String(f.tipo || '').toLowerCase();
-          if (tipo === 'Camiones') return t.includes('camion');
-          if (tipo === 'Rabones') return t.includes('rabon') || t.includes('rabón');
-          if (tipo === 'Tracto') return t === 'tracto' || t.includes('sencillo');
-          if (tipo === 'Fulles') return t.includes('full');
+          if (tipo === 'Op. Camioneta') return t.includes('camion') || t.includes('camioneta');
+          if (tipo === 'Op. RM') return t.includes('rm') || t.includes('rabon') || t.includes('rabón') || t.includes('medio');
+          if (tipo === 'Op. Tractor') return t.includes('tractor') || t === 'tracto' || t.includes('sencillo');
+          if (tipo === 'Op. Fuller') return t.includes('full') || t.includes('fuller');
+          if (tipo === 'Auxiliares') return t.includes('auxiliar') || t.includes('ayudante');
           return t === tipo.toLowerCase();
         })
       : null;
@@ -1187,17 +1190,17 @@ export const PlanColocacionView = () => {
 
               <div className="flyer-panel panel-hc-operadores">
                 <div className="panel-header header-navy">
-                  <span>6. PLANTILLA / HEADCOUNT OPERADORES</span>
+                  <span>6. PLANTILLA / HEADCOUNT</span>
                 </div>
                 <div 
                   className="hc-operadores-card"
                   onClick={() => handleOpenEdit('headcount')}
-                  title="Clic para editar Headcount de Operadores"
+                  title="Clic para editar Headcount de Operadores y Auxiliares"
                 >
                   <table className="pv-table hc-table">
                     <thead>
                       <tr className="pv-header-row-sub hc-header-row">
-                        <th className="pv-th-sub hc-col-tipo">Tipo de Unidad</th>
+                        <th className="pv-th-sub hc-col-tipo">Puesto / Rol</th>
                         <th className="pv-th-sub hc-col-num">HC Autorizado</th>
                         <th className="pv-th-sub hc-col-num">HC Activo</th>
                         <th className="pv-th-sub hc-col-num">- Vacantes</th>
@@ -2066,14 +2069,14 @@ export const PlanColocacionView = () => {
               {activeTab === 'headcount' && (
                 <div className="edit-pv-section">
                   <div className="edit-section-header-bar">
-                    <span>Plantilla / Headcount Operadores</span>
+                    <span>Plantilla / Headcount (Operadores y Auxiliares)</span>
                   </div>
 
                   <div className="pv-edit-table-wrap">
                     <table className="flyer-table pv-edit-table hc-edit-table">
                       <thead>
                         <tr>
-                          <th style={{ textAlign: 'left', padding: '0.45rem 0.65rem' }}>Tipo de Unidad</th>
+                          <th style={{ textAlign: 'left', padding: '0.45rem 0.65rem' }}>Puesto / Rol</th>
                           <th style={{ textAlign: 'center', width: '90px' }}>HC Autorizado</th>
                           <th style={{ textAlign: 'center', width: '90px' }}>HC Activo</th>
                           <th style={{ textAlign: 'center', width: '90px' }}>- Vacantes</th>
