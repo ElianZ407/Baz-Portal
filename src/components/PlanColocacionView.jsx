@@ -21,7 +21,6 @@ import {
   Sparkles,
   Save,
   RotateCcw,
-  Clock,
   X
 } from 'lucide-react';
 
@@ -774,6 +773,62 @@ export const PlanColocacionView = () => {
     }
   };
 
+  const handleDirectUpdateCuadro4 = (field, value) => {
+    setRecords((prev) => {
+      const current = prev[currentDate] || getEmptyRecord(currentDate);
+      const nextPlanProximo = {
+        ...current.planProximo,
+        [field]: value
+      };
+      const updated = {
+        ...current,
+        planProximo: nextPlanProximo,
+        updatedAt: new Date().toISOString()
+      };
+      return {
+        ...prev,
+        [currentDate]: updated
+      };
+    });
+  };
+
+  const handleDirectUpdateField = (field, value) => {
+    setRecords((prev) => {
+      const current = prev[currentDate] || getEmptyRecord(currentDate);
+      const updated = {
+        ...current,
+        [field]: value,
+        updatedAt: new Date().toISOString()
+      };
+      return {
+        ...prev,
+        [currentDate]: updated
+      };
+    });
+  };
+
+  const handleDirectUpdateCargaPendienteItem = (id, field, value) => {
+    setRecords((prev) => {
+      const current = prev[currentDate] || getEmptyRecord(currentDate);
+      const nextPendientes = current.planProximo.cargasPendientes.map((p) => {
+        if (p.id !== id) return p;
+        return { ...p, [field]: value };
+      });
+      const updated = {
+        ...current,
+        planProximo: {
+          ...current.planProximo,
+          cargasPendientes: nextPendientes
+        },
+        updatedAt: new Date().toISOString()
+      };
+      return {
+        ...prev,
+        [currentDate]: updated
+      };
+    });
+  };
+
   const totalCargasCount = currentData.cargasEjecutadas.length;
   const totalCargasMetros = currentData.cargasEjecutadas.reduce((acc, c) => acc + (Number(c.capacidad) || 0), 0);
   const totalPiezasCount = currentData.piezas.categorias.reduce((acc, cat) => acc + (Number(cat.cantidad) || 0), 0);
@@ -1075,9 +1130,20 @@ export const PlanColocacionView = () => {
 
                 <div className="flyer-observaciones-cargas">
                   <span className="obs-cargas-badge">OBSERVACIONES:</span>
-                  <span className="obs-cargas-text">
-                    {currentData.observacionesGenerales || 'SE SUMAN LAS CARGAS PENDIENTES CON LAS DEL PLAN N-02'}
-                  </span>
+                  {isExporting ? (
+                    <span className="obs-cargas-text">
+                      {currentData.observacionesGenerales || 'SE SUMAN LAS CARGAS PENDIENTES CON LAS DEL PLAN N-02'}
+                    </span>
+                  ) : (
+                    <input
+                      type="text"
+                      className="inline-flyer-input inline-obs-footer-input"
+                      value={currentData.observacionesGenerales || ''}
+                      placeholder="SE SUMAN LAS CARGAS PENDIENTES CON LAS DEL PLAN N-02"
+                      onChange={(e) => handleDirectUpdateField('observacionesGenerales', e.target.value)}
+                      title="Haz clic para escribir o editar directamente"
+                    />
+                  )}
                 </div>
               </div>
             </div>
@@ -1159,41 +1225,10 @@ export const PlanColocacionView = () => {
                 </div>
               </div>
 
-              <div 
-                className="flyer-panel panel-n2-pendientes"
-                onClick={() => handleOpenEdit('comportamiento')}
-                style={{ cursor: 'pointer' }}
-                title="Haz clic para editar observaciones y datos de cargas pendientes"
-              >
+              <div className="flyer-panel panel-n2-pendientes">
                 <div className="panel-header header-forest" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <span>4. CARGAS PENDIENTES / ESCALONADAS</span>
-                    <button 
-                      type="button"
-                      className="btn-mini-panel-edit"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleOpenEdit('comportamiento');
-                      }}
-                      title="Editar observaciones y datos de cargas pendientes"
-                      style={{
-                        background: 'rgba(255, 255, 255, 0.22)',
-                        border: 'none',
-                        borderRadius: '4px',
-                        color: '#ffffff',
-                        cursor: 'pointer',
-                        padding: '0.15rem 0.55rem',
-                        fontSize: '0.74rem',
-                        fontWeight: 800,
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '0.25rem'
-                      }}
-                    >
-                      <Edit3 size={11} /> Editar
-                    </button>
-                  </div>
-                  <span style={{ fontSize: '0.86rem', background: 'rgba(255, 255, 255, 0.22)', padding: '0.18rem 0.65rem', borderRadius: '4px', fontWeight: 900 }}>
+                  <span style={{ whiteSpace: 'nowrap' }}>4. CARGAS PENDIENTES / ESCALONADAS</span>
+                  <span style={{ fontSize: '0.86rem', background: 'rgba(255, 255, 255, 0.22)', padding: '0.18rem 0.65rem', borderRadius: '4px', fontWeight: 900, whiteSpace: 'nowrap' }}>
                     N-02 + PENDIENTES: {totalN2MasPendientes} CARGAS
                   </span>
                 </div>
@@ -1210,25 +1245,100 @@ export const PlanColocacionView = () => {
                       {currentData.planProximo.cargasPendientes.length === 0 ? (
                         <tr>
                           <td className="n2-folio-cell" style={{ fontWeight: 800, color: '#166534' }}>
-                            {currentData.planProximo.resumenFolio || (cargasPendientesKpi > 0 ? `${cargasPendientesKpi} CARGAS PENDIENTES` : 'Sin cargas pendientes')}
+                            {isExporting ? (
+                              <span>
+                                {currentData.planProximo.resumenFolio || (cargasPendientesKpi > 0 ? `${cargasPendientesKpi} CARGAS PENDIENTES` : 'Sin cargas pendientes')}
+                              </span>
+                            ) : (
+                              <input
+                                type="text"
+                                className="inline-flyer-input inline-folio-input"
+                                value={currentData.planProximo.resumenFolio || ''}
+                                placeholder={cargasPendientesKpi > 0 ? `${cargasPendientesKpi} CARGAS PENDIENTES` : 'Sin cargas pendientes'}
+                                onChange={(e) => handleDirectUpdateCuadro4('resumenFolio', e.target.value)}
+                                title="Haz clic para escribir o editar directamente"
+                              />
+                            )}
                           </td>
                           <td className="n2-cap-cell">
-                            {currentData.planProximo.resumenM3
-                              ? (currentData.planProximo.resumenM3.includes('m') || currentData.planProximo.resumenM3 === '-'
-                                  ? currentData.planProximo.resumenM3
-                                  : `${currentData.planProximo.resumenM3} m³`)
-                              : '-'}
+                            {isExporting ? (
+                              <span>
+                                {currentData.planProximo.resumenM3
+                                  ? (currentData.planProximo.resumenM3.includes('m') || currentData.planProximo.resumenM3 === '-'
+                                      ? currentData.planProximo.resumenM3
+                                      : `${currentData.planProximo.resumenM3} m³`)
+                                  : '-'}
+                              </span>
+                            ) : (
+                              <input
+                                type="text"
+                                className="inline-flyer-input inline-cap-input"
+                                value={currentData.planProximo.resumenM3 || ''}
+                                placeholder="-"
+                                onChange={(e) => handleDirectUpdateCuadro4('resumenM3', e.target.value)}
+                                title="Haz clic para editar m³ directamente"
+                              />
+                            )}
                           </td>
                           <td className="n2-obs-cell">
-                            {currentData.planProximo.observacionPendientes || 'SE SUMAN LAS CARGAS PENDIENTES CON LAS DEL PLAN N-02'}
+                            {isExporting ? (
+                              <span>
+                                {currentData.planProximo.observacionPendientes || 'SE SUMAN LAS CARGAS PENDIENTES CON LAS DEL PLAN N-02'}
+                              </span>
+                            ) : (
+                              <input
+                                type="text"
+                                className="inline-flyer-input inline-obs-input"
+                                value={currentData.planProximo.observacionPendientes || ''}
+                                placeholder="SE SUMAN LAS CARGAS PENDIENTES CON LAS DEL PLAN N-02"
+                                onChange={(e) => handleDirectUpdateCuadro4('observacionPendientes', e.target.value)}
+                                title="Haz clic para editar la observación directamente"
+                              />
+                            )}
                           </td>
                         </tr>
                       ) : (
                         currentData.planProximo.cargasPendientes.map((p, idx) => (
                           <tr key={p.id || idx} className={idx % 2 === 0 ? 'row-n2-even' : 'row-n2-odd'}>
-                            <td className="n2-folio-cell">{p.folioDestino}</td>
-                            <td className="n2-cap-cell">{p.capacidad ? `${p.capacidad} m³` : '-'}</td>
-                            <td className="n2-obs-cell">{p.observacion || currentData.planProximo.observacionPendientes || 'SE SUMAN LAS CARGAS PENDIENTES CON LAS DEL PLAN N-02'}</td>
+                            <td className="n2-folio-cell">
+                              {isExporting ? (
+                                <span>{p.folioDestino}</span>
+                              ) : (
+                                <input
+                                  type="text"
+                                  className="inline-flyer-input inline-folio-input"
+                                  value={p.folioDestino || ''}
+                                  placeholder="Folio / Destino"
+                                  onChange={(e) => handleDirectUpdateCargaPendienteItem(p.id, 'folioDestino', e.target.value)}
+                                />
+                              )}
+                            </td>
+                            <td className="n2-cap-cell">
+                              {isExporting ? (
+                                <span>{p.capacidad ? `${p.capacidad} m³` : '-'}</span>
+                              ) : (
+                                <input
+                                  type="text"
+                                  className="inline-flyer-input inline-cap-input"
+                                  value={p.capacidad || ''}
+                                  placeholder="m³"
+                                  onChange={(e) => handleDirectUpdateCargaPendienteItem(p.id, 'capacidad', e.target.value)}
+                                />
+                              )}
+                            </td>
+                            <td className="n2-obs-cell">
+                              {isExporting ? (
+                                <span>{p.observacion || currentData.planProximo.observacionPendientes || 'SE SUMAN LAS CARGAS PENDIENTES CON LAS DEL PLAN N-02'}</span>
+                              ) : (
+                                <input
+                                  type="text"
+                                  className="inline-flyer-input inline-obs-input"
+                                  value={p.observacion || ''}
+                                  placeholder={currentData.planProximo.observacionPendientes || 'SE SUMAN LAS CARGAS PENDIENTES CON LAS DEL PLAN N-02'}
+                                  onChange={(e) => handleDirectUpdateCargaPendienteItem(p.id, 'observacion', e.target.value)}
+                                />
+                              )}
+                            </td>
                           </tr>
                         ))
                       )}
@@ -1303,7 +1413,13 @@ export const PlanColocacionView = () => {
                 className={`edit-tab ${activeTab === 'comportamiento' ? 'active' : ''}`}
                 onClick={() => setActiveTab('comportamiento')}
               >
-                4. Comportamiento, N-02 y Pendientes
+                4. Comportamiento y N-02
+              </button>
+              <button 
+                className={`edit-tab ${activeTab === 'pendientes' ? 'active' : ''}`}
+                onClick={() => setActiveTab('pendientes')}
+              >
+                5. Cargas Pendientes (Cuadro 4)
               </button>
             </div>
 
@@ -1593,7 +1709,7 @@ export const PlanColocacionView = () => {
                   </div>
 
                   <h4 className="edit-subheading">Plan Próximo (N-02)</h4>
-                  <div className="edit-section-grid" style={{ marginBottom: '1rem' }}>
+                  <div className="edit-section-grid">
                     <div className="form-group full-width">
                       <label>Título del Plan Próximo</label>
                       <input 
@@ -1607,7 +1723,7 @@ export const PlanColocacionView = () => {
                       />
                     </div>
 
-                    <div className="form-group">
+                    <div className="form-group full-width">
                       <label>Total Cargas Programadas N-02</label>
                       <input 
                         type="text" 
@@ -1619,71 +1735,67 @@ export const PlanColocacionView = () => {
                       />
                     </div>
                   </div>
+                </div>
+              )}
 
-                  <div style={{
-                    background: 'rgba(56, 189, 248, 0.08)',
-                    border: '1px solid rgba(56, 189, 248, 0.3)',
-                    borderRadius: '8px',
-                    padding: '1rem',
-                    marginBottom: '1.25rem'
-                  }}>
-                    <h4 className="edit-subheading" style={{ color: '#38bdf8', margin: '0 0 0.85rem 0', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                      <Clock size={16} /> 4. Cargas Pendientes y Observaciones del Cuadro 4
-                    </h4>
-                    <div className="edit-section-grid">
-                      <div className="form-group full-width">
-                        <label>Observaciones del Cuadro 4 (Texto en Azul)</label>
-                        <input 
-                          type="text" 
-                          className="form-control"
-                          placeholder="SE SUMAN LAS CARGAS PENDIENTES CON LAS DEL PLAN N-02"
-                          value={editForm.planProximo.observacionPendientes}
-                          onChange={(e) => setEditForm({
-                            ...editForm,
-                            planProximo: { ...editForm.planProximo, observacionPendientes: e.target.value }
-                          })}
-                        />
-                      </div>
+              {activeTab === 'pendientes' && (
+                <div>
+                  <h4 className="edit-subheading" style={{ color: '#38bdf8' }}>
+                    Cuadro 4: Cargas Pendientes y Observaciones
+                  </h4>
+                  <div className="edit-section-grid" style={{ marginBottom: '1.25rem' }}>
+                    <div className="form-group full-width">
+                      <label>Observaciones del Cuadro 4 (Texto en Azul)</label>
+                      <input 
+                        type="text" 
+                        className="form-control"
+                        placeholder="SE SUMAN LAS CARGAS PENDIENTES CON LAS DEL PLAN N-02"
+                        value={editForm.planProximo.observacionPendientes}
+                        onChange={(e) => setEditForm({
+                          ...editForm,
+                          planProximo: { ...editForm.planProximo, observacionPendientes: e.target.value }
+                        })}
+                      />
+                    </div>
 
-                      <div className="form-group">
-                        <label>Texto Folio / Destino (Resumen Cuadro 4)</label>
-                        <input 
-                          type="text" 
-                          className="form-control"
-                          placeholder={Number(editForm.kpis.pendientes) > 0 ? `${editForm.kpis.pendientes} CARGAS PENDIENTES` : 'Sin cargas pendientes'}
-                          value={editForm.planProximo.resumenFolio}
-                          onChange={(e) => setEditForm({
-                            ...editForm,
-                            planProximo: { ...editForm.planProximo, resumenFolio: e.target.value }
-                          })}
-                        />
-                        <small style={{ color: '#94a3b8', fontSize: '0.74rem', marginTop: '0.25rem', display: 'block' }}>
-                          Dejar en blanco para valor automático ({Number(editForm.kpis.pendientes) > 0 ? `${editForm.kpis.pendientes} CARGAS PENDIENTES` : 'Sin cargas pendientes'})
-                        </small>
-                      </div>
+                    <div className="form-group">
+                      <label>Texto Folio / Destino (Resumen Cuadro 4)</label>
+                      <input 
+                        type="text" 
+                        className="form-control"
+                        placeholder={Number(editForm.kpis.pendientes) > 0 ? `${editForm.kpis.pendientes} CARGAS PENDIENTES` : 'Sin cargas pendientes'}
+                        value={editForm.planProximo.resumenFolio}
+                        onChange={(e) => setEditForm({
+                          ...editForm,
+                          planProximo: { ...editForm.planProximo, resumenFolio: e.target.value }
+                        })}
+                      />
+                      <small style={{ color: '#94a3b8', fontSize: '0.74rem', marginTop: '0.25rem', display: 'block' }}>
+                        Dejar en blanco para valor automático ({Number(editForm.kpis.pendientes) > 0 ? `${editForm.kpis.pendientes} CARGAS PENDIENTES` : 'Sin cargas pendientes'})
+                      </small>
+                    </div>
 
-                      <div className="form-group">
-                        <label>Metros Cúbicos m³ (Resumen Cuadro 4)</label>
-                        <input 
-                          type="text" 
-                          className="form-control"
-                          placeholder="-"
-                          value={editForm.planProximo.resumenM3}
-                          onChange={(e) => setEditForm({
-                            ...editForm,
-                            planProximo: { ...editForm.planProximo, resumenM3: e.target.value }
-                          })}
-                        />
-                        <small style={{ color: '#94a3b8', fontSize: '0.74rem', marginTop: '0.25rem', display: 'block' }}>
-                          Por defecto muestra &quot;-&quot;
-                        </small>
-                      </div>
+                    <div className="form-group">
+                      <label>Metros Cúbicos m³ (Resumen Cuadro 4)</label>
+                      <input 
+                        type="text" 
+                        className="form-control"
+                        placeholder="-"
+                        value={editForm.planProximo.resumenM3}
+                        onChange={(e) => setEditForm({
+                          ...editForm,
+                          planProximo: { ...editForm.planProximo, resumenM3: e.target.value }
+                        })}
+                      />
+                      <small style={{ color: '#94a3b8', fontSize: '0.74rem', marginTop: '0.25rem', display: 'block' }}>
+                        Por defecto muestra &quot;-&quot;
+                      </small>
                     </div>
                   </div>
 
                   <div className="edit-section-header-bar">
                     <span>Cargas Escalonadas Individuales (Detalle Opcional)</span>
-                    <button className="btn btn-sm btn-primary" onClick={handleAddCargaPendiente}>
+                    <button type="button" className="btn btn-sm btn-primary" onClick={handleAddCargaPendiente}>
                       <Plus size={14} /> Agregar Escalonada
                     </button>
                   </div>
@@ -1691,7 +1803,7 @@ export const PlanColocacionView = () => {
                   <div className="piezas-edit-list">
                     {editForm.planProximo.cargasPendientes.length === 0 ? (
                       <div style={{ textAlign: 'center', padding: '1rem', color: '#94a3b8', fontStyle: 'italic', fontSize: '0.85rem', background: 'rgba(255,255,255,0.02)', borderRadius: '6px', border: '1px dashed rgba(255,255,255,0.1)' }}>
-                        No hay cargas pendientes registradas. Puedes agregar una con el botón superior.
+                        No hay cargas pendientes individuales. Se mostrará la fila resumen del Cuadro 4 con la observación y cantidad de pendientes.
                       </div>
                     ) : (
                       editForm.planProximo.cargasPendientes.map((p) => (
@@ -1726,6 +1838,7 @@ export const PlanColocacionView = () => {
                           />
 
                           <button 
+                            type="button"
                             className="btn-delete-row"
                             onClick={() => handleRemoveCargaPendiente(p.id)}
                             title="Eliminar fila"
@@ -1738,7 +1851,7 @@ export const PlanColocacionView = () => {
                   </div>
 
                   <div className="form-group full-width" style={{ marginTop: '1.25rem' }}>
-                    <label>Observaciones Generales del Día (Opcional)</label>
+                    <label>Observaciones Generales del Día (Pie del Cuadro 1)</label>
                     <textarea 
                       className="form-control"
                       rows={2}
