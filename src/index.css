@@ -4476,26 +4476,26 @@ body {
   background: #cbd5e1;
   color: #0f2942;
   font-weight: 900;
-  font-size: 0.76rem;
+  font-size: 0.72rem;
   text-transform: uppercase;
-  padding: 0.35rem 0.35rem;
+  padding: 0.32rem 0.2rem;
   border: 1px solid #94a3b8;
   text-align: center;
 }
 
 .hc-col-tipo {
-  width: 26%;
+  width: 23%;
   text-align: left !important;
-  padding-left: 0.5rem !important;
+  padding-left: 0.45rem !important;
   white-space: nowrap;
 }
 
 .hc-col-num {
-  width: 12.2%;
+  width: 10.8%;
 }
 
 .hc-col-pct {
-  width: 12.6%;
+  width: 11.5%;
 }
 
 .hc-td-tipo {
