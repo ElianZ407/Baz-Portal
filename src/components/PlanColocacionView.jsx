@@ -34,6 +34,20 @@ const DEFAULT_CATEGORIES = [
   { id: 6, categoria: 'LB Enseres', cantidad: 0 }
 ];
 
+const DEFAULT_CARGAS_EJECUTADAS = [
+  { id: 1, destino: 'Frontera', tipo: 'Retail', capacidad: 18, linea: 'LTI - VHS', estatus: 'Ejecutada' },
+  { id: 2, destino: 'Cárdenas Tabasco', tipo: 'Foráneo', capacidad: 50, linea: 'VALLEY', estatus: 'Ejecutada' },
+  { id: 3, destino: 'Jalpa de Méndez', tipo: 'HUB', capacidad: 50, linea: 'BRITO', estatus: 'Ejecutada' },
+  { id: 4, destino: 'HUB Tuxtla', tipo: 'Retail', capacidad: 153, linea: 'VALLEY', estatus: 'Ejecutada' },
+  { id: 5, destino: 'Coatzacoalcos', tipo: 'Foráneo', capacidad: 50, linea: 'VALLEY', estatus: 'Ejecutada' },
+  { id: 6, destino: 'Tonalá Chiapas', tipo: 'Foráneo', capacidad: 90, linea: 'LIBRA EXPRESS', estatus: 'Ejecutada' },
+  { id: 7, destino: 'Tapachula', tipo: 'Foráneo', capacidad: 110, linea: 'VALLEY', estatus: 'Ejecutada' },
+  { id: 8, destino: 'Matías Romero', tipo: 'HUB', capacidad: 110, linea: 'BRITO', estatus: 'Ejecutada' },
+  { id: 9, destino: 'Pichucalco', tipo: 'Foráneo', capacidad: 50, linea: 'LTI - VHS', estatus: 'Ejecutada' },
+  { id: 10, destino: 'Las Choapas', tipo: 'Foráneo', capacidad: 50, linea: 'LTI - VHS', estatus: 'Ejecutada' },
+  { id: 11, destino: 'Huimanguillo', tipo: 'Foráneo', capacidad: 110, linea: 'LIBRA EXPRESS', estatus: 'Ejecutada' }
+];
+
 const DEFAULT_PV_FILAS = [
   { tipo: 'Camiones', activas: 8, taller: 5 },
   { tipo: 'Rabones', activas: 12, taller: 7 },
@@ -103,12 +117,12 @@ const getEmptyRecord = (targetDate) => ({
   plaza: 'VILLAHERMOSA',
   kpis: {
     planProgramado: 0,
-    cargasEjecutadas: 0,
+    cargasEjecutadas: DEFAULT_CARGAS_EJECUTADAS.length,
     pendientes: 0,
     cumplimiento: 0,
-    metrosRemisionados: 0
+    metrosRemisionados: DEFAULT_CARGAS_EJECUTADAS.reduce((acc, c) => acc + (Number(c.capacidad) || 0), 0)
   },
-  cargasEjecutadas: [],
+  cargasEjecutadas: DEFAULT_CARGAS_EJECUTADAS.map((c) => ({ ...c })),
   piezas: {
     ppes: 0,
     dotCom: 0,
@@ -170,9 +184,9 @@ const normalizeRecord = (raw, dateKey) => {
     ? Number(rawKpis.planProgramado) || 0
     : 0;
 
-  const rawCargas = Array.isArray(raw.cargasEjecutadas)
+  const rawCargas = Array.isArray(raw.cargasEjecutadas) && raw.cargasEjecutadas.length > 0
     ? raw.cargasEjecutadas
-    : [];
+    : DEFAULT_CARGAS_EJECUTADAS;
   const cargasEjec = rawCargas.map((c, i) => ({
     id: c.id ?? i + 1,
     destino: c.destino || '',
