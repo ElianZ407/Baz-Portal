@@ -1204,7 +1204,7 @@ export const PlanColocacionView = () => {
 
               <div className="flyer-panel panel-hc-operadores">
                 <div className="panel-header header-navy">
-                  <span>6. PLANTILLA / HEADCOUNT</span>
+                  <span>5. PLANTILLA / HEADCOUNT</span>
                 </div>
                 <div 
                   className="hc-operadores-card"
@@ -1273,6 +1273,63 @@ export const PlanColocacionView = () => {
                         <td className="pv-td-total-pct">
                           <span className="hc-total-pct-badge">
                             {hcSumAutorizado > 0 ? `${hcSumPctAutorizado}%` : '0.0%'}
+                          </span>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              <div className="flyer-panel panel-pv-activo">
+                <div className="panel-header header-emerald">
+                  <span>6. PARQUE VEHICULAR (PV ACTIVO)</span>
+                </div>
+                <div 
+                  className="pv-activo-card"
+                  onClick={() => handleOpenEdit('pvActivo')}
+                  title="Clic para editar Parque Vehicular (PV Activo)"
+                >
+                  <table className="pv-table">
+                    <thead>
+                      <tr className="pv-header-row-sub">
+                        <th className="pv-th-sub pv-col-tipo">Tipo de Unidad</th>
+                        <th className="pv-th-sub pv-col-num">Activas</th>
+                        <th className="pv-th-sub pv-col-num">Taller</th>
+                        <th className="pv-th-sub pv-col-num">Total Flota</th>
+                        <th className="pv-th-sub pv-col-pct">% Activo</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {pvFilas.map((f, idx) => {
+                        const act = Number(f.activas) || 0;
+                        const tal = Number(f.taller) || 0;
+                        const tot = act + tal;
+                        const pct = tot > 0 ? ((act / tot) * 100).toFixed(1) : '0.0';
+                        return (
+                          <tr key={f.tipo || idx} className={idx % 2 === 0 ? 'pv-row-even' : 'pv-row-odd'}>
+                            <td className="pv-td-tipo">{f.tipo}</td>
+                            <td className="pv-td-num">{act}</td>
+                            <td className="pv-td-num pv-td-taller">{tal}</td>
+                            <td className="pv-td-num pv-td-total">{tot}</td>
+                            <td className="pv-td-pct">
+                              <span className={`pv-pct-badge ${Number(pct) >= 70 ? 'pct-high' : Number(pct) >= 40 ? 'pct-med' : 'pct-low'}`}>
+                                {tot > 0 ? `${pct}%` : '—'}
+                              </span>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                      <tr className="pv-row-total">
+                        <td className="pv-td-total-lbl">
+                          TOTAL FLOTA
+                        </td>
+                        <td className="pv-td-total-num">{pvSumActivas}</td>
+                        <td className="pv-td-total-num pv-td-total-taller">{pvSumTaller}</td>
+                        <td className="pv-td-total-num pv-td-grand-total">{pvSumTotal}</td>
+                        <td className="pv-td-total-pct">
+                          <span className="pv-total-pct-badge">
+                            {pvSumTotal > 0 ? `${pvSumPct}%` : '0.0%'}
                           </span>
                         </td>
                       </tr>
@@ -1417,63 +1474,6 @@ export const PlanColocacionView = () => {
                         </td>
                         <td style={{ fontSize: '0.82rem', fontWeight: 700, paddingRight: '0.65rem', textAlign: 'right', color: '#e2e8f0' }}>
                           {totalPendientesMetros > 0 ? `${totalPendientesMetros} m³` : ''}
-                        </td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-
-              <div className="flyer-panel panel-pv-activo">
-                <div className="panel-header header-emerald">
-                  <span>5. PARQUE VEHICULAR (PV ACTIVO)</span>
-                </div>
-                <div 
-                  className="pv-activo-card"
-                  onClick={() => handleOpenEdit('pvActivo')}
-                  title="Clic para editar Parque Vehicular (PV Activo)"
-                >
-                  <table className="pv-table">
-                    <thead>
-                      <tr className="pv-header-row-sub">
-                        <th className="pv-th-sub pv-col-tipo">Tipo de Unidad</th>
-                        <th className="pv-th-sub pv-col-num">Activas</th>
-                        <th className="pv-th-sub pv-col-num">Taller</th>
-                        <th className="pv-th-sub pv-col-num">Total Flota</th>
-                        <th className="pv-th-sub pv-col-pct">% Activo</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {pvFilas.map((f, idx) => {
-                        const act = Number(f.activas) || 0;
-                        const tal = Number(f.taller) || 0;
-                        const tot = act + tal;
-                        const pct = tot > 0 ? ((act / tot) * 100).toFixed(1) : '0.0';
-                        return (
-                          <tr key={f.tipo || idx} className={idx % 2 === 0 ? 'pv-row-even' : 'pv-row-odd'}>
-                            <td className="pv-td-tipo">{f.tipo}</td>
-                            <td className="pv-td-num">{act}</td>
-                            <td className="pv-td-num pv-td-taller">{tal}</td>
-                            <td className="pv-td-num pv-td-total">{tot}</td>
-                            <td className="pv-td-pct">
-                              <span className={`pv-pct-badge ${Number(pct) >= 70 ? 'pct-high' : Number(pct) >= 40 ? 'pct-med' : 'pct-low'}`}>
-                                {tot > 0 ? `${pct}%` : '—'}
-                              </span>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                      <tr className="pv-row-total">
-                        <td className="pv-td-total-lbl">
-                          TOTAL FLOTA
-                        </td>
-                        <td className="pv-td-total-num">{pvSumActivas}</td>
-                        <td className="pv-td-total-num pv-td-total-taller">{pvSumTaller}</td>
-                        <td className="pv-td-total-num pv-td-grand-total">{pvSumTotal}</td>
-                        <td className="pv-td-total-pct">
-                          <span className="pv-total-pct-badge">
-                            {pvSumTotal > 0 ? `${pvSumPct}%` : '0.0%'}
-                          </span>
                         </td>
                       </tr>
                     </tbody>
