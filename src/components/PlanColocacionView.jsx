@@ -49,17 +49,17 @@ const DEFAULT_CARGAS_EJECUTADAS = [
 ];
 
 const DEFAULT_PV_FILAS = [
-  { tipo: 'Camiones', activas: 8, taller: 5 },
-  { tipo: 'Rabones', activas: 12, taller: 7 },
-  { tipo: 'Tracto', activas: 1, taller: 0 },
-  { tipo: 'Fulles', activas: 0, taller: 0 }
+  { tipo: 'Camiones', totalFlota: 14, taller: 3, activas: 11 },
+  { tipo: 'Rabones', totalFlota: 25, taller: 3, activas: 22 },
+  { tipo: 'Tracto', totalFlota: 7, taller: 0, activas: 7 },
+  { tipo: 'Fulles', totalFlota: 6, taller: 0, activas: 6 }
 ];
 
 const getEmptyPvFilas = () => [
-  { tipo: 'Camiones', activas: 0, taller: 0 },
-  { tipo: 'Rabones', activas: 0, taller: 0 },
-  { tipo: 'Tracto', activas: 0, taller: 0 },
-  { tipo: 'Fulles', activas: 0, taller: 0 }
+  { tipo: 'Camiones', totalFlota: 0, taller: 0, activas: 0 },
+  { tipo: 'Rabones', totalFlota: 0, taller: 0, activas: 0 },
+  { tipo: 'Tracto', totalFlota: 0, taller: 0, activas: 0 },
+  { tipo: 'Fulles', totalFlota: 0, taller: 0, activas: 0 }
 ];
 
 const DEFAULT_HC_FILAS = [
@@ -251,11 +251,19 @@ const normalizeRecord = (raw, dateKey) => {
           return t === tipo.toLowerCase();
         })
       : null;
-    const fallback = DEFAULT_PV_FILAS.find((f) => f.tipo.toLowerCase() === tipo.toLowerCase()) || { activas: 0, taller: 0 };
+    const fallback = DEFAULT_PV_FILAS.find((f) => f.tipo.toLowerCase() === tipo.toLowerCase()) || { totalFlota: 0, taller: 0, activas: 0 };
+    const totFlota = found
+      ? (found.totalFlota !== undefined
+          ? (Number(found.totalFlota) || 0)
+          : (found.flota !== undefined ? (Number(found.flota) || 0) : (Number(found.activas) || 0)))
+      : fallback.totalFlota;
+    const tal = found ? (Number(found.taller) || 0) : fallback.taller;
+    const act = Math.max(0, totFlota - tal);
     return {
       tipo,
-      activas: found ? (Number(found.activas) || 0) : fallback.activas,
-      taller: found ? (Number(found.taller) || 0) : fallback.taller
+      totalFlota: totFlota,
+      taller: tal,
+      activas: act
     };
   });
 
@@ -515,7 +523,7 @@ export const PlanColocacionView = () => {
       pvActivo: {
         filas: (base.pvActivo?.filas || DEFAULT_PV_FILAS).map((f) => ({
           tipo: f.tipo,
-          activas: String(f.activas ?? 0),
+          totalFlota: String(f.totalFlota ?? f.activas ?? 0),
           taller: String(f.taller ?? 0)
         }))
       },
@@ -903,10 +911,10 @@ export const PlanColocacionView = () => {
   const cargasPendientesKpi = Number(currentData.kpis.pendientes) || 0;
 
   const pvFilas = currentData.pvActivo?.filas || DEFAULT_PV_FILAS;
-  const pvSumActivas = pvFilas.reduce((acc, f) => acc + (Number(f.activas) || 0), 0);
+  const pvSumTotalFlota = pvFilas.reduce((acc, f) => acc + (Number(f.totalFlota ?? f.activas) || 0), 0);
   const pvSumTaller = pvFilas.reduce((acc, f) => acc + (Number(f.taller) || 0), 0);
-  const pvSumTotal = pvSumActivas + pvSumTaller;
-  const pvSumPct = pvSumTotal > 0 ? ((pvSumActivas / pvSumTotal) * 100).toFixed(1) : '0.0';
+  const pvSumActivas = Math.max(0, pvSumTotalFlota - pvSumTaller);
+  const pvSumPct = pvSumTotalFlota > 0 ? ((pvSumActivas / pvSumTotalFlota) * 100).toFixed(1) : '0.0';
 
   const hcFilas = currentData.headcount?.filas || DEFAULT_HC_FILAS;
   const hcSumAutorizado = hcFilas.reduce((acc, f) => acc + (Number(f.autorizado) || 0), 0);
@@ -1294,27 +1302,27 @@ export const PlanColocacionView = () => {
                     <thead>
                       <tr className="pv-header-row-sub">
                         <th className="pv-th-sub pv-col-tipo">Tipo de Unidad</th>
-                        <th className="pv-th-sub pv-col-num">Activas</th>
-                        <th className="pv-th-sub pv-col-num">Taller</th>
                         <th className="pv-th-sub pv-col-num">Total Flota</th>
+                        <th className="pv-th-sub pv-col-num">- Taller</th>
+                        <th className="pv-th-sub pv-col-num">Activas</th>
                         <th className="pv-th-sub pv-col-pct">% Activo</th>
                       </tr>
                     </thead>
                     <tbody>
                       {pvFilas.map((f, idx) => {
-                        const act = Number(f.activas) || 0;
+                        const totFlota = Number(f.totalFlota ?? f.activas) || 0;
                         const tal = Number(f.taller) || 0;
-                        const tot = act + tal;
-                        const pct = tot > 0 ? ((act / tot) * 100).toFixed(1) : '0.0';
+                        const act = Math.max(0, totFlota - tal);
+                        const pct = totFlota > 0 ? ((act / totFlota) * 100).toFixed(1) : '0.0';
                         return (
                           <tr key={f.tipo || idx} className={idx % 2 === 0 ? 'pv-row-even' : 'pv-row-odd'}>
                             <td className="pv-td-tipo">{f.tipo}</td>
-                            <td className="pv-td-num">{act}</td>
-                            <td className="pv-td-num pv-td-taller">{tal}</td>
-                            <td className="pv-td-num pv-td-total">{tot}</td>
+                            <td className="pv-td-num">{totFlota}</td>
+                            <td className="pv-td-num pv-td-taller">{tal > 0 ? `-${tal}` : '0'}</td>
+                            <td className="pv-td-num pv-td-total">{act}</td>
                             <td className="pv-td-pct">
                               <span className={`pv-pct-badge ${Number(pct) >= 70 ? 'pct-high' : Number(pct) >= 40 ? 'pct-med' : 'pct-low'}`}>
-                                {tot > 0 ? `${pct}%` : '—'}
+                                {totFlota > 0 ? `${pct}%` : '—'}
                               </span>
                             </td>
                           </tr>
@@ -1324,12 +1332,12 @@ export const PlanColocacionView = () => {
                         <td className="pv-td-total-lbl">
                           TOTAL FLOTA
                         </td>
-                        <td className="pv-td-total-num">{pvSumActivas}</td>
-                        <td className="pv-td-total-num pv-td-total-taller">{pvSumTaller}</td>
-                        <td className="pv-td-total-num pv-td-grand-total">{pvSumTotal}</td>
+                        <td className="pv-td-total-num pv-td-grand-total">{pvSumTotalFlota}</td>
+                        <td className="pv-td-total-num pv-td-total-taller">{pvSumTaller > 0 ? `-${pvSumTaller}` : '0'}</td>
+                        <td className="pv-td-total-num" style={{ color: '#fef08a', fontWeight: 900 }}>{pvSumActivas}</td>
                         <td className="pv-td-total-pct">
                           <span className="pv-total-pct-badge">
-                            {pvSumTotal > 0 ? `${pvSumPct}%` : '0.0%'}
+                            {pvSumTotalFlota > 0 ? `${pvSumPct}%` : '0.0%'}
                           </span>
                         </td>
                       </tr>
@@ -2026,18 +2034,18 @@ export const PlanColocacionView = () => {
                       <thead>
                         <tr>
                           <th style={{ textAlign: 'left', padding: '0.45rem 0.65rem' }}>Tipo de Unidad</th>
+                          <th style={{ textAlign: 'center', width: '90px' }}>Total Flota</th>
+                          <th style={{ textAlign: 'center', width: '90px' }}>- Taller</th>
                           <th style={{ textAlign: 'center', width: '90px' }}>Activas</th>
-                          <th style={{ textAlign: 'center', width: '90px' }}>Taller</th>
-                          <th style={{ textAlign: 'center', width: '90px' }}>Total</th>
                           <th style={{ textAlign: 'center', width: '100px' }}>% Activo</th>
                         </tr>
                       </thead>
                       <tbody>
                         {(editForm.pvActivo?.filas || []).map((fila) => {
-                          const act = Number(fila.activas) || 0;
+                          const totFlota = Number(fila.totalFlota ?? fila.activas) || 0;
                           const tal = Number(fila.taller) || 0;
-                          const tot = act + tal;
-                          const pct = tot > 0 ? ((act / tot) * 100).toFixed(1) : '0.0';
+                          const act = Math.max(0, totFlota - tal);
+                          const pct = totFlota > 0 ? ((act / totFlota) * 100).toFixed(1) : '0.0';
                           return (
                             <tr key={fila.tipo}>
                               <td style={{ fontWeight: 800, color: 'var(--text-primary)', padding: '0.45rem 0.65rem' }}>
@@ -2049,9 +2057,9 @@ export const PlanColocacionView = () => {
                                   inputMode="numeric"
                                   className="form-control form-control-sm"
                                   style={{ textAlign: 'center', fontWeight: 800 }}
-                                  value={fila.activas}
-                                  onChange={(e) => handleUpdatePvFila(fila.tipo, 'activas', e.target.value)}
-                                  onKeyDown={(e) => handleNumericKeyDown(e, fila.activas, (v) => handleUpdatePvFila(fila.tipo, 'activas', v))}
+                                  value={fila.totalFlota ?? fila.activas ?? ''}
+                                  onChange={(e) => handleUpdatePvFila(fila.tipo, 'totalFlota', e.target.value)}
+                                  onKeyDown={(e) => handleNumericKeyDown(e, fila.totalFlota ?? fila.activas, (v) => handleUpdatePvFila(fila.tipo, 'totalFlota', v))}
                                 />
                               </td>
                               <td style={{ padding: '0.25rem' }}>
@@ -2066,10 +2074,10 @@ export const PlanColocacionView = () => {
                                 />
                               </td>
                               <td style={{ textAlign: 'center', fontWeight: 900, fontSize: '0.95rem' }}>
-                                {tot}
+                                {act}
                               </td>
                               <td style={{ textAlign: 'center', fontWeight: 900, color: Number(pct) >= 70 ? '#22c55e' : '#f59e0b' }}>
-                                {tot > 0 ? `${pct}%` : '—'}
+                                {totFlota > 0 ? `${pct}%` : '—'}
                               </td>
                             </tr>
                           );
