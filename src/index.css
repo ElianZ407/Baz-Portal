@@ -3983,16 +3983,9 @@ body {
   vertical-align: baseline;
 }
 
-.panel-footer.footer-green {
-  background: #184c2a;
-  color: #ffffff;
-  font-weight: 900;
-  font-size: 0.94rem;
-  text-align: center;
-  padding: 0.45rem;
+.panel-resumen-cargas .panel-table-wrap {
   border-radius: 0 0 7px 7px;
-  text-transform: uppercase;
-  letter-spacing: 0.01em;
+  overflow: hidden;
 }
 
 .panel-movimientos .body-movimientos {

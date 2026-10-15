@@ -904,8 +904,6 @@ export const PlanColocacionView = () => {
     }));
   };
 
-  const totalCargasCount = currentData.cargasEjecutadas.length;
-  const totalCargasMetros = currentData.cargasEjecutadas.reduce((acc, c) => acc + (Number(c.capacidad) || 0), 0);
   const totalPiezasCount = currentData.piezas.categorias.reduce((acc, cat) => acc + (Number(cat.cantidad) || 0), 0);
   const totalPendientesMetros = currentData.planProximo.cargasPendientes.reduce((acc, c) => acc + (Number(c.capacidad) || 0), 0);
   const cargasPendientesKpi = Number(currentData.kpis.pendientes) || 0;
@@ -1201,12 +1199,6 @@ export const PlanColocacionView = () => {
                       )}
                     </tbody>
                   </table>
-                </div>
-
-                <div className="panel-footer footer-green">
-                  <span>
-                    TOTAL {totalCargasCount} cargas – {Number(totalCargasMetros).toLocaleString()} metros remisionados
-                  </span>
                 </div>
               </div>
 
