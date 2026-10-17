@@ -1554,50 +1554,65 @@ export const PlanColocacionView = () => {
               </div>
             </div>
 
-            <div className="colocacion-edit-tabs">
-              <button 
-                className={`edit-tab ${activeTab === 'kpis' ? 'active' : ''}`}
-                onClick={() => setActiveTab('kpis')}
-              >
-                1. KPIs Generales
-              </button>
-              <button 
-                className={`edit-tab ${activeTab === 'cargas' ? 'active' : ''}`}
-                onClick={() => setActiveTab('cargas')}
-              >
-                2. Cargas Ejecutadas ({editForm.cargasEjecutadas.length})
-              </button>
-              <button 
-                className={`edit-tab ${activeTab === 'piezas' ? 'active' : ''}`}
-                onClick={() => setActiveTab('piezas')}
-              >
-                3. Movimientos y Piezas
-              </button>
-              <button 
-                className={`edit-tab ${activeTab === 'comportamiento' ? 'active' : ''}`}
-                onClick={() => setActiveTab('comportamiento')}
-              >
-                4. Comportamiento y N-02
-              </button>
-              <button 
-                className={`edit-tab ${activeTab === 'pendientes' ? 'active' : ''}`}
-                onClick={() => setActiveTab('pendientes')}
-              >
-                5. Cargas Pendientes (Cuadro 4)
-              </button>
-              <button 
-                className={`edit-tab ${activeTab === 'pvActivo' ? 'active' : ''}`}
-                onClick={() => setActiveTab('pvActivo')}
-              >
-                6. PV Activo
-              </button>
-              <button 
-                className={`edit-tab ${activeTab === 'headcount' ? 'active' : ''}`}
-                onClick={() => setActiveTab('headcount')}
-              >
-                7. Headcount ({editForm.headcount?.filas?.reduce((acc, f) => acc + (Number(f.activo) || 0), 0) || 0}/{editForm.headcount?.filas?.reduce((acc, f) => acc + (Number(f.autorizado) || 0), 0) || 0})
-              </button>
-            </div>
+            {activeTab !== 'headcount' ? (
+              <div className="colocacion-edit-tabs">
+                <button 
+                  className={`edit-tab ${activeTab === 'kpis' ? 'active' : ''}`}
+                  onClick={() => setActiveTab('kpis')}
+                >
+                  1. KPIs Generales
+                </button>
+                <button 
+                  className={`edit-tab ${activeTab === 'cargas' ? 'active' : ''}`}
+                  onClick={() => setActiveTab('cargas')}
+                >
+                  2. Cargas Ejecutadas ({editForm.cargasEjecutadas.length})
+                </button>
+                <button 
+                  className={`edit-tab ${activeTab === 'piezas' ? 'active' : ''}`}
+                  onClick={() => setActiveTab('piezas')}
+                >
+                  3. Movimientos y Piezas
+                </button>
+                <button 
+                  className={`edit-tab ${activeTab === 'comportamiento' ? 'active' : ''}`}
+                  onClick={() => setActiveTab('comportamiento')}
+                >
+                  4. Comportamiento y N-02
+                </button>
+                <button 
+                  className={`edit-tab ${activeTab === 'pendientes' ? 'active' : ''}`}
+                  onClick={() => setActiveTab('pendientes')}
+                >
+                  5. Cargas Pendientes (Cuadro 4)
+                </button>
+                <button 
+                  className={`edit-tab ${activeTab === 'pvActivo' ? 'active' : ''}`}
+                  onClick={() => setActiveTab('pvActivo')}
+                >
+                  6. PV Activo
+                </button>
+                <button 
+                  className={`edit-tab ${activeTab === 'headcount' ? 'active' : ''}`}
+                  onClick={() => setActiveTab('headcount')}
+                >
+                  7. Headcount ({editForm.headcount?.filas?.reduce((acc, f) => acc + (Number(f.activo) || 0), 0) || 0}/{editForm.headcount?.filas?.reduce((acc, f) => acc + (Number(f.autorizado) || 0), 0) || 0})
+                </button>
+              </div>
+            ) : (
+              <div className="headcount-edit-top-strip">
+                <button 
+                  type="button" 
+                  className="btn-back-to-tabs"
+                  onClick={() => setActiveTab('kpis')}
+                >
+                  ← Ver demás pestañas
+                </button>
+                <span className="headcount-strip-title">
+                  Modo Edición: Plantilla / Headcount
+                </span>
+              </div>
+            )}
 
             <div className="modal-body colocacion-modal-body">
               {activeTab === 'kpis' && (
@@ -2114,15 +2129,15 @@ export const PlanColocacionView = () => {
                     <table className="flyer-table pv-edit-table hc-edit-table">
                       <thead>
                         <tr>
-                          <th style={{ textAlign: 'left', padding: '0.45rem 0.65rem' }}>Puesto / Rol</th>
-                          <th style={{ textAlign: 'center', width: '80px' }}>HC Autorizado</th>
-                          <th style={{ textAlign: 'center', width: '80px' }}>HC Activo</th>
-                          <th style={{ textAlign: 'center', width: '80px' }}>- Vacantes</th>
-                          <th style={{ textAlign: 'center', width: '80px' }}>- Incapacidades</th>
-                          <th style={{ textAlign: 'center', width: '90px' }}>% HC Autorizado</th>
-                          <th style={{ textAlign: 'center', width: '80px' }}>- Vacaciones</th>
-                          <th style={{ textAlign: 'center', width: '80px' }}>- Faltas</th>
-                          <th style={{ textAlign: 'center', width: '90px' }}>% Total Activo</th>
+                          <th className="th-rol">Puesto / Rol</th>
+                          <th className="th-num">HC Autorizado</th>
+                          <th className="th-num">HC Activo</th>
+                          <th className="th-num">- Vacantes</th>
+                          <th className="th-num">- Incapacidades</th>
+                          <th className="th-kpi">% HC Autorizado</th>
+                          <th className="th-num">- Vacaciones</th>
+                          <th className="th-num">- Faltas</th>
+                          <th className="th-kpi">% Total Activo</th>
                         </tr>
                       </thead>
                       <tbody>
