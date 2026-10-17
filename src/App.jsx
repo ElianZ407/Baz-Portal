@@ -37,17 +37,10 @@ const AppContent = () => {
         {activeArea === 'colocacion' && <PlanColocacionView />}
       </main>
 
-      <footer style={{
-        textAlign: 'center',
-        padding: '1.25rem 2rem',
-        borderTop: '1px solid var(--border-color)',
-        color: 'var(--text-muted)',
-        fontSize: '0.8rem',
-        background: 'rgba(10, 15, 28, 0.9)'
-      }}>
-        <span>BAZ Entregas — Sistema Integrado de Control de Flota y Patio</span>
-        <span style={{ margin: '0 0.5rem' }}>•</span>
-        <span>Áreas: Patio (En CD) | Planeación | Supervisor (Fuera de CD) | Resumen General</span>
+      <footer className="app-footer">
+        <span className="app-footer-brand">BAZ Entregas — Sistema Integrado de Control de Flota y Patio</span>
+        <span className="app-footer-divider">•</span>
+        <span className="app-footer-modules">Patio (En CD) | Planeación | Supervisor (Ruta) | Resumen General | Colocación</span>
       </footer>
 
       <UnitModal />
