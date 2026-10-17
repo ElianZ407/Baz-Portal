@@ -923,7 +923,8 @@ export const PlanColocacionView = () => {
   const hcSumIncapacidades = hcFilas.reduce((acc, f) => acc + (Number(f.incapacidades) || 0), 0);
   const hcSumVacaciones = hcFilas.reduce((acc, f) => acc + (Number(f.vacaciones) || 0), 0);
   const hcSumPctActivo = hcSumAutorizado > 0 ? ((hcSumActivo / hcSumAutorizado) * 100).toFixed(1) : '0.0';
-  const hcSumPctAutorizado = hcSumAutorizado > 0 ? (((hcSumAutorizado - hcSumVacantes) / hcSumAutorizado) * 100).toFixed(1) : '0.0';
+  const hcSumNetoAutorizado = Math.max(0, hcSumAutorizado - hcSumVacantes - hcSumIncapacidades - hcSumVacaciones);
+  const hcSumPctAutorizado = hcSumAutorizado > 0 ? ((hcSumNetoAutorizado / hcSumAutorizado) * 100).toFixed(1) : '0.0';
 
   return (
     <div className="plan-colocacion-page">
@@ -1235,7 +1236,8 @@ export const PlanColocacionView = () => {
                         const inc = Number(f.incapacidades) || 0;
                         const vaca = Number(f.vacaciones) || 0;
                         const pctActivo = aut > 0 ? ((act / aut) * 100).toFixed(1) : '0.0';
-                        const pctAutorizado = aut > 0 ? (((aut - vac) / aut) * 100).toFixed(1) : '0.0';
+                        const netoAut = Math.max(0, aut - vac - inc - vaca);
+                        const pctAutorizado = aut > 0 ? ((netoAut / aut) * 100).toFixed(1) : '0.0';
                         return (
                           <tr key={f.tipo || idx} className={idx % 2 === 0 ? 'pv-row-even' : 'pv-row-odd'}>
                             <td className="pv-td-tipo hc-td-tipo">{f.tipo}</td>
@@ -2116,8 +2118,11 @@ export const PlanColocacionView = () => {
                           const aut = Number(fila.autorizado) || 0;
                           const act = Number(fila.activo) || 0;
                           const vac = Number(fila.vacantes) || 0;
+                          const inc = Number(fila.incapacidades) || 0;
+                          const vaca = Number(fila.vacaciones) || 0;
                           const pctActivo = aut > 0 ? ((act / aut) * 100).toFixed(1) : '0.0';
-                          const pctAutorizado = aut > 0 ? (((aut - vac) / aut) * 100).toFixed(1) : '0.0';
+                          const netoAut = Math.max(0, aut - vac - inc - vaca);
+                          const pctAutorizado = aut > 0 ? ((netoAut / aut) * 100).toFixed(1) : '0.0';
                           return (
                             <tr key={fila.tipo}>
                               <td style={{ fontWeight: 800, color: 'var(--text-primary)', padding: '0.45rem 0.65rem' }}>
