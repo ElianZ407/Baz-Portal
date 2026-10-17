@@ -1226,9 +1226,9 @@ export const PlanColocacionView = () => {
                         <th className="pv-th-sub hc-col-num">HC Activo</th>
                         <th className="pv-th-sub hc-col-num">- Vacantes</th>
                         <th className="pv-th-sub hc-col-num">- Incapacidades</th>
+                        <th className="pv-th-sub hc-col-pct">% HC Autorizado</th>
                         <th className="pv-th-sub hc-col-num">- Vacaciones</th>
                         <th className="pv-th-sub hc-col-num">- Faltas</th>
-                        <th className="pv-th-sub hc-col-pct">% Autorizado</th>
                         <th className="pv-th-sub hc-col-pct">% Total Activo</th>
                       </tr>
                     </thead>
@@ -1254,16 +1254,16 @@ export const PlanColocacionView = () => {
                             <td className="pv-td-num" style={{ color: inc > 0 ? '#d97706' : undefined, fontWeight: inc > 0 ? 800 : undefined }}>
                               {inc > 0 ? `-${inc}` : '0'}
                             </td>
+                            <td className="pv-td-pct">
+                              <span className={`pv-pct-badge ${Number(pctAutorizado) >= 90 ? 'pct-high' : Number(pctAutorizado) >= 75 ? 'pct-med' : 'pct-low'}`}>
+                                {aut > 0 ? `${pctAutorizado}%` : '—'}
+                              </span>
+                            </td>
                             <td className="pv-td-num" style={{ color: vaca > 0 ? '#0284c7' : undefined, fontWeight: vaca > 0 ? 800 : undefined }}>
                               {vaca > 0 ? `-${vaca}` : '0'}
                             </td>
                             <td className="pv-td-num" style={{ color: fal > 0 ? '#e11d48' : undefined, fontWeight: fal > 0 ? 800 : undefined }}>
                               {fal > 0 ? `-${fal}` : '0'}
-                            </td>
-                            <td className="pv-td-pct">
-                              <span className={`pv-pct-badge ${Number(pctAutorizado) >= 90 ? 'pct-high' : Number(pctAutorizado) >= 75 ? 'pct-med' : 'pct-low'}`}>
-                                {aut > 0 ? `${pctAutorizado}%` : '—'}
-                              </span>
                             </td>
                             <td className="pv-td-pct">
                               <span className={`pv-pct-badge ${Number(pctActivo) >= 85 ? 'pct-high' : Number(pctActivo) >= 70 ? 'pct-med' : 'pct-low'}`}>
@@ -1283,16 +1283,16 @@ export const PlanColocacionView = () => {
                         <td className="pv-td-total-num" style={{ color: hcSumIncapacidades > 0 ? '#fde68a' : undefined }}>
                           {hcSumIncapacidades > 0 ? `-${hcSumIncapacidades}` : '0'}
                         </td>
+                        <td className="pv-td-total-pct">
+                          <span className="hc-total-pct-badge">
+                            {hcSumAutorizado > 0 ? `${hcSumPctAutorizado}%` : '0.0%'}
+                          </span>
+                        </td>
                         <td className="pv-td-total-num" style={{ color: hcSumVacaciones > 0 ? '#bae6fd' : undefined }}>
                           {hcSumVacaciones > 0 ? `-${hcSumVacaciones}` : '0'}
                         </td>
                         <td className="pv-td-total-num" style={{ color: hcSumFaltas > 0 ? '#fecdd3' : undefined }}>
                           {hcSumFaltas > 0 ? `-${hcSumFaltas}` : '0'}
-                        </td>
-                        <td className="pv-td-total-pct">
-                          <span className="hc-total-pct-badge">
-                            {hcSumAutorizado > 0 ? `${hcSumPctAutorizado}%` : '0.0%'}
-                          </span>
                         </td>
                         <td className="pv-td-total-pct">
                           <span className="hc-total-pct-badge">
@@ -2119,9 +2119,9 @@ export const PlanColocacionView = () => {
                           <th style={{ textAlign: 'center', width: '80px' }}>HC Activo</th>
                           <th style={{ textAlign: 'center', width: '80px' }}>- Vacantes</th>
                           <th style={{ textAlign: 'center', width: '80px' }}>- Incapacidades</th>
+                          <th style={{ textAlign: 'center', width: '90px' }}>% HC Autorizado</th>
                           <th style={{ textAlign: 'center', width: '80px' }}>- Vacaciones</th>
                           <th style={{ textAlign: 'center', width: '80px' }}>- Faltas</th>
-                          <th style={{ textAlign: 'center', width: '90px' }}>% Autorizado</th>
                           <th style={{ textAlign: 'center', width: '90px' }}>% Total Activo</th>
                         </tr>
                       </thead>
@@ -2185,6 +2185,9 @@ export const PlanColocacionView = () => {
                                   onKeyDown={(e) => handleNumericKeyDown(e, fila.incapacidades, (v) => handleUpdateHcFila(fila.tipo, 'incapacidades', v))}
                                 />
                               </td>
+                              <td style={{ textAlign: 'center', fontWeight: 900, color: Number(pctAutorizado) >= 90 ? '#22c55e' : '#f59e0b' }}>
+                                {aut > 0 ? `${pctAutorizado}%` : '—'}
+                              </td>
                               <td style={{ padding: '0.25rem' }}>
                                 <input 
                                   type="text"
@@ -2206,9 +2209,6 @@ export const PlanColocacionView = () => {
                                   onChange={(e) => handleUpdateHcFila(fila.tipo, 'faltas', e.target.value)}
                                   onKeyDown={(e) => handleNumericKeyDown(e, fila.faltas, (v) => handleUpdateHcFila(fila.tipo, 'faltas', v))}
                                 />
-                              </td>
-                              <td style={{ textAlign: 'center', fontWeight: 900, color: Number(pctAutorizado) >= 90 ? '#22c55e' : '#f59e0b' }}>
-                                {aut > 0 ? `${pctAutorizado}%` : '—'}
                               </td>
                               <td style={{ textAlign: 'center', fontWeight: 900, color: Number(pctActivo) >= 85 ? '#22c55e' : '#f59e0b' }}>
                                 {aut > 0 ? `${pctActivo}%` : '—'}
