@@ -63,19 +63,19 @@ const getEmptyPvFilas = () => [
 ];
 
 const DEFAULT_HC_FILAS = [
-  { tipo: 'Op. Camioneta', autorizado: 15, activo: 13, vacantes: 1, incapacidades: 1, vacaciones: 0 },
-  { tipo: 'Op. RM (Rango Medio)', autorizado: 19, activo: 16, vacantes: 2, incapacidades: 1, vacaciones: 0 },
-  { tipo: 'Op. Tractor', autorizado: 1, activo: 1, vacantes: 0, incapacidades: 0, vacaciones: 0 },
-  { tipo: 'Op. Fuller', autorizado: 0, activo: 0, vacantes: 0, incapacidades: 0, vacaciones: 0 },
-  { tipo: 'Auxiliares', autorizado: 25, activo: 23, vacantes: 1, incapacidades: 1, vacaciones: 0 }
+  { tipo: 'Op. Camioneta', autorizado: 15, activo: 13, vacantes: 1, incapacidades: 1, vacaciones: 0, faltas: 0 },
+  { tipo: 'Op. RM (Rango Medio)', autorizado: 19, activo: 16, vacantes: 2, incapacidades: 1, vacaciones: 0, faltas: 0 },
+  { tipo: 'Op. Tractor', autorizado: 1, activo: 1, vacantes: 0, incapacidades: 0, vacaciones: 0, faltas: 0 },
+  { tipo: 'Op. Fuller', autorizado: 0, activo: 0, vacantes: 0, incapacidades: 0, vacaciones: 0, faltas: 0 },
+  { tipo: 'Auxiliares', autorizado: 25, activo: 23, vacantes: 1, incapacidades: 1, vacaciones: 0, faltas: 0 }
 ];
 
 const getEmptyHcFilas = () => [
-  { tipo: 'Op. Camioneta', autorizado: 0, activo: 0, vacantes: 0, incapacidades: 0, vacaciones: 0 },
-  { tipo: 'Op. RM (Rango Medio)', autorizado: 0, activo: 0, vacantes: 0, incapacidades: 0, vacaciones: 0 },
-  { tipo: 'Op. Tractor', autorizado: 0, activo: 0, vacantes: 0, incapacidades: 0, vacaciones: 0 },
-  { tipo: 'Op. Fuller', autorizado: 0, activo: 0, vacantes: 0, incapacidades: 0, vacaciones: 0 },
-  { tipo: 'Auxiliares', autorizado: 0, activo: 0, vacantes: 0, incapacidades: 0, vacaciones: 0 }
+  { tipo: 'Op. Camioneta', autorizado: 0, activo: 0, vacantes: 0, incapacidades: 0, vacaciones: 0, faltas: 0 },
+  { tipo: 'Op. RM (Rango Medio)', autorizado: 0, activo: 0, vacantes: 0, incapacidades: 0, vacaciones: 0, faltas: 0 },
+  { tipo: 'Op. Tractor', autorizado: 0, activo: 0, vacantes: 0, incapacidades: 0, vacaciones: 0, faltas: 0 },
+  { tipo: 'Op. Fuller', autorizado: 0, activo: 0, vacantes: 0, incapacidades: 0, vacaciones: 0, faltas: 0 },
+  { tipo: 'Auxiliares', autorizado: 0, activo: 0, vacantes: 0, incapacidades: 0, vacaciones: 0, faltas: 0 }
 ];
 
 const formatDateToSpanish = (dateStr) => {
@@ -286,14 +286,15 @@ const normalizeRecord = (raw, dateKey) => {
           return t === tipo.toLowerCase();
         })
       : null;
-    const fallback = DEFAULT_HC_FILAS.find((f) => f.tipo.toLowerCase() === tipo.toLowerCase()) || { autorizado: 0, activo: 0, vacantes: 0, incapacidades: 0, vacaciones: 0 };
+    const fallback = DEFAULT_HC_FILAS.find((f) => f.tipo.toLowerCase() === tipo.toLowerCase()) || { autorizado: 0, activo: 0, vacantes: 0, incapacidades: 0, vacaciones: 0, faltas: 0 };
     return {
       tipo,
       autorizado: found ? (Number(found.autorizado) || 0) : fallback.autorizado,
       activo: found ? (Number(found.activo) || 0) : fallback.activo,
       vacantes: found ? (Number(found.vacantes) || 0) : fallback.vacantes,
       incapacidades: found ? (Number(found.incapacidades) || 0) : fallback.incapacidades,
-      vacaciones: found ? (Number(found.vacaciones) || 0) : (fallback.vacaciones || 0)
+      vacaciones: found ? (Number(found.vacaciones) || 0) : (fallback.vacaciones || 0),
+      faltas: found ? (Number(found.faltas) || 0) : (fallback.faltas || 0)
     };
   });
 
@@ -535,7 +536,8 @@ export const PlanColocacionView = () => {
           activo: String(f.activo ?? 0),
           vacantes: String(f.vacantes ?? 0),
           incapacidades: String(f.incapacidades ?? 0),
-          vacaciones: String(f.vacaciones ?? 0)
+          vacaciones: String(f.vacaciones ?? 0),
+          faltas: String(f.faltas ?? 0)
         }))
       }
     });
@@ -922,9 +924,10 @@ export const PlanColocacionView = () => {
   const hcSumVacantes = hcFilas.reduce((acc, f) => acc + (Number(f.vacantes) || 0), 0);
   const hcSumIncapacidades = hcFilas.reduce((acc, f) => acc + (Number(f.incapacidades) || 0), 0);
   const hcSumVacaciones = hcFilas.reduce((acc, f) => acc + (Number(f.vacaciones) || 0), 0);
-  const hcSumPctActivo = hcSumAutorizado > 0 ? ((hcSumActivo / hcSumAutorizado) * 100).toFixed(1) : '0.0';
-  const hcSumNetoAutorizado = Math.max(0, hcSumAutorizado - hcSumVacantes - hcSumIncapacidades - hcSumVacaciones);
+  const hcSumFaltas = hcFilas.reduce((acc, f) => acc + (Number(f.faltas) || 0), 0);
+  const hcSumNetoAutorizado = Math.max(0, hcSumAutorizado - hcSumVacantes - hcSumIncapacidades - hcSumVacaciones - hcSumFaltas);
   const hcSumPctAutorizado = hcSumAutorizado > 0 ? ((hcSumNetoAutorizado / hcSumAutorizado) * 100).toFixed(1) : '0.0';
+  const hcSumPctActivo = hcSumAutorizado > 0 ? ((hcSumActivo / hcSumAutorizado) * 100).toFixed(1) : '0.0';
 
   return (
     <div className="plan-colocacion-page">
@@ -1224,6 +1227,7 @@ export const PlanColocacionView = () => {
                         <th className="pv-th-sub hc-col-num">- Vacantes</th>
                         <th className="pv-th-sub hc-col-num">- Incapacidades</th>
                         <th className="pv-th-sub hc-col-num">- Vacaciones</th>
+                        <th className="pv-th-sub hc-col-num">- Faltas</th>
                         <th className="pv-th-sub hc-col-pct">% Autorizado</th>
                         <th className="pv-th-sub hc-col-pct">% Total Activo</th>
                       </tr>
@@ -1235,8 +1239,9 @@ export const PlanColocacionView = () => {
                         const vac = Number(f.vacantes) || 0;
                         const inc = Number(f.incapacidades) || 0;
                         const vaca = Number(f.vacaciones) || 0;
+                        const fal = Number(f.faltas) || 0;
                         const pctActivo = aut > 0 ? ((act / aut) * 100).toFixed(1) : '0.0';
-                        const netoAut = Math.max(0, aut - vac - inc - vaca);
+                        const netoAut = Math.max(0, aut - vac - inc - vaca - fal);
                         const pctAutorizado = aut > 0 ? ((netoAut / aut) * 100).toFixed(1) : '0.0';
                         return (
                           <tr key={f.tipo || idx} className={idx % 2 === 0 ? 'pv-row-even' : 'pv-row-odd'}>
@@ -1251,6 +1256,9 @@ export const PlanColocacionView = () => {
                             </td>
                             <td className="pv-td-num" style={{ color: vaca > 0 ? '#0284c7' : undefined, fontWeight: vaca > 0 ? 800 : undefined }}>
                               {vaca > 0 ? `-${vaca}` : '0'}
+                            </td>
+                            <td className="pv-td-num" style={{ color: fal > 0 ? '#e11d48' : undefined, fontWeight: fal > 0 ? 800 : undefined }}>
+                              {fal > 0 ? `-${fal}` : '0'}
                             </td>
                             <td className="pv-td-pct">
                               <span className={`pv-pct-badge ${Number(pctAutorizado) >= 90 ? 'pct-high' : Number(pctAutorizado) >= 75 ? 'pct-med' : 'pct-low'}`}>
@@ -1277,6 +1285,9 @@ export const PlanColocacionView = () => {
                         </td>
                         <td className="pv-td-total-num" style={{ color: hcSumVacaciones > 0 ? '#bae6fd' : undefined }}>
                           {hcSumVacaciones > 0 ? `-${hcSumVacaciones}` : '0'}
+                        </td>
+                        <td className="pv-td-total-num" style={{ color: hcSumFaltas > 0 ? '#fecdd3' : undefined }}>
+                          {hcSumFaltas > 0 ? `-${hcSumFaltas}` : '0'}
                         </td>
                         <td className="pv-td-total-pct">
                           <span className="hc-total-pct-badge">
@@ -2104,13 +2115,14 @@ export const PlanColocacionView = () => {
                       <thead>
                         <tr>
                           <th style={{ textAlign: 'left', padding: '0.45rem 0.65rem' }}>Puesto / Rol</th>
-                          <th style={{ textAlign: 'center', width: '85px' }}>HC Autorizado</th>
-                          <th style={{ textAlign: 'center', width: '85px' }}>HC Activo</th>
-                          <th style={{ textAlign: 'center', width: '85px' }}>- Vacantes</th>
-                          <th style={{ textAlign: 'center', width: '85px' }}>- Incapacidades</th>
-                          <th style={{ textAlign: 'center', width: '85px' }}>- Vacaciones</th>
-                          <th style={{ textAlign: 'center', width: '95px' }}>% Autorizado</th>
-                          <th style={{ textAlign: 'center', width: '95px' }}>% Total Activo</th>
+                          <th style={{ textAlign: 'center', width: '80px' }}>HC Autorizado</th>
+                          <th style={{ textAlign: 'center', width: '80px' }}>HC Activo</th>
+                          <th style={{ textAlign: 'center', width: '80px' }}>- Vacantes</th>
+                          <th style={{ textAlign: 'center', width: '80px' }}>- Incapacidades</th>
+                          <th style={{ textAlign: 'center', width: '80px' }}>- Vacaciones</th>
+                          <th style={{ textAlign: 'center', width: '80px' }}>- Faltas</th>
+                          <th style={{ textAlign: 'center', width: '90px' }}>% Autorizado</th>
+                          <th style={{ textAlign: 'center', width: '90px' }}>% Total Activo</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -2120,8 +2132,9 @@ export const PlanColocacionView = () => {
                           const vac = Number(fila.vacantes) || 0;
                           const inc = Number(fila.incapacidades) || 0;
                           const vaca = Number(fila.vacaciones) || 0;
+                          const fal = Number(fila.faltas) || 0;
                           const pctActivo = aut > 0 ? ((act / aut) * 100).toFixed(1) : '0.0';
-                          const netoAut = Math.max(0, aut - vac - inc - vaca);
+                          const netoAut = Math.max(0, aut - vac - inc - vaca - fal);
                           const pctAutorizado = aut > 0 ? ((netoAut / aut) * 100).toFixed(1) : '0.0';
                           return (
                             <tr key={fila.tipo}>
@@ -2181,6 +2194,17 @@ export const PlanColocacionView = () => {
                                   value={fila.vacaciones ?? '0'}
                                   onChange={(e) => handleUpdateHcFila(fila.tipo, 'vacaciones', e.target.value)}
                                   onKeyDown={(e) => handleNumericKeyDown(e, fila.vacaciones, (v) => handleUpdateHcFila(fila.tipo, 'vacaciones', v))}
+                                />
+                              </td>
+                              <td style={{ padding: '0.25rem' }}>
+                                <input 
+                                  type="text"
+                                  inputMode="numeric"
+                                  className="form-control form-control-sm"
+                                  style={{ textAlign: 'center', fontWeight: 800, color: '#e11d48' }}
+                                  value={fila.faltas ?? '0'}
+                                  onChange={(e) => handleUpdateHcFila(fila.tipo, 'faltas', e.target.value)}
+                                  onKeyDown={(e) => handleNumericKeyDown(e, fila.faltas, (v) => handleUpdateHcFila(fila.tipo, 'faltas', v))}
                                 />
                               </td>
                               <td style={{ textAlign: 'center', fontWeight: 900, color: Number(pctAutorizado) >= 90 ? '#22c55e' : '#f59e0b' }}>
