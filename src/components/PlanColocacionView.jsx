@@ -607,7 +607,7 @@ export const PlanColocacionView = () => {
   const handleDownloadImage = async () => {
     if (!flyerRef.current) return;
     setIsExporting(true);
-    showToast('Generando imagen de alta resolución...');
+    showToast('Generando imagen en Ultra HD...');
 
     try {
       const flyerEl = flyerRef.current;
@@ -615,7 +615,7 @@ export const PlanColocacionView = () => {
       const flyerHeight = flyerEl.offsetHeight;
 
       const canvas = await html2canvas(flyerEl, {
-        scale: 2,
+        scale: 3,
         useCORS: true,
         allowTaint: true,
         backgroundColor: '#ffffff',
@@ -626,17 +626,26 @@ export const PlanColocacionView = () => {
         scrollX: 0,
         scrollY: 0,
         x: 0,
-        y: 0
+        y: 0,
+        imageTimeout: 15000,
+        onclone: (clonedDoc) => {
+          const flyer = clonedDoc.querySelector('.colocacion-flyer-container');
+          if (flyer) {
+            flyer.style.transform = 'none';
+            flyer.style.boxShadow = 'none';
+            flyer.style.webkitFontSmoothing = 'antialiased';
+          }
+        }
       });
 
-      const image = canvas.toDataURL('image/png');
+      const image = canvas.toDataURL('image/png', 1.0);
       const link = window.document.createElement('a');
       link.href = image;
       link.download = `Plan_Colocacion_Villahermosa_${currentDate}.png`;
       window.document.body.appendChild(link);
       link.click();
       window.document.body.removeChild(link);
-      showToast('¡Imagen descargada exitosamente en alta definición!');
+      showToast('¡Imagen descargada exitosamente en Ultra HD!');
     } catch {
       showToast('Error al generar la imagen. Intenta nuevamente.');
     } finally {
@@ -647,7 +656,7 @@ export const PlanColocacionView = () => {
   const handleCopyImage = async () => {
     if (!flyerRef.current) return;
     setIsExporting(true);
-    showToast('Copiando infografía al portapapeles...');
+    showToast('Generando copia en máxima nitidez (Ultra HD)...');
 
     try {
       const flyerEl = flyerRef.current;
@@ -655,7 +664,7 @@ export const PlanColocacionView = () => {
       const flyerHeight = flyerEl.offsetHeight;
 
       const canvas = await html2canvas(flyerEl, {
-        scale: 2,
+        scale: 3,
         useCORS: true,
         allowTaint: true,
         backgroundColor: '#ffffff',
@@ -666,7 +675,16 @@ export const PlanColocacionView = () => {
         scrollX: 0,
         scrollY: 0,
         x: 0,
-        y: 0
+        y: 0,
+        imageTimeout: 15000,
+        onclone: (clonedDoc) => {
+          const flyer = clonedDoc.querySelector('.colocacion-flyer-container');
+          if (flyer) {
+            flyer.style.transform = 'none';
+            flyer.style.boxShadow = 'none';
+            flyer.style.webkitFontSmoothing = 'antialiased';
+          }
+        }
       });
 
       canvas.toBlob(async (blob) => {
@@ -680,7 +698,7 @@ export const PlanColocacionView = () => {
           if (window.ClipboardItem && window.navigator.clipboard?.write) {
             const item = new window.ClipboardItem({ 'image/png': blob });
             await window.navigator.clipboard.write([item]);
-            showToast('¡Imagen copiada al portapapeles! Lista para pegar (Ctrl+V) en WhatsApp o Teams.');
+            showToast('¡Imagen copiada en Ultra HD! Lista para pegar (Ctrl+V) en WhatsApp o Teams.');
           } else {
             showToast('El navegador no soporta copiado directo. Usa Descargar PNG.');
           }
@@ -689,7 +707,7 @@ export const PlanColocacionView = () => {
         } finally {
           setIsExporting(false);
         }
-      }, 'image/png');
+      }, 'image/png', 1.0);
     } catch {
       showToast('No se pudo copiar directamente. Puedes usar el botón de Descargar Imagen.');
       setIsExporting(false);
