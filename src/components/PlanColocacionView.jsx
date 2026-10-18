@@ -1225,8 +1225,8 @@ export const PlanColocacionView = () => {
                         <th className="pv-th-sub hc-col-num">HC Autorizado</th>
                         <th className="pv-th-sub hc-col-num">HC Activo</th>
                         <th className="pv-th-sub hc-col-num">- Vacantes</th>
-                        <th className="pv-th-sub hc-col-num">- Incapacidades</th>
                         <th className="pv-th-sub hc-col-pct">% HC Autorizado</th>
+                        <th className="pv-th-sub hc-col-num">- Incapacidades</th>
                         <th className="pv-th-sub hc-col-num">- Vacaciones</th>
                         <th className="pv-th-sub hc-col-num">- Faltas</th>
                         <th className="pv-th-sub hc-col-pct">% Total Activo</th>
@@ -1251,13 +1251,13 @@ export const PlanColocacionView = () => {
                             <td className="pv-td-num" style={{ color: vac > 0 ? '#dc2626' : undefined, fontWeight: vac > 0 ? 800 : undefined }}>
                               {vac > 0 ? `-${vac}` : '0'}
                             </td>
-                            <td className="pv-td-num" style={{ color: inc > 0 ? '#d97706' : undefined, fontWeight: inc > 0 ? 800 : undefined }}>
-                              {inc > 0 ? `-${inc}` : '0'}
-                            </td>
                             <td className="pv-td-pct">
                               <span className={`pv-pct-badge ${Number(pctAutorizado) >= 90 ? 'pct-high' : Number(pctAutorizado) >= 75 ? 'pct-med' : 'pct-low'}`}>
                                 {aut > 0 ? `${pctAutorizado}%` : '—'}
                               </span>
+                            </td>
+                            <td className="pv-td-num" style={{ color: inc > 0 ? '#d97706' : undefined, fontWeight: inc > 0 ? 800 : undefined }}>
+                              {inc > 0 ? `-${inc}` : '0'}
                             </td>
                             <td className="pv-td-num" style={{ color: vaca > 0 ? '#0284c7' : undefined, fontWeight: vaca > 0 ? 800 : undefined }}>
                               {vaca > 0 ? `-${vaca}` : '0'}
@@ -1280,13 +1280,13 @@ export const PlanColocacionView = () => {
                         <td className="pv-td-total-num" style={{ color: hcSumVacantes > 0 ? '#fca5a5' : undefined }}>
                           {hcSumVacantes > 0 ? `-${hcSumVacantes}` : '0'}
                         </td>
-                        <td className="pv-td-total-num" style={{ color: hcSumIncapacidades > 0 ? '#fde68a' : undefined }}>
-                          {hcSumIncapacidades > 0 ? `-${hcSumIncapacidades}` : '0'}
-                        </td>
                         <td className="pv-td-total-pct">
                           <span className="hc-total-pct-badge">
                             {hcSumAutorizado > 0 ? `${hcSumPctAutorizado}%` : '0.0%'}
                           </span>
+                        </td>
+                        <td className="pv-td-total-num" style={{ color: hcSumIncapacidades > 0 ? '#fde68a' : undefined }}>
+                          {hcSumIncapacidades > 0 ? `-${hcSumIncapacidades}` : '0'}
                         </td>
                         <td className="pv-td-total-num" style={{ color: hcSumVacaciones > 0 ? '#bae6fd' : undefined }}>
                           {hcSumVacaciones > 0 ? `-${hcSumVacaciones}` : '0'}
@@ -2133,8 +2133,8 @@ export const PlanColocacionView = () => {
                           <th className="th-num">HC Autorizado</th>
                           <th className="th-num">HC Activo</th>
                           <th className="th-num">- Vacantes</th>
-                          <th className="th-num">- Incapacidades</th>
                           <th className="th-kpi">% HC Autorizado</th>
+                          <th className="th-num">- Incapacidades</th>
                           <th className="th-num">- Vacaciones</th>
                           <th className="th-num">- Faltas</th>
                           <th className="th-kpi">% Total Activo</th>
@@ -2189,6 +2189,9 @@ export const PlanColocacionView = () => {
                                   onKeyDown={(e) => handleNumericKeyDown(e, fila.vacantes, (v) => handleUpdateHcFila(fila.tipo, 'vacantes', v))}
                                 />
                               </td>
+                              <td style={{ textAlign: 'center', fontWeight: 900, color: Number(pctAutorizado) >= 90 ? '#22c55e' : '#f59e0b' }}>
+                                {aut > 0 ? `${pctAutorizado}%` : '—'}
+                              </td>
                               <td style={{ padding: '0.25rem' }}>
                                 <input 
                                   type="text"
@@ -2199,9 +2202,6 @@ export const PlanColocacionView = () => {
                                   onChange={(e) => handleUpdateHcFila(fila.tipo, 'incapacidades', e.target.value)}
                                   onKeyDown={(e) => handleNumericKeyDown(e, fila.incapacidades, (v) => handleUpdateHcFila(fila.tipo, 'incapacidades', v))}
                                 />
-                              </td>
-                              <td style={{ textAlign: 'center', fontWeight: 900, color: Number(pctAutorizado) >= 90 ? '#22c55e' : '#f59e0b' }}>
-                                {aut > 0 ? `${pctAutorizado}%` : '—'}
                               </td>
                               <td style={{ padding: '0.25rem' }}>
                                 <input 
