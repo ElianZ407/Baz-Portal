@@ -49,8 +49,8 @@ const DEFAULT_CARGAS_EJECUTADAS = [
 ];
 
 const DEFAULT_PV_FILAS = [
-  { tipo: 'Camiones', totalFlota: 14, taller: 3, activas: 11 },
-  { tipo: 'Rabones', totalFlota: 25, taller: 3, activas: 22 },
+  { tipo: 'Camiones', totalFlota: 14, taller: 5, activas: 9 },
+  { tipo: 'Rabones', totalFlota: 25, taller: 6, activas: 19 },
   { tipo: 'Tracto', totalFlota: 7, taller: 0, activas: 7 },
   { tipo: 'Fulles', totalFlota: 6, taller: 0, activas: 6 }
 ];
@@ -63,11 +63,11 @@ const getEmptyPvFilas = () => [
 ];
 
 const DEFAULT_HC_FILAS = [
-  { tipo: 'Op. Camioneta', autorizado: 15, activo: 13, vacantes: 1, incapacidades: 1, vacaciones: 0, faltas: 0 },
-  { tipo: 'Op. RM (Rango Medio)', autorizado: 19, activo: 16, vacantes: 2, incapacidades: 1, vacaciones: 0, faltas: 0 },
-  { tipo: 'Op. Tractor', autorizado: 1, activo: 1, vacantes: 0, incapacidades: 0, vacaciones: 0, faltas: 0 },
-  { tipo: 'Op. Fuller', autorizado: 0, activo: 0, vacantes: 0, incapacidades: 0, vacaciones: 0, faltas: 0 },
-  { tipo: 'Auxiliares', autorizado: 25, activo: 23, vacantes: 1, incapacidades: 1, vacaciones: 0, faltas: 0 }
+  { tipo: 'Op. Camioneta', autorizado: 14, activo: 14, vacantes: 0, incapacidades: 0, vacaciones: 0, faltas: 0 },
+  { tipo: 'Op. RM (Rango Medio)', autorizado: 24, activo: 23, vacantes: 1, incapacidades: 0, vacaciones: 0, faltas: 0 },
+  { tipo: 'Op. Tractor', autorizado: 7, activo: 7, vacantes: 0, incapacidades: 0, vacaciones: 0, faltas: 0 },
+  { tipo: 'Op. Fuller', autorizado: 6, activo: 5, vacantes: 1, incapacidades: 0, vacaciones: 0, faltas: 0 },
+  { tipo: 'Auxiliares', autorizado: 38, activo: 38, vacantes: 0, incapacidades: 2, vacaciones: 2, faltas: 0 }
 ];
 
 const getEmptyHcFilas = () => [
