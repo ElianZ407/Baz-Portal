@@ -49,18 +49,13 @@ const DEFAULT_CARGAS_EJECUTADAS = [
 ];
 
 const DEFAULT_PV_FILAS = [
-  { tipo: 'Camiones', totalFlota: 14, taller: 5, activas: 9 },
+  { tipo: 'Camionetas', totalFlota: 14, taller: 5, activas: 9 },
   { tipo: 'Rabones', totalFlota: 25, taller: 6, activas: 19 },
   { tipo: 'Tracto', totalFlota: 7, taller: 0, activas: 7 },
   { tipo: 'Fulles', totalFlota: 6, taller: 0, activas: 6 }
 ];
 
-const getEmptyPvFilas = () => [
-  { tipo: 'Camiones', totalFlota: 0, taller: 0, activas: 0 },
-  { tipo: 'Rabones', totalFlota: 0, taller: 0, activas: 0 },
-  { tipo: 'Tracto', totalFlota: 0, taller: 0, activas: 0 },
-  { tipo: 'Fulles', totalFlota: 0, taller: 0, activas: 0 }
-];
+const getEmptyPvFilas = () => DEFAULT_PV_FILAS.map((f) => ({ ...f }));
 
 const DEFAULT_HC_FILAS = [
   { tipo: 'Op. Camioneta', autorizado: 14, activo: 14, vacantes: 0, incapacidades: 0, vacaciones: 0, faltas: 0 },
@@ -70,13 +65,7 @@ const DEFAULT_HC_FILAS = [
   { tipo: 'Auxiliares', autorizado: 38, activo: 38, vacantes: 0, incapacidades: 2, vacaciones: 2, faltas: 0 }
 ];
 
-const getEmptyHcFilas = () => [
-  { tipo: 'Op. Camioneta', autorizado: 0, activo: 0, vacantes: 0, incapacidades: 0, vacaciones: 0, faltas: 0 },
-  { tipo: 'Op. RM (Rango Medio)', autorizado: 0, activo: 0, vacantes: 0, incapacidades: 0, vacaciones: 0, faltas: 0 },
-  { tipo: 'Op. Tractor', autorizado: 0, activo: 0, vacantes: 0, incapacidades: 0, vacaciones: 0, faltas: 0 },
-  { tipo: 'Op. Fuller', autorizado: 0, activo: 0, vacantes: 0, incapacidades: 0, vacaciones: 0, faltas: 0 },
-  { tipo: 'Auxiliares', autorizado: 0, activo: 0, vacantes: 0, incapacidades: 0, vacaciones: 0, faltas: 0 }
-];
+const getEmptyHcFilas = () => DEFAULT_HC_FILAS.map((f) => ({ ...f }));
 
 const formatDateToSpanish = (dateStr) => {
   if (!dateStr) return '';
@@ -237,21 +226,25 @@ const normalizeRecord = (raw, dateKey) => {
   const rawComp = raw.comportamiento || {};
   const rawPlanProx = raw.planProximo || {};
 
-  const PV_ORDER = ['Camiones', 'Rabones', 'Tracto', 'Fulles'];
+  const PV_ORDER = ['Camionetas', 'Rabones', 'Tracto', 'Fulles'];
   const rawPv = raw.pvActivo || {};
   const rawFilas = Array.isArray(rawPv.filas) ? rawPv.filas : null;
+  const rawPvTotal = (rawFilas || []).reduce((acc, f) => acc + (Number(f.totalFlota ?? f.flota ?? f.activas) || 0), 0);
+  const isPvEmpty = !rawFilas || rawPvTotal === 0;
+
   const pvFilas = PV_ORDER.map((tipo) => {
-    const found = rawFilas
-      ? rawFilas.find((f) => {
-          const t = String(f.tipo || '').toLowerCase();
-          if (tipo === 'Camiones') return t.includes('camion');
-          if (tipo === 'Rabones') return t.includes('rabon') || t.includes('rabón');
-          if (tipo === 'Tracto') return t === 'tracto' || t.includes('sencillo');
-          if (tipo === 'Fulles') return t.includes('full');
-          return t === tipo.toLowerCase();
-        })
-      : null;
     const fallback = DEFAULT_PV_FILAS.find((f) => f.tipo.toLowerCase() === tipo.toLowerCase()) || { totalFlota: 0, taller: 0, activas: 0 };
+    if (isPvEmpty) {
+      return { ...fallback };
+    }
+    const found = rawFilas.find((f) => {
+      const t = String(f.tipo || '').toLowerCase();
+      if (tipo === 'Camionetas') return t.includes('camion') || t.includes('camioneta');
+      if (tipo === 'Rabones') return t.includes('rabon') || t.includes('rabón');
+      if (tipo === 'Tracto') return t === 'tracto' || t.includes('sencillo');
+      if (tipo === 'Fulles') return t.includes('full');
+      return t === tipo.toLowerCase();
+    });
     const totFlota = found
       ? (found.totalFlota !== undefined
           ? (Number(found.totalFlota) || 0)
@@ -274,19 +267,23 @@ const normalizeRecord = (raw, dateKey) => {
   const HC_ORDER = ['Op. Camioneta', 'Op. RM (Rango Medio)', 'Op. Tractor', 'Op. Fuller', 'Auxiliares'];
   const rawHc = raw.headcount || {};
   const rawHcFilas = Array.isArray(rawHc.filas) ? rawHc.filas : null;
+  const rawHcTotal = (rawHcFilas || []).reduce((acc, f) => acc + (Number(f.autorizado) || 0), 0);
+  const isHcEmpty = !rawHcFilas || rawHcTotal === 0;
+
   const hcFilas = HC_ORDER.map((tipo) => {
-    const found = rawHcFilas
-      ? rawHcFilas.find((f) => {
-          const t = String(f.tipo || '').toLowerCase();
-          if (tipo === 'Op. Camioneta') return t.includes('camion') || t.includes('camioneta');
-          if (tipo.includes('RM') || tipo.includes('Rango Medio')) return t.includes('rm') || t.includes('rango medio') || t.includes('rabon') || t.includes('rabón') || t.includes('medio');
-          if (tipo === 'Op. Tractor') return t.includes('tractor') || t === 'tracto' || t.includes('sencillo');
-          if (tipo === 'Op. Fuller') return t.includes('full') || t.includes('fuller');
-          if (tipo === 'Auxiliares') return t.includes('auxiliar') || t.includes('ayudante');
-          return t === tipo.toLowerCase();
-        })
-      : null;
     const fallback = DEFAULT_HC_FILAS.find((f) => f.tipo.toLowerCase() === tipo.toLowerCase()) || { autorizado: 0, activo: 0, vacantes: 0, incapacidades: 0, vacaciones: 0, faltas: 0 };
+    if (isHcEmpty) {
+      return { ...fallback };
+    }
+    const found = rawHcFilas.find((f) => {
+      const t = String(f.tipo || '').toLowerCase();
+      if (tipo === 'Op. Camioneta') return t.includes('camion') || t.includes('camioneta');
+      if (tipo.includes('RM') || tipo.includes('Rango Medio')) return t.includes('rm') || t.includes('rango medio') || t.includes('rabon') || t.includes('rabón') || t.includes('medio');
+      if (tipo === 'Op. Tractor') return t.includes('tractor') || t === 'tracto' || t.includes('sencillo');
+      if (tipo === 'Op. Fuller') return t.includes('full') || t.includes('fuller');
+      if (tipo === 'Auxiliares') return t.includes('auxiliar') || t.includes('ayudante');
+      return t === tipo.toLowerCase();
+    });
     return {
       tipo,
       autorizado: found ? (Number(found.autorizado) || 0) : fallback.autorizado,
@@ -365,7 +362,11 @@ export const PlanColocacionView = () => {
       if (saved) {
         const parsed = JSON.parse(saved);
         if (parsed && typeof parsed === 'object') {
-          return parsed;
+          const cleaned = {};
+          Object.keys(parsed).forEach((k) => {
+            cleaned[k] = normalizeRecord(parsed[k], k);
+          });
+          return cleaned;
         }
       }
     } catch {}
@@ -524,7 +525,7 @@ export const PlanColocacionView = () => {
       },
       pvActivo: {
         filas: (base.pvActivo?.filas || DEFAULT_PV_FILAS).map((f) => ({
-          tipo: f.tipo,
+          tipo: (f.tipo === 'Camiones' || f.tipo === 'Camión' || f.tipo === 'Camion') ? 'Camionetas' : f.tipo,
           totalFlota: String(f.totalFlota ?? f.activas ?? 0),
           taller: String(f.taller ?? 0)
         }))
@@ -930,7 +931,10 @@ export const PlanColocacionView = () => {
   const totalPendientesMetros = currentData.planProximo.cargasPendientes.reduce((acc, c) => acc + (Number(c.capacidad) || 0), 0);
   const cargasPendientesKpi = Number(currentData.kpis.pendientes) || 0;
 
-  const pvFilas = currentData.pvActivo?.filas || DEFAULT_PV_FILAS;
+  const pvFilas = (currentData.pvActivo?.filas || DEFAULT_PV_FILAS).map((f) => ({
+    ...f,
+    tipo: (f.tipo === 'Camiones' || f.tipo === 'Camión' || f.tipo === 'Camion') ? 'Camionetas' : f.tipo
+  }));
   const pvSumTotalFlota = pvFilas.reduce((acc, f) => acc + (Number(f.totalFlota ?? f.activas) || 0), 0);
   const pvSumTaller = pvFilas.reduce((acc, f) => acc + (Number(f.taller) || 0), 0);
   const pvSumActivas = Math.max(0, pvSumTotalFlota - pvSumTaller);
@@ -1350,7 +1354,7 @@ export const PlanColocacionView = () => {
                         const pct = totFlota > 0 ? ((act / totFlota) * 100).toFixed(1) : '0.0';
                         return (
                           <tr key={f.tipo || idx} className={idx % 2 === 0 ? 'pv-row-even' : 'pv-row-odd'}>
-                            <td className="pv-td-tipo">{f.tipo}</td>
+                            <td className="pv-td-tipo">{(f.tipo === 'Camiones' || f.tipo === 'Camión' || f.tipo === 'Camion') ? 'Camionetas' : f.tipo}</td>
                             <td className="pv-td-num">{totFlota}</td>
                             <td className="pv-td-num pv-td-taller">{tal > 0 ? `-${tal}` : '0'}</td>
                             <td className="pv-td-num pv-td-total">{act}</td>
@@ -2098,7 +2102,7 @@ export const PlanColocacionView = () => {
                           return (
                             <tr key={fila.tipo}>
                               <td style={{ fontWeight: 800, color: 'var(--text-primary)', padding: '0.45rem 0.65rem' }}>
-                                {fila.tipo}
+                                {(fila.tipo === 'Camiones' || fila.tipo === 'Camión' || fila.tipo === 'Camion') ? 'Camionetas' : fila.tipo}
                               </td>
                               <td style={{ padding: '0.25rem' }}>
                                 <input 
