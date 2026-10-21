@@ -61,7 +61,7 @@ const DEFAULT_HC_FILAS = [
   { tipo: 'Op. Camioneta', autorizado: 14, activo: 14, vacantes: 0, incapacidades: 0, vacaciones: 0, faltas: 0 },
   { tipo: 'Op. RM (Rango Medio)', autorizado: 24, activo: 23, vacantes: 1, incapacidades: 0, vacaciones: 0, faltas: 0 },
   { tipo: 'Op. Tractor', autorizado: 7, activo: 7, vacantes: 0, incapacidades: 0, vacaciones: 0, faltas: 0 },
-  { tipo: 'Op. Fuller', autorizado: 6, activo: 5, vacantes: 1, incapacidades: 0, vacaciones: 0, faltas: 0 },
+  { tipo: 'Op. Fulles', autorizado: 6, activo: 5, vacantes: 1, incapacidades: 0, vacaciones: 0, faltas: 0 },
   { tipo: 'Auxiliares', autorizado: 38, activo: 38, vacantes: 0, incapacidades: 2, vacaciones: 2, faltas: 0 }
 ];
 
@@ -264,7 +264,7 @@ const normalizeRecord = (raw, dateKey) => {
     filas: pvFilas
   };
 
-  const HC_ORDER = ['Op. Camioneta', 'Op. RM (Rango Medio)', 'Op. Tractor', 'Op. Fuller', 'Auxiliares'];
+  const HC_ORDER = ['Op. Camioneta', 'Op. RM (Rango Medio)', 'Op. Tractor', 'Op. Fulles', 'Auxiliares'];
   const rawHc = raw.headcount || {};
   const rawHcFilas = Array.isArray(rawHc.filas) ? rawHc.filas : null;
   const rawHcTotal = (rawHcFilas || []).reduce((acc, f) => acc + (Number(f.autorizado) || 0), 0);
@@ -280,7 +280,7 @@ const normalizeRecord = (raw, dateKey) => {
       if (tipo === 'Op. Camioneta') return t.includes('camion') || t.includes('camioneta');
       if (tipo.includes('RM') || tipo.includes('Rango Medio')) return t.includes('rm') || t.includes('rango medio') || t.includes('rabon') || t.includes('rabón') || t.includes('medio');
       if (tipo === 'Op. Tractor') return t.includes('tractor') || t === 'tracto' || t.includes('sencillo');
-      if (tipo === 'Op. Fuller') return t.includes('full') || t.includes('fuller');
+      if (tipo === 'Op. Fulles') return t.includes('full') || t.includes('fuller') || t.includes('fules');
       if (tipo === 'Auxiliares') return t.includes('auxiliar') || t.includes('ayudante');
       return t === tipo.toLowerCase();
     });
@@ -532,7 +532,7 @@ export const PlanColocacionView = () => {
       },
       headcount: {
         filas: (base.headcount?.filas || DEFAULT_HC_FILAS).map((f) => ({
-          tipo: f.tipo,
+          tipo: (f.tipo === 'Op. Fuller' || f.tipo === 'Fuller') ? 'Op. Fulles' : f.tipo,
           autorizado: String(f.autorizado ?? 0),
           activo: String(f.activo ?? 0),
           vacantes: String(f.vacantes ?? 0),
@@ -913,13 +913,15 @@ export const PlanColocacionView = () => {
 
   const handleUpdateHcFila = (tipo, field, value) => {
     const cleaned = cleanNumericInput(value);
+    const targetTipo = (tipo === 'Op. Fuller' || tipo === 'Fuller') ? 'Op. Fulles' : tipo;
     setEditForm((prev) => ({
       ...prev,
       headcount: {
         ...prev.headcount,
         filas: (prev.headcount?.filas || DEFAULT_HC_FILAS).map((f) => {
-          if (f.tipo === tipo) {
-            return { ...f, [field]: cleaned };
+          const fTipo = (f.tipo === 'Op. Fuller' || f.tipo === 'Fuller') ? 'Op. Fulles' : f.tipo;
+          if (fTipo === targetTipo) {
+            return { ...f, tipo: targetTipo, [field]: cleaned };
           }
           return f;
         })
@@ -940,7 +942,10 @@ export const PlanColocacionView = () => {
   const pvSumActivas = Math.max(0, pvSumTotalFlota - pvSumTaller);
   const pvSumPct = pvSumTotalFlota > 0 ? ((pvSumActivas / pvSumTotalFlota) * 100).toFixed(1) : '0.0';
 
-  const hcFilas = currentData.headcount?.filas || DEFAULT_HC_FILAS;
+  const hcFilas = (currentData.headcount?.filas || DEFAULT_HC_FILAS).map((f) => ({
+    ...f,
+    tipo: (f.tipo === 'Op. Fuller' || f.tipo === 'Fuller') ? 'Op. Fulles' : f.tipo
+  }));
   const hcSumAutorizado = hcFilas.reduce((acc, f) => acc + (Number(f.autorizado) || 0), 0);
   const hcSumActivo = hcFilas.reduce((acc, f) => acc + (Number(f.activo) || 0), 0);
   const hcSumVacantes = hcFilas.reduce((acc, f) => acc + (Number(f.vacantes) || 0), 0);
@@ -1267,7 +1272,7 @@ export const PlanColocacionView = () => {
                         const pctAutorizado = aut > 0 ? ((netoAut / aut) * 100).toFixed(1) : '0.0';
                         return (
                           <tr key={f.tipo || idx} className={idx % 2 === 0 ? 'pv-row-even' : 'pv-row-odd'}>
-                            <td className="pv-td-tipo hc-td-tipo">{f.tipo}</td>
+                            <td className="pv-td-tipo hc-td-tipo">{(f.tipo === 'Op. Fuller' || f.tipo === 'Fuller') ? 'Op. Fulles' : f.tipo}</td>
                             <td className="pv-td-num">{aut}</td>
                             <td className="pv-td-num">{act}</td>
                             <td className="pv-td-num" style={{ color: vac > 0 ? '#dc2626' : undefined, fontWeight: vac > 0 ? 800 : undefined }}>
@@ -2176,7 +2181,7 @@ export const PlanColocacionView = () => {
                           return (
                             <tr key={fila.tipo}>
                               <td style={{ fontWeight: 800, color: 'var(--text-primary)', padding: '0.45rem 0.65rem' }}>
-                                {fila.tipo}
+                                {(fila.tipo === 'Op. Fuller' || fila.tipo === 'Fuller') ? 'Op. Fulles' : fila.tipo}
                               </td>
                               <td style={{ padding: '0.25rem' }}>
                                 <input 
