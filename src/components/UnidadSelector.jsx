@@ -279,8 +279,41 @@ export const UnidadSelector = ({ value, onSelect, mode }) => {
             )}
 
             {filteredUnidades.length === 0 ? (
-              <div style={{ padding: '1.25rem', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.8rem' }}>
-                No se encontraron unidades con ese criterio.
+              <div style={{ padding: '1rem', textAlign: 'center' }}>
+                <div style={{ color: 'var(--text-muted)', fontSize: '0.8rem', marginBottom: search.trim() ? '0.65rem' : 0 }}>
+                  No se encontraron unidades en el catálogo con ese criterio.
+                </div>
+                {search.trim() && (
+                  <button
+                    type="button"
+                    style={{
+                      padding: '0.45rem 0.85rem',
+                      background: 'rgba(16, 185, 129, 0.2)',
+                      border: '1px solid #10b981',
+                      borderRadius: '6px',
+                      color: '#34d399',
+                      fontSize: '0.8rem',
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '0.4rem',
+                      fontWeight: 600
+                    }}
+                    onClick={() => {
+                      onSelect({
+                        eco: search.trim(),
+                        placas: '',
+                        tipo: 'Camioneta',
+                        capUnidad: 18,
+                        linea: 'LTI - VHS',
+                        estatusPatio: 'Disponible'
+                      });
+                      setIsOpen(false);
+                    }}
+                  >
+                    <span>➕ Usar ECO "{search.trim()}" como nueva unidad</span>
+                  </button>
+                )}
               </div>
             ) : (
               filteredUnidades.map(u => {

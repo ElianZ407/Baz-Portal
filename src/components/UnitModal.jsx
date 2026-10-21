@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Save, Truck, Layers, FileSpreadsheet, AlertTriangle, Wrench, Trash2, Plus, Package } from 'lucide-react';
+import { X, Save, Truck, Layers, FileSpreadsheet, AlertTriangle, Wrench, Trash2, Plus, Package, Search, PlusCircle } from 'lucide-react';
 import { useFleet } from '../context/FleetContext';
 import { LINEAS_TRANSPORTE, BLOQUES, SUCURSALES_MAESTRAS, FLOTA_TOTAL } from '../constants/fleetConstants';
 import { buscarSucursal, validarRestriccionesViaje, buscarUnidadPorEco, buscarIdOperadorPorNombre, buscarOperadorPorEco, checkTieneViajeYOperador } from '../utils/fleetUtils';
@@ -107,6 +107,7 @@ const UnitModalForm = () => {
   const isPatioMode = activeArea === 'patio';
 
   const [formData, setFormData] = useState(() => getDefaultFormData(selectedUnit));
+  const [isCustomUnitMode, setIsCustomUnitMode] = useState(!selectedUnit);
 
   // Selección inteligente de sucursal desde el selector custom
   const handleSelectSucursal = (sucursal) => {
@@ -437,113 +438,264 @@ const UnitModalForm = () => {
             )}
 
             {isPatioMode ? (
-              <div className="form-grid">
-                {/* ECO Unidad con Selector Inteligente y Completo */}
-                <div className="form-group full-width">
-                  <label>ECO Unidad (Padrón Oficial - {FLOTA_TOTAL.length} Unidades) *</label>
-                  <UnidadSelector 
-                    value={formData.economico}
-                    onSelect={handleSelectUnidad}
-                    mode="patio"
-                  />
+              <div>
+                <div style={{
+                  display: 'flex',
+                  background: 'rgba(255, 255, 255, 0.04)',
+                  padding: '4px',
+                  borderRadius: '8px',
+                  border: '1px solid rgba(255, 255, 255, 0.08)',
+                  marginBottom: '1.25rem',
+                  gap: '6px'
+                }}>
+                  <button
+                    type="button"
+                    onClick={() => setIsCustomUnitMode(true)}
+                    style={{
+                      flex: 1,
+                      padding: '8px 12px',
+                      borderRadius: '6px',
+                      border: 'none',
+                      cursor: 'pointer',
+                      fontSize: '0.82rem',
+                      fontWeight: isCustomUnitMode ? 600 : 500,
+                      background: isCustomUnitMode ? '#10b981' : 'transparent',
+                      color: isCustomUnitMode ? '#fff' : 'var(--text-muted)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '6px',
+                      transition: 'all 0.15s ease'
+                    }}
+                  >
+                    <PlusCircle size={15} />
+                    <span>Nueva Unidad (Campos Libres)</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setIsCustomUnitMode(false)}
+                    style={{
+                      flex: 1,
+                      padding: '8px 12px',
+                      borderRadius: '6px',
+                      border: 'none',
+                      cursor: 'pointer',
+                      fontSize: '0.82rem',
+                      fontWeight: !isCustomUnitMode ? 600 : 500,
+                      background: !isCustomUnitMode ? 'rgba(255, 255, 255, 0.12)' : 'transparent',
+                      color: !isCustomUnitMode ? '#fff' : 'var(--text-muted)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '6px',
+                      transition: 'all 0.15s ease'
+                    }}
+                  >
+                    <Search size={15} />
+                    <span>Seleccionar del Padrón</span>
+                  </button>
                 </div>
 
-                {/* Placas */}
-                <div className="form-group">
-                  <label>Placas</label>
-                  <input 
-                    type="text"
-                    name="placas"
-                    className="form-control"
-                    placeholder="Ej: GT3465C, 11FA5G..."
-                    value={formData.placas}
-                    onChange={handleChange}
-                  />
-                </div>
+                {isCustomUnitMode && (
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.6rem',
+                    padding: '0.7rem 0.95rem',
+                    background: 'rgba(16, 185, 129, 0.1)',
+                    border: '1px solid rgba(16, 185, 129, 0.3)',
+                    borderRadius: 'var(--radius-sm)',
+                    marginBottom: '1.25rem'
+                  }}>
+                    <Truck size={18} color="#34d399" />
+                    <div>
+                      <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#34d399', letterSpacing: '0.3px', textTransform: 'uppercase' }}>
+                        Apartado: Nueva Unidad
+                      </span>
+                      <p style={{ margin: 0, fontSize: '0.74rem', color: 'var(--text-muted)' }}>
+                        Ingresa y edita libremente los datos de la unidad vehicular
+                      </p>
+                    </div>
+                  </div>
+                )}
 
-                {/* Capacidad Unidad */}
-                <div className="form-group">
-                  <label>Capacidad Unidad (m³)</label>
-                  <CustomSelect
-                    value={formData.capUnidad}
-                    onChange={v => setFormData(prev => ({ ...prev, capUnidad: Number(v) }))}
-                    options={[
-                      { value: 18,  label: '18 m³', sub: 'Camioneta / Rabón Chico' },
-                      { value: 40,  label: '40 m³', sub: 'Madrina Mediana' },
-                      { value: 50,  label: '50 m³', sub: 'Madrina Estándar / Rango Medio' },
-                      { value: 70,  label: '70 m³', sub: 'Intercedis / Trailer' },
-                      { value: 90,  label: '90 m³', sub: 'Caja Seca Sencilla' },
-                      { value: 110, label: '110 m³', sub: 'Full Tráiler' },
-                    ]}
-                  />
-                </div>
+                <div className="form-grid">
+                  <div className="form-group full-width">
+                    <label>
+                      {isCustomUnitMode ? 'ECO Unidad (Número Económico) *' : `ECO Unidad (Padrón Oficial - ${FLOTA_TOTAL.length} Unidades) *`}
+                    </label>
+                    {isCustomUnitMode ? (
+                      <input 
+                        type="text"
+                        name="economico"
+                        className="form-control"
+                        placeholder="Escribe el No. Económico (Ej: 55432, 90812, EXT-01...)"
+                        value={formData.economico}
+                        onChange={handleChange}
+                        required
+                        autoFocus
+                      />
+                    ) : (
+                      <UnidadSelector 
+                        value={formData.economico}
+                        onSelect={handleSelectUnidad}
+                        mode="patio"
+                      />
+                    )}
+                  </div>
 
-                {/* Tipo de Unidad */}
-                <div className="form-group">
-                  <label>Tipo de Vehículo</label>
-                  <CustomSelect
-                    value={formData.tipo}
-                    onChange={v => setFormData(prev => ({ ...prev, tipo: v }))}
-                    options={[
-                      { value: 'Camioneta',           label: 'Camioneta',           sub: '18 m³' },
-                      { value: 'Rango Medio',         label: 'Rango Medio',         sub: '50 m³' },
-                      { value: 'Madrina / Rango Medio', label: 'Madrina / Rango Medio' },
-                      { value: 'Sencillo',            label: 'Sencillo',            sub: '90 m³' },
-                      { value: 'Tracto / Sencillo',   label: 'Tracto / Sencillo' },
-                      { value: 'Tracto / Full',       label: 'Tracto / Full',       sub: '110 m³' },
-                    ]}
-                  />
-                </div>
+                  <div className="form-group">
+                    <label>Placas</label>
+                    <input 
+                      type="text"
+                      name="placas"
+                      className="form-control"
+                      placeholder="Ej: GT3465C, 11FA5G..."
+                      value={formData.placas}
+                      onChange={handleChange}
+                    />
+                  </div>
 
-                {/* Línea de Transporte */}
-                <div className="form-group">
-                  <label>Línea de Transporte</label>
-                  <CustomSelect
-                    value={formData.linea}
-                    onChange={v => setFormData(prev => ({ ...prev, linea: v }))}
-                    options={LINEAS_TRANSPORTE.map(l => ({ value: l, label: l }))}
-                  />
-                </div>
+                  <div className="form-group">
+                    <label>Capacidad Unidad (m³)</label>
+                    {isCustomUnitMode ? (
+                      <div>
+                        <input
+                          type="number"
+                          name="capUnidad"
+                          className="form-control"
+                          placeholder="Ej: 18, 50, 90, 110..."
+                          value={formData.capUnidad || ''}
+                          onChange={(e) => setFormData(prev => ({ ...prev, capUnidad: e.target.value ? Number(e.target.value) : '' }))}
+                        />
+                        <div style={{ display: 'flex', gap: '0.35rem', marginTop: '0.35rem', flexWrap: 'wrap' }}>
+                          {[18, 40, 50, 70, 90, 110].map(cap => (
+                            <button
+                              key={cap}
+                              type="button"
+                              onClick={() => setFormData(prev => ({ ...prev, capUnidad: cap }))}
+                              style={{
+                                background: formData.capUnidad === cap ? 'rgba(16, 185, 129, 0.25)' : 'rgba(255, 255, 255, 0.05)',
+                                border: `1px solid ${formData.capUnidad === cap ? '#10b981' : 'rgba(255, 255, 255, 0.1)'}`,
+                                color: formData.capUnidad === cap ? '#34d399' : 'var(--text-muted)',
+                                padding: '0.15rem 0.45rem',
+                                borderRadius: '4px',
+                                fontSize: '0.72rem',
+                                cursor: 'pointer'
+                              }}
+                            >
+                              {cap} m³
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    ) : (
+                      <CustomSelect
+                        value={formData.capUnidad}
+                        onChange={v => setFormData(prev => ({ ...prev, capUnidad: Number(v) }))}
+                        options={[
+                          { value: 18,  label: '18 m³', sub: 'Camioneta / Rabón Chico' },
+                          { value: 40,  label: '40 m³', sub: 'Madrina Mediana' },
+                          { value: 50,  label: '50 m³', sub: 'Madrina Estándar / Rango Medio' },
+                          { value: 70,  label: '70 m³', sub: 'Intercedis / Trailer' },
+                          { value: 90,  label: '90 m³', sub: 'Caja Seca Sencilla' },
+                          { value: 110, label: '110 m³', sub: 'Full Tráiler' },
+                        ]}
+                      />
+                    )}
+                  </div>
 
-                {/* Estatus Patio */}
-                <div className="form-group">
-                  <label>Estatus en Patio (En CD) *</label>
-                  <CustomSelect
-                    value={formData.estatusPatio}
-                    onChange={v => setFormData(prev => ({ ...prev, estatusPatio: v }))}
-                    options={[
-                      { value: 'Disponible',       label: '🟢 Disponible en Patio' },
-                      { value: 'Colocado p/ Carga', label: '🟡 Colocado p/ Carga' },
-                      { value: 'Cargado',          label: '🔵 Cargado' },
-                      { value: 'Taller',           label: '🔴 Taller / Mtto' },
-                    ]}
-                  />
-                </div>
+                  <div className="form-group">
+                    <label>Tipo de Vehículo</label>
+                    {isCustomUnitMode ? (
+                      <>
+                        <input
+                          type="text"
+                          name="tipo"
+                          className="form-control"
+                          placeholder="Ej: Camioneta, Rango Medio, Sencillo..."
+                          value={formData.tipo}
+                          onChange={handleChange}
+                          list="lista-tipos-patio"
+                        />
+                        <datalist id="lista-tipos-patio">
+                          <option value="Camioneta" />
+                          <option value="Rango Medio" />
+                          <option value="Madrina / Rango Medio" />
+                          <option value="Sencillo" />
+                          <option value="Tracto / Sencillo" />
+                          <option value="Tracto / Full" />
+                        </datalist>
+                      </>
+                    ) : (
+                      <CustomSelect
+                        value={formData.tipo}
+                        onChange={v => setFormData(prev => ({ ...prev, tipo: v }))}
+                        options={[
+                          { value: 'Camioneta',           label: 'Camioneta',           sub: '18 m³' },
+                          { value: 'Rango Medio',         label: 'Rango Medio',         sub: '50 m³' },
+                          { value: 'Madrina / Rango Medio', label: 'Madrina / Rango Medio' },
+                          { value: 'Sencillo',            label: 'Sencillo',            sub: '90 m³' },
+                          { value: 'Tracto / Sencillo',   label: 'Tracto / Sencillo' },
+                          { value: 'Tracto / Full',       label: 'Tracto / Full',       sub: '110 m³' },
+                        ]}
+                      />
+                    )}
+                  </div>
 
-                {/* Cajón / Rampa en Patio */}
-                <div className="form-group">
-                  <label>Cajón / Rampa / Cortina en Patio</label>
-                  <input 
-                    type="text"
-                    name="cortina"
-                    className="form-control"
-                    placeholder="Ej: Cajón 04, Rampa 18, Taller 1..."
-                    value={formData.cortina}
-                    onChange={handleChange}
-                  />
-                </div>
+                  <div className="form-group">
+                    <label>Línea de Transporte</label>
+                    {isCustomUnitMode ? (
+                      <>
+                        <input
+                          type="text"
+                          name="linea"
+                          className="form-control"
+                          placeholder="Ej: LTI - VHS, Castores, Fletes..."
+                          value={formData.linea}
+                          onChange={handleChange}
+                          list="lista-lineas-patio"
+                        />
+                        <datalist id="lista-lineas-patio">
+                          {LINEAS_TRANSPORTE.map(l => (
+                            <option key={l} value={l} />
+                          ))}
+                        </datalist>
+                      </>
+                    ) : (
+                      <CustomSelect
+                        value={formData.linea}
+                        onChange={v => setFormData(prev => ({ ...prev, linea: v }))}
+                        options={LINEAS_TRANSPORTE.map(l => ({ value: l, label: l }))}
+                      />
+                    )}
+                  </div>
 
-                {/* Observaciones de Unidad */}
-                <div className="form-group full-width">
-                  <label>Observaciones del Vehículo / Condición Física</label>
-                  <textarea 
-                    name="observaciones"
-                    rows="2"
-                    className="form-control"
-                    placeholder="Ej: Unidad revisada, tanque lleno, mantenimiento de frenos, lista para carga..."
-                    value={formData.observaciones}
-                    onChange={handleChange}
-                  ></textarea>
+                  <div className="form-group">
+                    <label>Estatus en Patio (En CD) *</label>
+                    <CustomSelect
+                      value={formData.estatusPatio}
+                      onChange={v => setFormData(prev => ({ ...prev, estatusPatio: v }))}
+                      options={[
+                        { value: 'Disponible',       label: '🟢 Disponible en Patio' },
+                        { value: 'Colocado p/ Carga', label: '🟡 Colocado p/ Carga' },
+                        { value: 'Cargado',          label: '🔵 Cargado' },
+                        { value: 'Taller',           label: '🔴 Taller / Mtto' },
+                      ]}
+                    />
+                  </div>
+
+                  <div className="form-group full-width">
+                    <label>Observaciones del Vehículo / Condición Física</label>
+                    <textarea 
+                      name="observaciones"
+                      rows="2"
+                      className="form-control"
+                      placeholder="Ej: Unidad revisada, tanque lleno, mantenimiento de frenos, lista para carga..."
+                      value={formData.observaciones}
+                      onChange={handleChange}
+                    ></textarea>
+                  </div>
                 </div>
               </div>
             ) : (
@@ -571,14 +723,40 @@ const UnitModalForm = () => {
                   />
                 </div>
 
-                {/* ECO Unidad con Selector Inteligente y Completo */}
                 <div className="form-group full-width">
-                  <label>ECO Unidad <span style={{ color: 'var(--text-muted)', fontSize: '0.72rem', textTransform: 'none', fontWeight: 500 }}>(Opcional — Puedes dejarlo por asignar si aún no defines el vehículo)</span></label>
-                  <UnidadSelector 
-                    value={formData.economico}
-                    onSelect={handleSelectUnidad}
-                    mode="planeacion"
-                  />
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
+                    <label style={{ margin: 0 }}>ECO Unidad <span style={{ color: 'var(--text-muted)', fontSize: '0.72rem', textTransform: 'none', fontWeight: 500 }}>(Opcional)</span></label>
+                    <button
+                      type="button"
+                      onClick={() => setIsCustomUnitMode(!isCustomUnitMode)}
+                      style={{
+                        background: 'transparent',
+                        border: 'none',
+                        color: 'var(--accent-cyan)',
+                        fontSize: '0.72rem',
+                        cursor: 'pointer',
+                        textDecoration: 'underline'
+                      }}
+                    >
+                      {isCustomUnitMode ? 'Seleccionar del padrón' : 'Escribir nueva unidad'}
+                    </button>
+                  </div>
+                  {isCustomUnitMode ? (
+                    <input 
+                      type="text"
+                      name="economico"
+                      className="form-control"
+                      placeholder="Escribe el No. Económico (Ej: 55432, EXT-01...)"
+                      value={formData.economico}
+                      onChange={handleChange}
+                    />
+                  ) : (
+                    <UnidadSelector 
+                      value={formData.economico}
+                      onSelect={handleSelectUnidad}
+                      mode="planeacion"
+                    />
+                  )}
                 </div>
 
                 {/* Placas (Auto-completadas) */}
