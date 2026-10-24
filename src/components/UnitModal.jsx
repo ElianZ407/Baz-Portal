@@ -558,117 +558,49 @@ const UnitModalForm = () => {
 
                   <div className="form-group">
                     <label>Capacidad Unidad (m³)</label>
-                    {isCustomUnitMode ? (
-                      <div>
-                        <input
-                          type="number"
-                          name="capUnidad"
-                          className="form-control"
-                          placeholder="Ej: 18, 50, 90, 110..."
-                          value={formData.capUnidad || ''}
-                          onChange={(e) => setFormData(prev => ({ ...prev, capUnidad: e.target.value ? Number(e.target.value) : '' }))}
-                        />
-                        <div style={{ display: 'flex', gap: '0.35rem', marginTop: '0.35rem', flexWrap: 'wrap' }}>
-                          {[18, 40, 50, 70, 90, 110].map(cap => (
-                            <button
-                              key={cap}
-                              type="button"
-                              onClick={() => setFormData(prev => ({ ...prev, capUnidad: cap }))}
-                              style={{
-                                background: formData.capUnidad === cap ? 'rgba(16, 185, 129, 0.25)' : 'rgba(255, 255, 255, 0.05)',
-                                border: `1px solid ${formData.capUnidad === cap ? '#10b981' : 'rgba(255, 255, 255, 0.1)'}`,
-                                color: formData.capUnidad === cap ? '#34d399' : 'var(--text-muted)',
-                                padding: '0.15rem 0.45rem',
-                                borderRadius: '4px',
-                                fontSize: '0.72rem',
-                                cursor: 'pointer'
-                              }}
-                            >
-                              {cap} m³
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    ) : (
-                      <CustomSelect
-                        value={formData.capUnidad}
-                        onChange={v => setFormData(prev => ({ ...prev, capUnidad: Number(v) }))}
-                        options={[
-                          { value: 18,  label: '18 m³', sub: 'Camioneta / Rabón Chico' },
-                          { value: 40,  label: '40 m³', sub: 'Madrina Mediana' },
-                          { value: 50,  label: '50 m³', sub: 'Madrina Estándar / Rango Medio' },
-                          { value: 70,  label: '70 m³', sub: 'Intercedis / Trailer' },
-                          { value: 90,  label: '90 m³', sub: 'Caja Seca Sencilla' },
-                          { value: 110, label: '110 m³', sub: 'Full Tráiler' },
-                        ]}
-                      />
-                    )}
+                    <CustomSelect
+                      value={formData.capUnidad}
+                      onChange={v => setFormData(prev => ({ ...prev, capUnidad: Number(v) }))}
+                      allowCustom={true}
+                      placeholder="Seleccionar o escribir capacidad..."
+                      options={[
+                        { value: 18,  label: '18 m³',  sub: 'Camioneta / Rabón Chico' },
+                        { value: 40,  label: '40 m³',  sub: 'Madrina Mediana' },
+                        { value: 50,  label: '50 m³',  sub: 'Madrina Estándar / Rango Medio' },
+                        { value: 70,  label: '70 m³',  sub: 'Intercedis / Trailer' },
+                        { value: 90,  label: '90 m³',  sub: 'Caja Seca Sencilla' },
+                        { value: 110, label: '110 m³', sub: 'Full Tráiler' },
+                      ]}
+                    />
                   </div>
 
                   <div className="form-group">
                     <label>Tipo de Vehículo</label>
-                    {isCustomUnitMode ? (
-                      <>
-                        <input
-                          type="text"
-                          name="tipo"
-                          className="form-control"
-                          placeholder="Ej: Camioneta, Rango Medio, Sencillo..."
-                          value={formData.tipo}
-                          onChange={handleChange}
-                          list="lista-tipos-patio"
-                        />
-                        <datalist id="lista-tipos-patio">
-                          <option value="Camioneta" />
-                          <option value="Rango Medio" />
-                          <option value="Madrina / Rango Medio" />
-                          <option value="Sencillo" />
-                          <option value="Tracto / Sencillo" />
-                          <option value="Tracto / Full" />
-                        </datalist>
-                      </>
-                    ) : (
-                      <CustomSelect
-                        value={formData.tipo}
-                        onChange={v => setFormData(prev => ({ ...prev, tipo: v }))}
-                        options={[
-                          { value: 'Camioneta',           label: 'Camioneta',           sub: '18 m³' },
-                          { value: 'Rango Medio',         label: 'Rango Medio',         sub: '50 m³' },
-                          { value: 'Madrina / Rango Medio', label: 'Madrina / Rango Medio' },
-                          { value: 'Sencillo',            label: 'Sencillo',            sub: '90 m³' },
-                          { value: 'Tracto / Sencillo',   label: 'Tracto / Sencillo' },
-                          { value: 'Tracto / Full',       label: 'Tracto / Full',       sub: '110 m³' },
-                        ]}
-                      />
-                    )}
+                    <CustomSelect
+                      value={formData.tipo}
+                      onChange={v => setFormData(prev => ({ ...prev, tipo: v }))}
+                      allowCustom={true}
+                      placeholder="Seleccionar o escribir tipo..."
+                      options={[
+                        { value: 'Camioneta',             label: 'Camioneta',             sub: '18 m³ — Rabón Chico / Cautiva' },
+                        { value: 'Rango Medio',           label: 'Rango Medio',           sub: '50 m³ — Madrina Estándar' },
+                        { value: 'Madrina / Rango Medio', label: 'Madrina / Rango Medio', sub: '50 m³' },
+                        { value: 'Sencillo',              label: 'Sencillo',              sub: '90 m³ — Caja Seca Sencilla' },
+                        { value: 'Tracto / Sencillo',     label: 'Tracto / Sencillo',     sub: '90 m³' },
+                        { value: 'Tracto / Full',         label: 'Tracto / Full',         sub: '110 m³ — Full Tráiler' },
+                      ]}
+                    />
                   </div>
 
                   <div className="form-group">
                     <label>Línea de Transporte</label>
-                    {isCustomUnitMode ? (
-                      <>
-                        <input
-                          type="text"
-                          name="linea"
-                          className="form-control"
-                          placeholder="Ej: LTI - VHS, Castores, Fletes..."
-                          value={formData.linea}
-                          onChange={handleChange}
-                          list="lista-lineas-patio"
-                        />
-                        <datalist id="lista-lineas-patio">
-                          {LINEAS_TRANSPORTE.map(l => (
-                            <option key={l} value={l} />
-                          ))}
-                        </datalist>
-                      </>
-                    ) : (
-                      <CustomSelect
-                        value={formData.linea}
-                        onChange={v => setFormData(prev => ({ ...prev, linea: v }))}
-                        options={LINEAS_TRANSPORTE.map(l => ({ value: l, label: l }))}
-                      />
-                    )}
+                    <CustomSelect
+                      value={formData.linea}
+                      onChange={v => setFormData(prev => ({ ...prev, linea: v }))}
+                      allowCustom={true}
+                      placeholder="Seleccionar o escribir línea..."
+                      options={LINEAS_TRANSPORTE.map(l => ({ value: l, label: l }))}
+                    />
                   </div>
 
                   <div className="form-group">
@@ -795,6 +727,7 @@ const UnitModalForm = () => {
                   <CustomSelect
                     value={formData.linea}
                     onChange={v => setFormData(prev => ({ ...prev, linea: v }))}
+                    allowCustom={true}
                     options={LINEAS_TRANSPORTE.map(l => ({ value: l, label: l }))}
                   />
                 </div>
