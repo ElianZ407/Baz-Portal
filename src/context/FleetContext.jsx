@@ -133,6 +133,9 @@ export const FleetProvider = ({ children }) => {
 
   // Referencia persistente de BroadcastChannel multi-pestaña
   const broadcastRef = useRef(null);
+  const isBulkOperatingRef = useRef(false);
+  const realtimeQueueRef = useRef([]);
+  const realtimeTimeoutRef = useRef(null);
 
   // Estados de conectividad Cloud / Supabase
   const [isCloudConnected, setIsCloudConnected] = useState(isSupabaseConfigured());
@@ -308,22 +311,46 @@ export const FleetProvider = ({ children }) => {
         'postgres_changes',
         { event: '*', schema: 'public', table: 'viajes_diarios' },
         (payload) => {
-          if (payload.eventType === 'INSERT') {
-            const newUnit = cleanUnitDestino(mapDbToUnit(payload.new));
-            setUnits(prev => {
-              if (prev.some(u => String(u.id) === String(newUnit.id))) {
-                return prev.map(u => String(u.id) === String(newUnit.id) ? newUnit : u);
+          if (isBulkOperatingRef.current) return;
+
+          realtimeQueueRef.current.push(payload);
+
+          if (!realtimeTimeoutRef.current) {
+            realtimeTimeoutRef.current = setTimeout(() => {
+              realtimeTimeoutRef.current = null;
+              const queue = realtimeQueueRef.current;
+              realtimeQueueRef.current = [];
+              if (queue.length === 0) return;
+
+              if (queue.length >= 10) {
+                reloadCloudData();
+                return;
               }
-              return [newUnit, ...prev];
-            });
-          } else if (payload.eventType === 'UPDATE') {
-            const updatedUnit = cleanUnitDestino(mapDbToUnit(payload.new));
-            setUnits(prev => prev.map(u => String(u.id) === String(updatedUnit.id) ? updatedUnit : u));
-          } else if (payload.eventType === 'DELETE') {
-            const deletedId = payload.old?.id;
-            if (deletedId) {
-              setUnits(prev => prev.filter(u => String(u.id) !== String(deletedId)));
-            }
+
+              setUnits(prev => {
+                let next = [...prev];
+                for (const item of queue) {
+                  if (item.eventType === 'INSERT') {
+                    const newUnit = cleanUnitDestino(mapDbToUnit(item.new));
+                    const idx = next.findIndex(u => String(u.id) === String(newUnit.id));
+                    if (idx >= 0) {
+                      next[idx] = newUnit;
+                    } else {
+                      next.push(newUnit);
+                    }
+                  } else if (item.eventType === 'UPDATE') {
+                    const updatedUnit = cleanUnitDestino(mapDbToUnit(item.new));
+                    next = next.map(u => String(u.id) === String(updatedUnit.id) ? updatedUnit : u);
+                  } else if (item.eventType === 'DELETE') {
+                    const deletedId = item.old?.id;
+                    if (deletedId) {
+                      next = next.filter(u => String(u.id) !== String(deletedId));
+                    }
+                  }
+                }
+                return next;
+              });
+            }, 60);
           }
         }
       )
@@ -357,6 +384,9 @@ export const FleetProvider = ({ children }) => {
 
     return () => {
       clearInterval(pollInterval);
+      if (realtimeTimeoutRef.current) {
+        clearTimeout(realtimeTimeoutRef.current);
+      }
       window.removeEventListener('focus', handleVisibilityOrFocus);
       document.removeEventListener('visibilitychange', handleVisibilityOrFocus);
       supabase.removeChannel(channel);
@@ -406,14 +436,17 @@ export const FleetProvider = ({ children }) => {
 
   // Guardar en localStorage de respaldo y emitir BroadcastChannel local
   useEffect(() => {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(units));
-      if (broadcastRef.current) {
-        broadcastRef.current.postMessage({ type: 'SYNC_UNITS', units, senderId: CLIENT_ID });
+    const timer = setTimeout(() => {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(units));
+        if (broadcastRef.current) {
+          broadcastRef.current.postMessage({ type: 'SYNC_UNITS', units, senderId: CLIENT_ID });
+        }
+      } catch (e) {
+        console.error('Error guardando en localStorage', e);
       }
-    } catch (e) {
-      console.error('Error guardando en localStorage', e);
-    }
+    }, 150);
+    return () => clearTimeout(timer);
   }, [units]);
 
   const displayedUnits = useMemo(() => {
@@ -789,6 +822,7 @@ export const FleetProvider = ({ children }) => {
 
   // Purgar / Limpiar todos los datos del tablero
   const clearAllUnits = async () => {
+    isBulkOperatingRef.current = true;
     setUnits([]);
     localStorage.removeItem(STORAGE_KEY);
     localStorage.removeItem('baz_entregas_fleet_data_v1');
@@ -796,10 +830,16 @@ export const FleetProvider = ({ children }) => {
     
     if (isSupabaseConfigured() && supabase) {
       try {
-        await supabase.from('viajes_diarios').delete().neq('id', '___non_existent___');
+        await clearViajesDb();
       } catch (err) {
         console.error('Error al vaciar viajes_diarios en Supabase:', err);
+      } finally {
+        setTimeout(() => {
+          isBulkOperatingRef.current = false;
+        }, 2000);
       }
+    } else {
+      isBulkOperatingRef.current = false;
     }
 
     if (typeof BroadcastChannel !== 'undefined') {
@@ -897,7 +937,7 @@ export const FleetProvider = ({ children }) => {
       });
     }
 
-    // Actualizar estado local inmediatamente
+    isBulkOperatingRef.current = true;
     setUnits(finalUnits);
     localStorage.setItem(STORAGE_KEY, JSON.stringify(finalUnits));
 
@@ -920,7 +960,12 @@ export const FleetProvider = ({ children }) => {
         console.error('Error al sincronizar importación masiva en Supabase:', err);
       } finally {
         setIsCloudLoading(false);
+        setTimeout(() => {
+          isBulkOperatingRef.current = false;
+        }, 2000);
       }
+    } else {
+      isBulkOperatingRef.current = false;
     }
 
     return true;
@@ -975,6 +1020,7 @@ export const FleetProvider = ({ children }) => {
     }
 
     // Restaurar unidades en el plan activo
+    isBulkOperatingRef.current = true;
     const restoredUnits = plan.unidades.map(cleanUnitDestino);
     setUnits(restoredUnits);
     localStorage.setItem(STORAGE_KEY, JSON.stringify(restoredUnits));
@@ -982,13 +1028,19 @@ export const FleetProvider = ({ children }) => {
     // Si Supabase está configurado, actualizar viajes_diarios
     if (isSupabaseConfigured() && supabase) {
       try {
-        await supabase.from('viajes_diarios').delete().neq('id', '___non_existent___');
-        for (const u of restoredUnits) {
-          await upsertViajeDb(u);
-        }
+        setIsCloudLoading(true);
+        await clearViajesDb();
+        await bulkUpsertViajesDb(restoredUnits);
       } catch (err) {
         console.warn('Error al sincronizar restauración en Supabase:', err);
+      } finally {
+        setIsCloudLoading(false);
+        setTimeout(() => {
+          isBulkOperatingRef.current = false;
+        }, 2000);
       }
+    } else {
+      isBulkOperatingRef.current = false;
     }
 
     // Notificar en broadcast channel
