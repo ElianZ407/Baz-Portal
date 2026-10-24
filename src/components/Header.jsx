@@ -58,8 +58,29 @@ export const Header = () => {
     });
   };
 
-  const handleExportExcel = () => {
-    exportByModule(activeArea, units);
+  const handleExportExcel = async () => {
+    try {
+      await exportByModule(activeArea, units);
+    } catch (err) {
+      console.error('Error al exportar Excel:', err);
+      if (err?.esChunkObsoleto) {
+        showConfirm({
+          title: 'Actualización disponible',
+          message: 'La aplicación se actualizó en el servidor. Recarga la página para poder descargar el Excel.',
+          confirmText: 'Recargar ahora',
+          cancelText: 'Cancelar',
+          confirmType: 'primary',
+          onConfirm: () => window.location.reload()
+        });
+        return;
+      }
+      showAlert({
+        title: 'No se pudo generar el Excel',
+        message: err?.message || 'Ocurrió un error inesperado al generar el archivo.',
+        confirmType: 'danger',
+        confirmText: 'Entendido'
+      });
+    }
   };
 
   const getExportButtonLabel = () => {

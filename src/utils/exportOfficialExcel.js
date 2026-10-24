@@ -9,14 +9,22 @@
  */
 
 const getExcelJS = async () => {
-  try {
+  const cargar = async () => {
     const ExcelJSModule = await import('exceljs/dist/exceljs.min.js');
     return ExcelJSModule.default || ExcelJSModule;
-  } catch (err) {
-    if (typeof window !== 'undefined' && err?.message && (err.message.includes('dynamically imported module') || err.message.includes('Failed to fetch'))) {
-      window.location.reload();
+  };
+  try {
+    return await cargar();
+  } catch {
+    await new Promise(resolve => setTimeout(resolve, 600));
+    try {
+      return await cargar();
+    } catch (err) {
+      const error = new Error('La aplicación se actualizó en el servidor. Recarga la página (Ctrl+F5) e intenta de nuevo.');
+      error.cause = err;
+      error.esChunkObsoleto = true;
+      throw error;
     }
-    throw err;
   }
 };
 
