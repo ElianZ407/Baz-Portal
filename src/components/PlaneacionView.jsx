@@ -123,44 +123,52 @@ export const PlaneacionView = () => {
     planeacionBaseUnits.map(u => u.capUnidad).filter(Boolean)
   )].sort((a, b) => Number(a) - Number(b)), [planeacionBaseUnits]);
 
-  const planeacionUnits = useMemo(() => planeacionBaseUnits.filter(u => {
-    const q = searchQuery.toLowerCase().trim();
-    const matchesSearch = !q || 
-      (u.economico && u.economico.toLowerCase().includes(q)) ||
-      (u.operador && u.operador.toLowerCase().includes(q)) ||
-      (u.destino && u.destino.toLowerCase().includes(q)) ||
-      (u.numCarga && u.numCarga.toLowerCase().includes(q)) ||
-      (u.placas && u.placas.toLowerCase().includes(q)) ||
-      (u.cortina && u.cortina.toLowerCase().includes(q)) ||
-      (u.closter && u.closter.toLowerCase().includes(q)) ||
-      (u.capUnidad && String(u.capUnidad).includes(q));
+  const planeacionUnits = useMemo(() => {
+    const filtered = planeacionBaseUnits.filter(u => {
+      const q = searchQuery.toLowerCase().trim();
+      const matchesSearch = !q || 
+        (u.economico && u.economico.toLowerCase().includes(q)) ||
+        (u.operador && u.operador.toLowerCase().includes(q)) ||
+        (u.destino && u.destino.toLowerCase().includes(q)) ||
+        (u.numCarga && u.numCarga.toLowerCase().includes(q)) ||
+        (u.placas && u.placas.toLowerCase().includes(q)) ||
+        (u.cortina && u.cortina.toLowerCase().includes(q)) ||
+        (u.closter && u.closter.toLowerCase().includes(q)) ||
+        (u.capUnidad && String(u.capUnidad).includes(q));
 
-    const isTaller = u.estatusPatio === 'Taller' || u.estatus === 'TALLER';
-    const isSupervisorActive = SUPERVISOR_ACTIVE_STATUSES.includes(u.estatusSupervisor);
-    const matchesFL = filterFL === 'ALL' || (u.fl || 'LOCAL') === filterFL;
-    const matchesCapUnidad = filterCapUnidad === 'ALL' || String(u.capUnidad) === filterCapUnidad;
-    
-    let matchesEstatus = true;
-    if (filterEstatus === 'ALL') {
-      matchesEstatus = true;
-    } else if (filterEstatus === 'SIN_UNIDAD') {
-      matchesEstatus = !String(u.economico || '').trim();
-    } else if (filterEstatus === 'TALLER') {
-      matchesEstatus = isTaller;
-    } else if (filterEstatus === 'NO_SE_CUBRE') {
-      matchesEstatus = !isTaller && String(u.estatusPlaneacion || '').trim().toUpperCase() === 'NO SE CUBRE';
-    } else if (filterEstatus === 'CARGADO') {
-      matchesEstatus = !isTaller && ((u.estatusPlaneacion || 'PENDIENTE') === 'CARGADO' || isSupervisorActive);
-    } else if (filterEstatus === 'COLOCADO') {
-      matchesEstatus = !isTaller && (u.estatusPlaneacion || 'PENDIENTE') === 'COLOCADO' && !isSupervisorActive;
-    } else if (filterEstatus === 'PENDIENTE') {
-      matchesEstatus = !isTaller && (u.estatusPlaneacion || 'PENDIENTE') === 'PENDIENTE' && !isSupervisorActive;
-    } else {
-      matchesEstatus = !isTaller && (u.estatusPlaneacion || 'PENDIENTE') === filterEstatus;
-    }
+      const isTaller = u.estatusPatio === 'Taller' || u.estatus === 'TALLER';
+      const isSupervisorActive = SUPERVISOR_ACTIVE_STATUSES.includes(u.estatusSupervisor);
+      const matchesFL = filterFL === 'ALL' || (u.fl || 'LOCAL') === filterFL;
+      const matchesCapUnidad = filterCapUnidad === 'ALL' || String(u.capUnidad) === filterCapUnidad;
+      
+      let matchesEstatus = true;
+      if (filterEstatus === 'ALL') {
+        matchesEstatus = true;
+      } else if (filterEstatus === 'SIN_UNIDAD') {
+        matchesEstatus = !String(u.economico || '').trim();
+      } else if (filterEstatus === 'TALLER') {
+        matchesEstatus = isTaller;
+      } else if (filterEstatus === 'NO_SE_CUBRE') {
+        matchesEstatus = !isTaller && String(u.estatusPlaneacion || '').trim().toUpperCase() === 'NO SE CUBRE';
+      } else if (filterEstatus === 'CARGADO') {
+        matchesEstatus = !isTaller && ((u.estatusPlaneacion || 'PENDIENTE') === 'CARGADO' || isSupervisorActive);
+      } else if (filterEstatus === 'COLOCADO') {
+        matchesEstatus = !isTaller && (u.estatusPlaneacion || 'PENDIENTE') === 'COLOCADO' && !isSupervisorActive;
+      } else if (filterEstatus === 'PENDIENTE') {
+        matchesEstatus = !isTaller && (u.estatusPlaneacion || 'PENDIENTE') === 'PENDIENTE' && !isSupervisorActive;
+      } else {
+        matchesEstatus = !isTaller && (u.estatusPlaneacion || 'PENDIENTE') === filterEstatus;
+      }
 
-    return matchesSearch && matchesFL && matchesCapUnidad && matchesEstatus;
-  }), [planeacionBaseUnits, searchQuery, filterFL, filterCapUnidad, filterEstatus]);
+      return matchesSearch && matchesFL && matchesCapUnidad && matchesEstatus;
+    });
+
+    return [...filtered].sort((a, b) => {
+      const aComp = (a.estatusPlaneacion === 'COMPLETADO' || a.estatusSupervisor === 'Completado') ? 1 : 0;
+      const bComp = (b.estatusPlaneacion === 'COMPLETADO' || b.estatusSupervisor === 'Completado') ? 1 : 0;
+      return aComp - bComp;
+    });
+  }, [planeacionBaseUnits, searchQuery, filterFL, filterCapUnidad, filterEstatus]);
 
   const tripsByEco = useMemo(() => {
     const groups = new Map();

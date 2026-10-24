@@ -11,7 +11,8 @@ import {
   History,
   UploadCloud,
   Calendar,
-  FileText
+  FileText,
+  RotateCcw
 } from 'lucide-react';
 import { useFleet } from '../context/FleetContext';
 import { exportByModule } from '../utils/exportOfficialExcel';
@@ -31,8 +32,29 @@ export const Header = () => {
     formattedPlanDate,
     formattedPlanDateLong,
     isPlanDateToday,
-    historicalPlanView
+    historicalPlanView,
+    clearAllUnits,
+    showConfirm,
+    showAlert
   } = useFleet();
+
+  const handleLimpiarTodo = () => {
+    showConfirm({
+      title: '¿Limpiar todo el tablero y reiniciar día?',
+      message: 'Esta acción vaciará todos los viajes de Planeación y Supervisión.\n\nTodas las unidades del catálogo volverán a estar Disponibles en Patio para una nueva jornada.\n\n¿Estás seguro de que deseas reiniciar todo?',
+      confirmText: 'Sí, Limpiar Todo',
+      cancelText: 'Cancelar',
+      confirmType: 'danger',
+      onConfirm: async () => {
+        await clearAllUnits();
+        showAlert({
+          title: 'Operación Reiniciada',
+          message: 'Se han limpiado todos los viajes. Todas las unidades del catálogo se encuentran Disponibles en Patio.',
+          confirmType: 'success'
+        });
+      }
+    });
+  };
 
   const handleExportExcel = () => {
     exportByModule(activeArea, units);
@@ -188,6 +210,20 @@ export const Header = () => {
 
           {activeArea !== 'colocacion' && (
             <>
+              <button 
+                className="btn btn-secondary btn-header-action" 
+                style={{ 
+                  borderColor: 'rgba(239, 68, 68, 0.45)', 
+                  background: 'rgba(239, 68, 68, 0.12)', 
+                  color: '#f87171' 
+                }}
+                onClick={handleLimpiarTodo}
+                title="Limpiar todos los viajes y poner todas las unidades en Disponible"
+              >
+                <RotateCcw size={15} color="#f87171" />
+                <span className="btn-label-text" style={{ fontWeight: 700 }}>Limpiar Todo</span>
+              </button>
+
               <button 
                 className="btn btn-secondary btn-header-action" 
                 style={{ 
