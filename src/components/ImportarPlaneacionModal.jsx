@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { useFleet } from '../context/FleetContext';
 import { parsePlanningFile, downloadPlanningTemplate } from '../utils/planningImportUtils';
+import { formatearFechaPlan } from '../utils/fleetUtils';
 
 export const ImportarPlaneacionModal = () => {
   const { 
@@ -31,8 +32,9 @@ export const ImportarPlaneacionModal = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [parsedData, setParsedData] = useState(null);
+  const [selectedPlanDate, setSelectedPlanDate] = useState('');
   const [currentFile, setCurrentFile] = useState(null);
-  const [importMode, setImportMode] = useState('replace'); // 'replace' | 'merge'
+  const [importMode, setImportMode] = useState('replace');
   const [previewSearch, setPreviewSearch] = useState('');
   const fileInputRef = useRef(null);
 
@@ -101,6 +103,7 @@ export const ImportarPlaneacionModal = () => {
 
   const handleClose = () => {
     setParsedData(null);
+    setSelectedPlanDate('');
     setCurrentFile(null);
     setErrorMessage('');
     setPreviewSearch('');
@@ -123,9 +126,9 @@ export const ImportarPlaneacionModal = () => {
     try {
       setIsProcessing(true);
       setErrorMessage('');
-      setCurrentFile(file);
-      // Por defecto lee la hoja 26 o la hoja especificada por el usuario
       const result = await parsePlanningFile(file, catalogoFlota, catalogoSucursales, preferredSheet);
+      const detectedDate = result.fechaDetectada || new Date().toISOString().split('T')[0];
+      setSelectedPlanDate(detectedDate);
       setParsedData({
         ...result,
         fileInfo: {
@@ -185,12 +188,17 @@ export const ImportarPlaneacionModal = () => {
 
     try {
       setIsProcessing(true);
-      const success = await importViajesPlaneacion(parsedData.units, importMode);
+      const finalDate = selectedPlanDate || parsedData.fechaDetectada || new Date().toISOString().split('T')[0];
+      const finalUnits = parsedData.units.map(u => ({
+        ...u,
+        fecha: finalDate
+      }));
+      const success = await importViajesPlaneacion(finalUnits, importMode);
       if (success) {
         handleClose();
         showAlert({
           title: '¡Planeación Importada con Éxito!',
-          message: `Se importaron correctamente ${parsedData.units.length} viajes al tablero de planeación.\n\nEstatus: ${importMode === 'replace' ? 'Se reemplazó el plan activo.' : 'Se combinaron con los viajes existentes.'}`,
+          message: `Se importaron correctamente ${finalUnits.length} viajes para el día ${formatearFechaPlan(finalDate, 'largo')}.\n\nEstatus: ${importMode === 'replace' ? 'Se reemplazó el plan activo.' : 'Se combinaron con los viajes existentes.'}`,
           confirmType: 'success'
         });
       }
@@ -489,12 +497,37 @@ export const ImportarPlaneacionModal = () => {
                 </div>
 
                 <div style={{ background: '#101b30', padding: '0.75rem 1rem', borderRadius: '8px', border: '1px solid rgba(250, 204, 21, 0.3)' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: '#facc15', fontSize: '0.75rem', fontWeight: 700 }}>
-                    <Calendar size={14} />
-                    <span>FECHA DETECTADA</span>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.4rem', color: '#facc15', fontSize: '0.75rem', fontWeight: 700 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                      <Calendar size={14} />
+                      <span>FECHA DEL PLAN</span>
+                    </div>
+                    {selectedPlanDate === new Date().toISOString().split('T')[0] && (
+                      <span style={{ background: '#0ea5e9', color: '#fff', fontSize: '0.65rem', padding: '0.1rem 0.4rem', borderRadius: '4px', fontWeight: 800 }}>
+                        HOY
+                      </span>
+                    )}
                   </div>
-                  <div style={{ fontSize: '1rem', fontWeight: 700, color: '#fff', marginTop: '0.45rem', fontFamily: 'var(--font-mono)' }}>
-                    {parsedData.fechaDetectada || 'Hoy'}
+                  <input
+                    type="date"
+                    value={selectedPlanDate}
+                    onChange={(e) => setSelectedPlanDate(e.target.value)}
+                    style={{
+                      marginTop: '0.35rem',
+                      background: '#070c17',
+                      border: '1.5px solid #facc15',
+                      color: '#fff',
+                      padding: '0.35rem 0.5rem',
+                      borderRadius: '6px',
+                      fontSize: '0.85rem',
+                      fontWeight: 700,
+                      width: '100%',
+                      fontFamily: 'var(--font-mono)',
+                      cursor: 'pointer'
+                    }}
+                  />
+                  <div style={{ fontSize: '0.72rem', color: '#93c5fd', marginTop: '0.25rem', fontWeight: 600 }}>
+                    {formatearFechaPlan(selectedPlanDate, 'largo')}
                   </div>
                 </div>
 

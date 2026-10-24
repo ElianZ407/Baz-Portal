@@ -971,6 +971,47 @@ export const FleetProvider = ({ children }) => {
     return true;
   };
 
+  const updatePlanDate = async (newDate) => {
+    if (!newDate) return false;
+    const cleanDate = String(newDate).trim();
+    isBulkOperatingRef.current = true;
+    setUnits(prev => {
+      const updated = prev.map(u => ({ ...u, fecha: cleanDate }));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+      return updated;
+    });
+
+    if (isSupabaseConfigured() && supabase) {
+      try {
+        setIsCloudLoading(true);
+        await supabase
+          .from('viajes_diarios')
+          .update({ fecha: cleanDate })
+          .neq('id', '___non_existent___');
+      } catch (err) {
+        console.error('Error al actualizar fecha del plan en Supabase:', err);
+      } finally {
+        setIsCloudLoading(false);
+        setTimeout(() => {
+          isBulkOperatingRef.current = false;
+        }, 1500);
+      }
+    } else {
+      isBulkOperatingRef.current = false;
+    }
+
+    if (broadcastRef.current) {
+      try {
+        broadcastRef.current.postMessage({
+          type: 'SYNC_UNITS',
+          units: units.map(u => ({ ...u, fecha: cleanDate })),
+          senderId: CLIENT_ID
+        });
+      } catch {}
+    }
+    return true;
+  };
+
   // 1. Ver un plan histórico en MODO CONSULTA (sin borrar ni reemplazar el plan activo de hoy)
   const viewHistoricalPlan = (planId) => {
     const plan = savedPlans.find(p => p.id === planId);
@@ -1137,6 +1178,8 @@ export const FleetProvider = ({ children }) => {
       importViajesPlaneacion,
       evaluarDisponibilidadManana,
       currentPlanDate,
+      todayIso,
+      updatePlanDate,
       formattedPlanDate,
       formattedPlanDateLong,
       isPlanDateToday,

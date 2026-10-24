@@ -102,7 +102,9 @@ export const PlaneacionView = () => {
     setIsImportModalOpen,
     formattedPlanDate,
     formattedPlanDateLong,
-    isPlanDateToday
+    isPlanDateToday,
+    todayIso,
+    updatePlanDate
   } = useFleet();
 
   const [filterFL, setFilterFL] = useState('ALL'); // 'ALL' | 'LOCAL' | 'FORANEO'
@@ -526,6 +528,26 @@ export const PlaneacionView = () => {
               >
                 <Calendar size={13} />
                 {isPlanDateToday ? `Plan de Hoy: ${formattedPlanDate}` : `Plan: ${formattedPlanDate}`}
+                {!isPlanDateToday && (
+                  <button
+                    type="button"
+                    onClick={() => updatePlanDate(todayIso)}
+                    title={`Actualizar la fecha de todos los viajes a hoy (${formattedPlanDateLong})`}
+                    style={{
+                      background: '#0ea5e9',
+                      border: 'none',
+                      color: '#fff',
+                      borderRadius: '4px',
+                      padding: '0.12rem 0.4rem',
+                      fontSize: '0.68rem',
+                      fontWeight: 800,
+                      cursor: 'pointer',
+                      marginLeft: '0.35rem'
+                    }}
+                  >
+                    Fijar a Hoy
+                  </button>
+                )}
               </span>
             )}
           </h2>

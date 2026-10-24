@@ -319,36 +319,42 @@ export const parseTimeValue = (val) => {
   return str;
 };
 
-// Formateador de Fechas
 export const parseDateValue = (val, fallbackDate = '') => {
   if (val === null || val === undefined || val === '') return fallbackDate;
 
   if (val instanceof Date) {
+    if (isNaN(val.getTime())) return fallbackDate;
+    const y = val.getFullYear();
+    const m = String(val.getMonth() + 1).padStart(2, '0');
+    const d = String(val.getDate()).padStart(2, '0');
+    if (y > 2000 && y < 2100) return `${y}-${m}-${d}`;
     return val.toISOString().split('T')[0];
   }
 
   if (typeof val === 'number' && val > 30000 && val < 70000) {
-    // Número serial de Excel (días desde 1899-12-30)
     const days = Math.floor(val);
     const excelEpoch = new Date(Date.UTC(1899, 11, 30));
     const jsDate = new Date(excelEpoch.getTime() + days * 86400000);
-    return jsDate.toISOString().split('T')[0];
+    const y = jsDate.getUTCFullYear();
+    const m = String(jsDate.getUTCMonth() + 1).padStart(2, '0');
+    const d = String(jsDate.getUTCDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
   }
 
   const str = String(val).trim();
-  // Formato tipo "9/25/2026" o "25/09/2026" o "2026-09-25"
-  if (str.includes('/')) {
-    const parts = str.split('/');
-    if (parts.length === 3) {
-      let [p1, p2, p3] = parts;
-      if (p3.length === 2) p3 = `20${p3}`;
-      // Si p1 > 12, es DD/MM/YYYY
-      if (parseInt(p1, 10) > 12) {
-        return `${p3}-${String(p2).padStart(2, '0')}-${String(p1).padStart(2, '0')}`;
-      }
-      // Por defecto en Excel en formato US: MM/DD/YYYY
+  const dmyMatch = str.match(/(\d{1,2})[-/](\d{1,2})[-/](\d{2,4})/);
+  if (dmyMatch) {
+    let [, p1, p2, p3] = dmyMatch;
+    if (p3.length === 2) p3 = `20${p3}`;
+    const n1 = parseInt(p1, 10);
+    const n2 = parseInt(p2, 10);
+    if (n1 > 12) {
+      return `${p3}-${String(p2).padStart(2, '0')}-${String(p1).padStart(2, '0')}`;
+    }
+    if (n2 > 12) {
       return `${p3}-${String(p1).padStart(2, '0')}-${String(p2).padStart(2, '0')}`;
     }
+    return `${p3}-${String(p2).padStart(2, '0')}-${String(p1).padStart(2, '0')}`;
   }
 
   if (str.includes('-')) {
@@ -524,22 +530,58 @@ const leerLibroCompleto = async (file) => {
     }
 
     activeTab = workbook.views?.[0]?.activeTab ?? 0;
-    const hoy = new Date().getDate();
+    const now = new Date();
+    const hoy = now.getDate();
+    const diaSemanaHoy = now.getDay();
+    const DIAS_SEMANA_ALIASES = [
+      { id: 0, aliases: ['domingo', 'dom'] },
+      { id: 1, aliases: ['lunes', 'lun'] },
+      { id: 2, aliases: ['martes', 'mar'] },
+      { id: 3, aliases: ['miercoles', 'mie'] },
+      { id: 4, aliases: ['jueves', 'jue'] },
+      { id: 5, aliases: ['viernes', 'vie'] },
+      { id: 6, aliases: ['sabado', 'sab'] }
+    ];
 
     hojas = workbook.worksheets.map((ws, idx) => {
       const tabName = String(ws.name || '').trim();
+      const tabClean = tabName.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
       const matchDia = tabName.match(/(?:d[ií]a\s*)?(\d{1,2})/i);
-      const numVal = matchDia ? parseInt(matchDia[1], 10) : parseInt(tabName, 10);
-      const isDayTab = !isNaN(numVal) && numVal >= 1 && numVal <= 31;
+      let numVal = matchDia ? parseInt(matchDia[1], 10) : parseInt(tabName, 10);
+      let isDayTab = !isNaN(numVal) && numVal >= 1 && numVal <= 31;
+
+      let matchedDayOfWeek = null;
+      for (const d of DIAS_SEMANA_ALIASES) {
+        if (d.aliases.some(alias => tabClean.includes(alias))) {
+          matchedDayOfWeek = d.id;
+          break;
+        }
+      }
+
+      if (!isDayTab && matchedDayOfWeek !== null && matchedDayOfWeek === diaSemanaHoy) {
+        numVal = hoy;
+        isDayTab = true;
+      }
+
+      const esDiaActual = (isDayTab && numVal === hoy) || (matchedDayOfWeek !== null && matchedDayOfWeek === diaSemanaHoy);
       const rows = extractSheetRows(ws);
+
+      let displayName = tabName || `Hoja ${idx + 1}`;
+      if (isDayTab) {
+        displayName = `Día ${String(numVal).padStart(2, '0')}`;
+      } else if (matchedDayOfWeek !== null) {
+        const nombresC = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+        displayName = nombresC[matchedDayOfWeek] || tabName;
+      }
 
       return {
         index: idx + 1,
         id: String(ws.id || idx + 1),
         name: tabName || `Hoja ${idx + 1}`,
-        displayName: isDayTab ? `Día ${String(numVal).padStart(2, '0')}` : (tabName || `Hoja ${idx + 1}`),
+        displayName,
         dayNumber: isDayTab ? numVal : null,
-        esDiaActual: isDayTab && numVal === hoy,
+        dayOfWeek: matchedDayOfWeek,
+        esDiaActual,
         rowCount: rows.length,
         rows
       };
@@ -574,9 +616,14 @@ const elegirHoja = (libro, preferredSheet) => {
     }
   }
 
-  const hoy = new Date().getDate();
+  const now = new Date();
+  const hoy = now.getDate();
+  const diaSemanaHoy = now.getDay();
   if (!elegida) {
-    elegida = hojas.find(h => h.dayNumber === hoy) || null;
+    elegida = hojas.find(h => h.esDiaActual) || 
+      hojas.find(h => h.dayNumber === hoy) || 
+      hojas.find(h => h.dayOfWeek === diaSemanaHoy) || 
+      null;
   }
 
   if (!elegida && libro.activeTab > 0) {
@@ -640,14 +687,18 @@ const construirPlanDesdeFilas = (hoja, libro, catalogoFlota = [], catalogoSucurs
     const candidateRow = rows[r];
     if (!Array.isArray(candidateRow) || candidateRow.length === 0) continue;
 
-    // Buscar si hay alguna fecha en las filas anteriores al header (como la fila 1 de BAZ)
     if (r < 5 && !fileHeaderDate) {
       for (const cellVal of candidateRow) {
         if (cellVal) {
+          if (cellVal instanceof Date) {
+            fileHeaderDate = parseDateValue(cellVal);
+            if (fileHeaderDate) break;
+          }
           const strVal = String(cellVal).trim();
-          if (strVal.match(/\d{1,2}\/\d{1,2}\/\d{2,4}/)) {
-            fileHeaderDate = parseDateValue(strVal);
-            break;
+          const match = strVal.match(/(\d{1,2})[-/](\d{1,2})[-/](\d{2,4})/);
+          if (match) {
+            fileHeaderDate = parseDateValue(match[0]);
+            if (fileHeaderDate) break;
           }
         }
       }
@@ -687,10 +738,12 @@ const construirPlanDesdeFilas = (hoja, libro, catalogoFlota = [], catalogoSucurs
   const estatusSinReconocer = new Set();
   let currentUnit = null;
   const now = new Date().toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' });
-  const defaultDate = ajustarFechaAlDia(
-    fileHeaderDate || new Date().toISOString().split('T')[0],
-    hoja.dayNumber
-  );
+  const todayDateObj = new Date();
+  const todayIso = todayDateObj.getFullYear() + '-' + String(todayDateObj.getMonth() + 1).padStart(2, '0') + '-' + String(todayDateObj.getDate()).padStart(2, '0');
+  const targetDay = hoja.dayNumber || (hoja.esDiaActual ? todayDateObj.getDate() : null);
+  const defaultDate = targetDay
+    ? ajustarFechaAlDia(fileHeaderDate || todayIso, targetDay)
+    : (fileHeaderDate || todayIso);
 
   for (let i = headerRowIndex + 1; i < rows.length; i++) {
     const rawRow = rows[i];
@@ -779,7 +832,13 @@ const construirPlanDesdeFilas = (hoja, libro, catalogoFlota = [], catalogoSucurs
     }
 
     // VIAJE NUEVO / INDEPENDIENTE (incluso si aún no tiene ECO asignado, como viajes programados en cortina)
-    const unitDate = parseDateValue(rowData.fecha, defaultDate);
+    let unitDate = defaultDate;
+    if (rowData.fecha) {
+      const parsedRowDate = parseDateValue(rowData.fecha);
+      if (parsedRowDate) {
+        unitDate = targetDay ? ajustarFechaAlDia(parsedRowDate, targetDay) : parsedRowDate;
+      }
+    }
 
     // Auto-completar datos con catálogo de flota
     const fleetMaster = eco ? indiceFlota.porEco.get(claveEco(eco)) || null : null;
