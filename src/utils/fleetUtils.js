@@ -269,304 +269,325 @@ export const unidadContableManana = (unit, padron) => {
   return !esCamioneta(unit);
 };
 
-export const evaluarDisponibilidadManana = (unitOrTrips, catalogoFlota = []) => {
-  const units = (Array.isArray(unitOrTrips) ? unitOrTrips : [unitOrTrips]).filter(Boolean);
-  if (units.length === 0) {
-    return { disponible: false, regresaManana: false, motivo: 'Sin datos', badge: 'DESCONOCIDO', color: '#94a3b8' };
-  }
+const RESULTADO_SIN_DATOS = {
+  disponible: false,
+  regresaManana: false,
+  motivo: 'Sin datos',
+  badge: 'DESCONOCIDO',
+  color: '#94a3b8'
+};
 
-  const eco = units[0].economico;
-  const fleetUnit = (catalogoFlota || []).find(f => String(f.eco).trim() === String(eco || '').trim());
-  const fleetStatus = String(fleetUnit?.estatus || '').trim().toUpperCase();
+const RESULTADO_CAMIONETA = {
+  disponible: false,
+  regresaManana: false,
+  noRegresaManana: false,
+  esCamioneta: true,
+  badge: 'CAMIONETA LOCAL',
+  motivo: 'Retorno diario automático',
+  detalle: 'Camioneta (18 m³). Retorno diario garantizado.',
+  color: '#94a3b8'
+};
 
-  if (esCamioneta(units[0]) || (fleetUnit && esCamioneta(fleetUnit))) {
-    return {
-      disponible: false,
-      regresaManana: false,
-      noRegresaManana: false,
-      esCamioneta: true,
-      badge: 'CAMIONETA LOCAL',
-      motivo: 'Retorno diario automático',
-      detalle: 'Camioneta (18 m³). Retorno diario garantizado.',
-      color: '#94a3b8'
-    };
-  }
+const RESULTADO_TALLER = {
+  disponible: false,
+  regresaManana: false,
+  badge: 'NO DISPONIBLE',
+  motivo: 'En Taller mecánico',
+  detalle: 'No disponible por mantenimiento',
+  color: '#ef4444'
+};
 
-  const isTaller = units.some(unit =>
-    unit.estatusPatio === 'Taller' ||
-    unit.estatus === 'TALLER'
-  ) || fleetStatus.includes('TALLER');
+const RESULTADO_FORANEO_SIN_MATRIZ = {
+  disponible: false,
+  regresaManana: false,
+  noRegresaManana: false,
+  dias: null,
+  horas: 0,
+  badge: 'POR CONFIRMAR',
+  motivo: 'Foráneo sin matriz',
+  detalle: 'Destino foráneo sin duración registrada en matriz.',
+  color: '#f59e0b'
+};
 
-  if (isTaller) {
-    return {
+const MOTIVOS_PADRON_NO_ACTIVO = { BAJA: 'Unidad dada de baja' };
+const MOTIVO_PADRON_FUERA_OPERACION = 'Fuera de operación';
+const ESTATUS_PLANEACION_CERRADA = ['COMPLETADO', 'NO SE CUBRE', 'CANCELADO'];
+const NUMEROS_DE_VIAJE_VACIOS = ['—', '-', '0'];
+const HORAS_VIAJE_LOCAL_POR_DEFECTO = 6;
+const LIMITE_HORAS_VIAJE_LARGO = 24;
+const LIMITE_DIAS_VIAJE_LARGO = 1.0;
+
+const esViajeCompletado = unit =>
+  unit.estatusSupervisor === 'Completado' || ESTATUS_PLANEACION_CERRADA.includes(unit.estatusPlaneacion);
+
+const normalizarDestino = (texto) => {
+  if (!texto) return '';
+  return String(texto)
+    .toUpperCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^A-Z0-9\s]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+};
+
+const DURACION_VIAJES_HORAS = {
+  'BANCOS CHIAPAS': 84.31,
+  'BANCOS OAXACA': 68.54,
+  'ITALIKA LERMA': 53.54,
+  'TOLUCA': 53.54,
+  'BANCOS VERACRUZ': 52.38,
+  'RIO GRANDE': 48.55,
+  'PUERTO ESCONDIDO': 47.08,
+  'POCHUTLA': 44.95,
+  'HUATULCO': 43.75,
+  'CIUDAD HIDALGO': 36.27,
+  'CD HIDALGO': 36.27,
+  'MOTOZINTLA': 35.47,
+  'TAPACHULA': 35.07,
+  'HUIXTLA': 33.82,
+  'MATIAS ROMERO': 33.08,
+  'MAPASTEPEC': 31.96,
+  'SALINA CRUZ': 31.35,
+  'COMALAPA': 30.98,
+  'TEHUANTEPEC': 30.92,
+  'COMITAN': 30.92,
+  'PIJIJIAPAN': 30.62,
+  'JUCHITAN': 26.50,
+  'TONALA': 22.30,
+  'ARRIAGA': 21.88,
+  'SAN CRISTOBAL DE LAS CASAS': 21.15,
+  'SAN CRISTOBAL': 21.15,
+  'CINTALAPA': 19.98,
+  'TUXTLA GUTIERREZ': 19.18,
+  'JUAN SABINES': 19.18,
+  'SAN ANDRES TUXTLA': 17.87,
+  'BENEMERITO': 16.13,
+  'OCOSINGO': 15.65,
+  'ACAYUCAN': 15.25,
+  'HUB TUXTLA': 15.09,
+  'ESCARCEGA': 15.00,
+  'MINATITLAN': 13.79,
+  'COATZACOALCOS': 13.25,
+  'PLAZA FLORIDA': 13.25,
+  'AVIACION': 11.50,
+  'YAJALON': 10.78,
+  'LAS CHOAPAS': 9.02,
+  'TENOSIQUE': 8.96,
+  'AGUA DULCE': 8.83,
+  'PALENQUE': 8.45,
+  'LA VENTA': 8.31,
+  'CANDELARIA': 8.32,
+  'BALANCAN': 8.25,
+  'JONUTA': 7.27,
+  'EMILIANO ZAPATA': 6.96,
+  'PARAISO': 5.12,
+  'SALTO DE AGUA': 5.03,
+  'HUIMANGUILLO': 4.96,
+  'PICHUCALCO': 4.92,
+  'FRONTERA': 4.65,
+  'COMALCALCO': 4.59,
+  'CARDENAS': 4.33,
+  'TEAPA': 4.28,
+  'REFORMA': 4.12,
+  'MACUSPANA': 4.01,
+  'JALAPA': 3.85,
+  'JALPA DE MENDEZ': 3.58,
+  'CUNDUACAN': 3.55,
+  'CENTRO': 2.76,
+  'VILLAHERMOSA': 2.76,
+  'VILLA HERMOSA': 2.76
+};
+
+const DURACION_VIAJES_DIAS = {
+  'BANCOS CHIAPAS': 3.51,
+  'BANCOS OAXACA': 2.86,
+  'ITALIKA LERMA': 2.23,
+  'TOLUCA': 2.23,
+  'BANCOS VERACRUZ': 2.18,
+  'RIO GRANDE': 2.02,
+  'PUERTO ESCONDIDO': 1.96,
+  'POCHUTLA': 1.87,
+  'HUATULCO': 1.82,
+  'CIUDAD HIDALGO': 1.51,
+  'CD HIDALGO': 1.51,
+  'MOTOZINTLA': 1.48,
+  'TAPACHULA': 1.46,
+  'HUIXTLA': 1.41,
+  'MATIAS ROMERO': 1.38,
+  'MAPASTEPEC': 1.33,
+  'SALINA CRUZ': 1.31,
+  'COMALAPA': 1.29,
+  'TEHUANTEPEC': 1.29,
+  'COMITAN': 1.29,
+  'PIJIJIAPAN': 1.28,
+  'JUCHITAN': 1.10,
+  'TONALA': 0.93,
+  'ARRIAGA': 0.91,
+  'SAN CRISTOBAL DE LAS CASAS': 0.88,
+  'SAN CRISTOBAL': 0.88,
+  'CINTALAPA': 0.83,
+  'TUXTLA GUTIERREZ': 0.80,
+  'JUAN SABINES': 0.80,
+  'SAN ANDRES TUXTLA': 0.74,
+  'BENEMERITO': 0.67,
+  'OCOSINGO': 0.65,
+  'ACAYUCAN': 0.64,
+  'HUB TUXTLA': 0.63,
+  'ESCARCEGA': 0.63,
+  'MINATITLAN': 0.57,
+  'COATZACOALCOS': 0.55,
+  'PLAZA FLORIDA': 0.55,
+  'AVIACION': 0.48,
+  'YAJALON': 0.45,
+  'LAS CHOAPAS': 0.38,
+  'TENOSIQUE': 0.37,
+  'AGUA DULCE': 0.37,
+  'PALENQUE': 0.35,
+  'LA VENTA': 0.35,
+  'CANDELARIA': 0.35,
+  'BALANCAN': 0.34,
+  'JONUTA': 0.30,
+  'EMILIANO ZAPATA': 0.29,
+  'PARAISO': 0.21,
+  'SALTO DE AGUA': 0.21,
+  'HUIMANGUILLO': 0.21,
+  'PICHUCALCO': 0.20,
+  'FRONTERA': 0.19,
+  'COMALCALCO': 0.19,
+  'CARDENAS': 0.18,
+  'TEAPA': 0.18,
+  'REFORMA': 0.17,
+  'MACUSPANA': 0.17,
+  'JALAPA': 0.16,
+  'JALPA DE MENDEZ': 0.15,
+  'CUNDUACAN': 0.15,
+  'CENTRO': 0.12,
+  'VILLAHERMOSA': 0.12,
+  'VILLA HERMOSA': 0.12
+};
+
+
+const buscarEnMatriz = (tabla, destino) => {
+  if (tabla[destino] !== undefined) return tabla[destino];
+  const clave = Object.keys(tabla).find(nombre => destino.includes(nombre));
+  return clave === undefined ? null : tabla[clave];
+};
+
+const getDuracionViajeHrs = (destinoStr) => {
+  if (!destinoStr) return 0;
+  return buscarEnMatriz(DURACION_VIAJES_HORAS, normalizarDestino(destinoStr)) ?? 0;
+};
+
+const getDuracionViajeDias = (destinoStr, duracionHrs) => {
+  const respaldo = duracionHrs > 0 ? Math.round((duracionHrs / 24) * 100) / 100 : 0;
+  if (!destinoStr) return respaldo;
+  return buscarEnMatriz(DURACION_VIAJES_DIAS, normalizarDestino(destinoStr)) ?? respaldo;
+};
+
+const evaluarCamioneta = ({ units, fleetUnit }) =>
+  esCamioneta(units[0]) || (fleetUnit && esCamioneta(fleetUnit)) ? { ...RESULTADO_CAMIONETA } : null;
+
+const evaluarTaller = ({ units, fleetStatus }) => {
+  const enTaller = units.some(unit => unit.estatusPatio === 'Taller' || unit.estatus === 'TALLER') ||
+    fleetStatus.includes('TALLER');
+  return enTaller ? { ...RESULTADO_TALLER } : null;
+};
+
+const evaluarEstatusPadron = ({ fleetUnit, fleetStatus }) => {
+  const fueraDePadronActivo = fleetStatus && fleetStatus !== 'ACTIVO';
+  return fueraDePadronActivo
+    ? {
       disponible: false,
       regresaManana: false,
       badge: 'NO DISPONIBLE',
-      motivo: 'En Taller mecánico',
-      detalle: 'No disponible por mantenimiento',
-      color: '#ef4444'
-    };
-  }
-
-  if (fleetStatus && fleetStatus !== 'ACTIVO') {
-    return {
-      disponible: false,
-      regresaManana: false,
-      badge: 'NO DISPONIBLE',
-      motivo: fleetStatus === 'BAJA' ? 'Unidad dada de baja' : 'Fuera de operación',
+      motivo: MOTIVOS_PADRON_NO_ACTIVO[fleetStatus] || MOTIVO_PADRON_FUERA_OPERACION,
       detalle: `Estatus del padrón: ${fleetUnit.estatus}`,
       color: '#ef4444'
-    };
-  }
+    }
+    : null;
+};
 
-  const isCompleted = unit => 
-    unit.estatusSupervisor === 'Completado' || 
-    unit.estatusPlaneacion === 'COMPLETADO' || 
-    unit.estatusPlaneacion === 'NO SE CUBRE' ||
-    unit.estatusPlaneacion === 'CANCELADO';
-  const activeTripsById = new Map();
-  units.filter(unit => !isCompleted(unit) && tieneRutaAsignada(unit)).forEach(unit => {
-    const tripNumber = String(unit.noViaje || '').trim();
-    const key = tripNumber && !['—', '-', '0'].includes(tripNumber)
-      ? `trip-${tripNumber}`
+const REGLAS_PREVIAS_DISPONIBILIDAD = [evaluarCamioneta, evaluarTaller, evaluarEstatusPadron];
+
+const agruparViajesActivos = (units) => {
+  const viajesPorClave = new Map();
+  units.filter(unit => !esViajeCompletado(unit) && tieneRutaAsignada(unit)).forEach(unit => {
+    const numeroViaje = String(unit.noViaje || '').trim();
+    const clave = numeroViaje && !NUMEROS_DE_VIAJE_VACIOS.includes(numeroViaje)
+      ? `trip-${numeroViaje}`
       : `id-${unit.id}`;
-    if (!activeTripsById.has(key)) activeTripsById.set(key, unit);
+    if (!viajesPorClave.has(clave)) viajesPorClave.set(clave, unit);
   });
-  const trips = [...activeTripsById.values()];
+  return [...viajesPorClave.values()];
+};
 
-  if (trips.length === 0) {
-    const isPatioLibre = units.some(unit =>
-      (unit.estatusPatio === 'Disponible' || !unit.estatusPatio) && !hasTripNumber(unit)
-    );
-    const available = isPatioLibre || units.some(isCompleted);
-    return {
-      disponible: available,
-      regresaManana: false,
-      badge: available ? 'DISPONIBLE' : 'POR CONFIRMAR',
-      motivo: available ? 'Unidad libre en CEDIS' : 'Por confirmar',
-      detalle: available ? 'Sin viajes pendientes para esta unidad' : 'Confirma los viajes asignados a la unidad',
-      color: available ? '#10b981' : '#f59e0b'
-    };
-  }
-
-  const normalizeDest = (str) => {
-    if (!str) return '';
-    return String(str)
-      .toUpperCase()
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '')
-      .replace(/[^A-Z0-9\s]/g, ' ')
-      .replace(/\s+/g, ' ')
-      .trim();
+const evaluarSinViajes = (units) => {
+  const patioLibre = units.some(unit =>
+    (unit.estatusPatio === 'Disponible' || !unit.estatusPatio) && !hasTripNumber(unit)
+  );
+  const disponible = patioLibre || units.some(esViajeCompletado);
+  return {
+    disponible,
+    regresaManana: false,
+    badge: disponible ? 'DISPONIBLE' : 'POR CONFIRMAR',
+    motivo: disponible ? 'Unidad libre en CEDIS' : 'Por confirmar',
+    detalle: disponible ? 'Sin viajes pendientes para esta unidad' : 'Confirma los viajes asignados a la unidad',
+    color: disponible ? '#10b981' : '#f59e0b'
   };
+};
 
-  const DURACION_VIAJES_HORAS = {
-    'BANCOS CHIAPAS': 84.31,
-    'BANCOS OAXACA': 68.54,
-    'ITALIKA LERMA': 53.54,
-    'TOLUCA': 53.54,
-    'BANCOS VERACRUZ': 52.38,
-    'RIO GRANDE': 48.55,
-    'PUERTO ESCONDIDO': 47.08,
-    'POCHUTLA': 44.95,
-    'HUATULCO': 43.75,
-    'CIUDAD HIDALGO': 36.27,
-    'CD HIDALGO': 36.27,
-    'MOTOZINTLA': 35.47,
-    'TAPACHULA': 35.07,
-    'HUIXTLA': 33.82,
-    'MATIAS ROMERO': 33.08,
-    'MAPASTEPEC': 31.96,
-    'SALINA CRUZ': 31.35,
-    'COMALAPA': 30.98,
-    'TEHUANTEPEC': 30.92,
-    'COMITAN': 30.92,
-    'PIJIJIAPAN': 30.62,
-    'JUCHITAN': 26.50,
-    'TONALA': 22.30,
-    'ARRIAGA': 21.88,
-    'SAN CRISTOBAL DE LAS CASAS': 21.15,
-    'SAN CRISTOBAL': 21.15,
-    'CINTALAPA': 19.98,
-    'TUXTLA GUTIERREZ': 19.18,
-    'JUAN SABINES': 19.18,
-    'SAN ANDRES TUXTLA': 17.87,
-    'BENEMERITO': 16.13,
-    'OCOSINGO': 15.65,
-    'ACAYUCAN': 15.25,
-    'HUB TUXTLA': 15.09,
-    'ESCARCEGA': 15.00,
-    'MINATITLAN': 13.79,
-    'COATZACOALCOS': 13.25,
-    'PLAZA FLORIDA': 13.25,
-    'AVIACION': 11.50,
-    'YAJALON': 10.78,
-    'LAS CHOAPAS': 9.02,
-    'TENOSIQUE': 8.96,
-    'AGUA DULCE': 8.83,
-    'PALENQUE': 8.45,
-    'LA VENTA': 8.31,
-    'CANDELARIA': 8.32,
-    'BALANCAN': 8.25,
-    'JONUTA': 7.27,
-    'EMILIANO ZAPATA': 6.96,
-    'PARAISO': 5.12,
-    'SALTO DE AGUA': 5.03,
-    'HUIMANGUILLO': 4.96,
-    'PICHUCALCO': 4.92,
-    'FRONTERA': 4.65,
-    'COMALCALCO': 4.59,
-    'CARDENAS': 4.33,
-    'TEAPA': 4.28,
-    'REFORMA': 4.12,
-    'MACUSPANA': 4.01,
-    'JALAPA': 3.85,
-    'JALPA DE MENDEZ': 3.58,
-    'CUNDUACAN': 3.55,
-    'CENTRO': 2.76,
-    'VILLAHERMOSA': 2.76,
-    'VILLA HERMOSA': 2.76
-  };
-
-  const DURACION_VIAJES_DIAS = {
-    'BANCOS CHIAPAS': 3.51,
-    'BANCOS OAXACA': 2.86,
-    'ITALIKA LERMA': 2.23,
-    'TOLUCA': 2.23,
-    'BANCOS VERACRUZ': 2.18,
-    'RIO GRANDE': 2.02,
-    'PUERTO ESCONDIDO': 1.96,
-    'POCHUTLA': 1.87,
-    'HUATULCO': 1.82,
-    'CIUDAD HIDALGO': 1.51,
-    'CD HIDALGO': 1.51,
-    'MOTOZINTLA': 1.48,
-    'TAPACHULA': 1.46,
-    'HUIXTLA': 1.41,
-    'MATIAS ROMERO': 1.38,
-    'MAPASTEPEC': 1.33,
-    'SALINA CRUZ': 1.31,
-    'COMALAPA': 1.29,
-    'TEHUANTEPEC': 1.29,
-    'COMITAN': 1.29,
-    'PIJIJIAPAN': 1.28,
-    'JUCHITAN': 1.10,
-    'TONALA': 0.93,
-    'ARRIAGA': 0.91,
-    'SAN CRISTOBAL DE LAS CASAS': 0.88,
-    'SAN CRISTOBAL': 0.88,
-    'CINTALAPA': 0.83,
-    'TUXTLA GUTIERREZ': 0.80,
-    'JUAN SABINES': 0.80,
-    'SAN ANDRES TUXTLA': 0.74,
-    'BENEMERITO': 0.67,
-    'OCOSINGO': 0.65,
-    'ACAYUCAN': 0.64,
-    'HUB TUXTLA': 0.63,
-    'ESCARCEGA': 0.63,
-    'MINATITLAN': 0.57,
-    'COATZACOALCOS': 0.55,
-    'PLAZA FLORIDA': 0.55,
-    'AVIACION': 0.48,
-    'YAJALON': 0.45,
-    'LAS CHOAPAS': 0.38,
-    'TENOSIQUE': 0.37,
-    'AGUA DULCE': 0.37,
-    'PALENQUE': 0.35,
-    'LA VENTA': 0.35,
-    'CANDELARIA': 0.35,
-    'BALANCAN': 0.34,
-    'JONUTA': 0.30,
-    'EMILIANO ZAPATA': 0.29,
-    'PARAISO': 0.21,
-    'SALTO DE AGUA': 0.21,
-    'HUIMANGUILLO': 0.21,
-    'PICHUCALCO': 0.20,
-    'FRONTERA': 0.19,
-    'COMALCALCO': 0.19,
-    'CARDENAS': 0.18,
-    'TEAPA': 0.18,
-    'REFORMA': 0.17,
-    'MACUSPANA': 0.17,
-    'JALAPA': 0.16,
-    'JALPA DE MENDEZ': 0.15,
-    'CUNDUACAN': 0.15,
-    'CENTRO': 0.12,
-    'VILLAHERMOSA': 0.12,
-    'VILLA HERMOSA': 0.12
-  };
-
-  const buscarEnMatriz = (tabla, destino) => {
-    if (tabla[destino] !== undefined) return tabla[destino];
-    const clave = Object.keys(tabla).find(nombre => destino.includes(nombre));
-    return clave === undefined ? null : tabla[clave];
-  };
-
-  const getDuracionViajeHrs = (destinoStr) => {
-    if (!destinoStr) return 0;
-    return buscarEnMatriz(DURACION_VIAJES_HORAS, normalizeDest(destinoStr)) ?? 0;
-  };
-
-  const getDuracionViajeDias = (destinoStr, duracionHrs) => {
-    const respaldo = duracionHrs > 0 ? Math.round((duracionHrs / 24) * 100) / 100 : 0;
-    if (!destinoStr) return respaldo;
-    return buscarEnMatriz(DURACION_VIAJES_DIAS, normalizeDest(destinoStr)) ?? respaldo;
-  };
-
-  const trip = trips.find(t => esViajeForaneo(t)) || trips[0];
-  let duracion = Number(trip.tiempoEstimadoHrs) || 0;
-  if (!duracion && trip.destino) {
-    duracion = getDuracionViajeHrs(trip.destino);
-  }
-
+const evaluarViajesActivos = (trips) => {
+  const trip = trips.find(esViajeForaneo) || trips[0];
   const foraneo = esViajeForaneo(trip);
-  if (duracion === 0 && !foraneo) {
-    duracion = 6;
-  }
-
-  const diasMatriz = getDuracionViajeDias(trip.destino, duracion);
-  const esViajeLargo = diasMatriz > 1.0 || duracion > 24;
+  const horasBase = Number(trip.tiempoEstimadoHrs) || getDuracionViajeHrs(trip.destino);
+  const horas = horasBase || (foraneo ? 0 : HORAS_VIAJE_LOCAL_POR_DEFECTO);
+  const dias = getDuracionViajeDias(trip.destino, horas);
+  const esViajeLargo = dias > LIMITE_DIAS_VIAJE_LARGO || horas > LIMITE_HORAS_VIAJE_LARGO;
 
   if (esViajeLargo) {
     return {
       disponible: false,
       regresaManana: false,
       noRegresaManana: true,
-      dias: diasMatriz,
-      horas: duracion,
+      dias,
+      horas,
       badge: 'NO DISPONIBLE',
-      motivo: `Viaje largo (${diasMatriz} días)`,
-      detalle: `Duración de ${duracion} hrs (${diasMatriz} días según matriz). No alcanza a regresar mañana.`,
+      motivo: `Viaje largo (${dias} días)`,
+      detalle: `Duración de ${horas} hrs (${dias} días según matriz). No alcanza a regresar mañana.`,
       color: '#f59e0b'
     };
   }
 
-  if (duracion === 0 && foraneo) {
-    return {
-      disponible: false,
-      regresaManana: false,
-      noRegresaManana: false,
-      dias: null,
-      horas: 0,
-      badge: 'POR CONFIRMAR',
-      motivo: 'Foráneo sin matriz',
-      detalle: 'Destino foráneo sin duración registrada en matriz.',
-      color: '#f59e0b'
-    };
-  }
+  if (horas === 0 && foraneo) return { ...RESULTADO_FORANEO_SIN_MATRIZ };
 
-  const isEnRuta = yaPartioDeRuta(trip);
   return {
     disponible: true,
     regresaManana: true,
     noRegresaManana: false,
-    dias: diasMatriz,
-    horas: duracion,
+    dias,
+    horas,
     badge: 'REGRESA MAÑANA',
-    motivo: isEnRuta ? 'En ruta' : 'Ruta programada',
-    detalle: `Duración: ${duracion} hrs (${diasMatriz} días según matriz). Retorno estimado para mañana.`,
+    motivo: yaPartioDeRuta(trip) ? 'En ruta' : 'Ruta programada',
+    detalle: `Duración: ${horas} hrs (${dias} días según matriz). Retorno estimado para mañana.`,
     color: '#38bdf8'
   };
+};
+
+export const evaluarDisponibilidadManana = (unitOrTrips, catalogoFlota = []) => {
+  const units = (Array.isArray(unitOrTrips) ? unitOrTrips : [unitOrTrips]).filter(Boolean);
+  if (units.length === 0) return { ...RESULTADO_SIN_DATOS };
+
+  const eco = String(units[0].economico || '').trim();
+  const fleetUnit = (catalogoFlota || []).find(f => String(f.eco).trim() === eco);
+  const fleetStatus = String(fleetUnit?.estatus || '').trim().toUpperCase();
+
+  const contexto = { units, fleetUnit, fleetStatus };
+  const resultadoPrevio = REGLAS_PREVIAS_DISPONIBILIDAD.map(regla => regla(contexto)).find(Boolean);
+  if (resultadoPrevio) return resultadoPrevio;
+
+  const trips = agruparViajesActivos(units);
+  return trips.length === 0 ? evaluarSinViajes(units) : evaluarViajesActivos(trips);
 };
 
 export const evaluarDisponibilidadMananaPorUnidad = (units = [], catalogoFlota = []) => {
@@ -585,6 +606,14 @@ export const evaluarDisponibilidadMananaPorUnidad = (units = [], catalogoFlota =
   });
   return statusByUnitId;
 };
+
+const CATEGORIAS_FLOTA = [
+  ['taller', situacion => situacion.isTaller],
+  ['fueraOperacion', situacion => situacion.fueraOperacion],
+  ['cargadas', situacion => situacion.isCargada],
+  ['colocadas', situacion => situacion.isColocada],
+  ['pendientes', situacion => situacion.isPendiente]
+];
 
 export const resumirFlotaPorEstado = (units = [], catalogoFlota = []) => {
   const unitsByEco = new Map();
@@ -628,11 +657,9 @@ export const resumirFlotaPorEstado = (units = [], catalogoFlota = []) => {
     );
     const masterStatus = String(master?.estatus || 'ACTIVO').trim().toUpperCase();
 
-    if (isTaller) counts.taller++;
-    else if (masterStatus !== 'ACTIVO') counts.fueraOperacion++;
-    else if (isCargada) counts.cargadas++;
-    else if (isColocada) counts.colocadas++;
-    else if (isPendiente) counts.pendientes++;
+    const situacion = { isTaller, fueraOperacion: masterStatus !== 'ACTIVO', isCargada, isColocada, isPendiente };
+    const categoria = CATEGORIAS_FLOTA.find(([, cumple]) => cumple(situacion));
+    if (categoria) counts[categoria[0]]++;
   });
 
   counts.disponibles = Math.max(0, counts.total - counts.taller - counts.fueraOperacion - counts.cargadas - counts.colocadas - counts.pendientes);
