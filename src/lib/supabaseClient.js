@@ -149,6 +149,20 @@ export const mapDbToUnit = (row) => {
   };
 };
 
+const CAMPOS_META = [
+  ['horaColocacion', false],
+  ['horaColocacionReal', false],
+  ['horaFinCarga', false],
+  ['horaCaseta', false],
+  ['folioEnvio', false],
+  ['sellos', false],
+  ['valeEstructura', false],
+  ['motosEstructuras', true],
+  ['motosCarton', true],
+  ['remolque', false],
+  ['mtrs', true]
+];
+
 export const mapUnitToDb = (unit) => {
   let obs = unit.observaciones || '';
   if (Array.isArray(unit.destinosSecundarios) && unit.destinosSecundarios.length > 0) {
@@ -160,17 +174,11 @@ export const mapUnitToDb = (unit) => {
 
   // Serializar campos adicionales de planeación oficial para preservación total
   const meta = {};
-  if (unit.horaColocacion) meta.horaColocacion = unit.horaColocacion;
-  if (unit.horaColocacionReal) meta.horaColocacionReal = unit.horaColocacionReal;
-  if (unit.horaFinCarga) meta.horaFinCarga = unit.horaFinCarga;
-  if (unit.horaCaseta) meta.horaCaseta = unit.horaCaseta;
-  if (unit.folioEnvio) meta.folioEnvio = unit.folioEnvio;
-  if (unit.sellos) meta.sellos = unit.sellos;
-  if (unit.valeEstructura) meta.valeEstructura = unit.valeEstructura;
-  if (unit.motosEstructuras !== undefined) meta.motosEstructuras = unit.motosEstructuras;
-  if (unit.motosCarton !== undefined) meta.motosCarton = unit.motosCarton;
-  if (unit.remolque) meta.remolque = unit.remolque;
-  if (unit.mtrs !== undefined) meta.mtrs = unit.mtrs;
+  CAMPOS_META.forEach(([campo, soloDefinido]) => {
+    const valor = unit[campo];
+    const presente = soloDefinido ? valor !== undefined : Boolean(valor);
+    if (presente) meta[campo] = valor;
+  });
 
   if (Object.keys(meta).length > 0) {
     obs = obs.replace(/__META__:\{.*?\}(?:\n|$)/gs, '').trim();
@@ -351,25 +359,27 @@ export const retireFleetUnitDb = async (eco, dbClient = supabase) => {
 // OPERACIONES HISTÓRICAS DE PLANES / DÍAS
 // ==========================================
 
-export const fetchPlanesHistoricosDb = async () => {
+const leerTablaDb = async (tabla, { columnas = '*', orden, ascendente = true } = {}) => {
   if (!supabase) return null;
   try {
     const { data, error } = await supabase
-      .from('historial_planes')
-      .select('*')
-      .order('created_at', { ascending: false });
+      .from(tabla)
+      .select(columnas)
+      .order(orden, { ascending: ascendente });
 
     if (error) {
-      // Si la tabla aún no fue creada en Supabase, no lanzar error fatal
-      console.warn('Advertencia al consultar historial_planes:', error.message);
+      console.warn(`Advertencia al consultar ${tabla} en Supabase:`, error.message);
       return null;
     }
     return data;
   } catch (err) {
-    console.warn('Excepción al consultar historial_planes:', err);
+    console.warn(`Excepción al consultar ${tabla} en Supabase:`, err);
     return null;
   }
 };
+
+export const fetchPlanesHistoricosDb = () =>
+  leerTablaDb('historial_planes', { orden: 'created_at', ascendente: false });
 
 export const savePlanHistoricoDb = async (plan) => {
   if (!supabase) return null;
@@ -463,61 +473,14 @@ export const upsertUnidadDb = async (unidad) => {
   }
 };
 
-export const fetchFlotaMaestraDb = async () => {
-  if (!supabase) return null;
-  try {
-    const { data, error } = await supabase
-      .from('flota_maestra')
-      .select('*')
-      .order('eco', { ascending: true });
+export const fetchFlotaMaestraDb = () =>
+  leerTablaDb('flota_maestra', { orden: 'eco' });
 
-    if (error) {
-      console.warn('Advertencia al consultar flota_maestra en Supabase:', error.message);
-      return null;
-    }
-    return data;
-  } catch (err) {
-    console.warn('Excepción al consultar flota_maestra en Supabase:', err);
-    return null;
-  }
-};
+export const fetchSucursalesDb = () =>
+  leerTablaDb('sucursales_maestras', { orden: 'id' });
 
-export const fetchSucursalesDb = async () => {
-  if (!supabase) return null;
-  try {
-    const { data, error } = await supabase
-      .from('sucursales_maestras')
-      .select('*')
-      .order('id', { ascending: true });
-
-    if (error) {
-      console.warn('Advertencia al consultar sucursales_maestras en Supabase:', error.message);
-      return null;
-    }
-    return data;
-  } catch (err) {
-    console.warn('Excepción al consultar sucursales_maestras en Supabase:', err);
-    return null;
-  }
-};
-export const fetchPlanesColocacionDb = async () => {
-  if (!supabase) return null;
-  try {
-    const { data, error } = await supabase
-      .from('plan_colocacion')
-      .select('fecha, datos, updated_at')
-      .order('fecha', { ascending: false });
-
-    if (error) {
-      console.warn('Advertencia al consultar plan_colocacion:', error.message);
-      return null;
-    }
-    return data;
-  } catch (err) {
-    console.warn('Excepción al consultar plan_colocacion:', err);
-    return null;
-  }
-};
+export const fetchPlanesColocacionDb = () =>
+  leerTablaDb('plan_colocacion', { columnas: 'fecha, datos, updated_at', orden: 'fecha', ascendente: false });
 
 export const savePlanColocacionDb = async (fecha, datos) => {
   if (!supabase) throw new Error('Supabase no está configurado');
