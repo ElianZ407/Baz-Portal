@@ -25,67 +25,154 @@ const STORAGE_KEY = 'baz_entregas_fleet_v4';
 const HISTORIAL_KEY = 'baz_historial_planes_v1';
 const CLIENT_ID = Math.random().toString(36).substring(2) + Date.now().toString(36);
 
+const parsearJsonSeguro = (texto, fallback) => {
+  try {
+    return JSON.parse(texto);
+  } catch {
+    return fallback;
+  }
+};
+
+const extraerDestinosSecundarios = (unit) => {
+  if (Array.isArray(unit.destinosSecundarios)) return unit.destinosSecundarios;
+  if (typeof unit.destinosSecundarios === 'string' && unit.destinosSecundarios.trim().startsWith('[')) {
+    return parsearJsonSeguro(unit.destinosSecundarios, []);
+  }
+  const match = typeof unit.observaciones === 'string' && unit.observaciones.match(/__PARADAS__:(\[.*?\])(?:$|\n)/s);
+  return match ? parsearJsonSeguro(match[1], []) : [];
+};
+
+const extraerMetadatosObservaciones = (observaciones) => {
+  if (typeof observaciones !== 'string') return { meta: {}, obsLimpia: observaciones || '' };
+  const match = observaciones.match(/__META__:(\{.*?\})(?:$|\n)/s);
+  const meta = match ? parsearJsonSeguro(match[1], {}) : {};
+  const obsLimpia = observaciones
+    .replace(/__PARADAS__:\[.*?\](?:\n|$)/gs, '')
+    .replace(/__META__:\{.*?\}(?:\n|$)/gs, '')
+    .trim();
+  return { meta, obsLimpia };
+};
+
+const resolverIdOperador = (unit) => {
+  if (unit.idOperador) return unit.idOperador;
+  if (unit.operador) return buscarIdOperadorPorNombre(unit.operador) || '';
+  if (unit.economico) return buscarOperadorPorEco(unit.economico)?.idOperador || '';
+  return '';
+};
+
+const TRANSIT_STATUSES_LIST = ['En Ruta', 'Espera Descarga', 'Descargando', 'Retorno', 'Retrasado', 'Completado', 'Cargado'];
+
 const cleanUnitDestino = (unit) => {
   if (!unit) return unit;
-  let res = { ...unit };
-  if (res.destino && typeof res.destino === 'string') {
-    res.destino = res.destino.replace(/\s*\(Retorno\)/gi, '').trim();
-  }
+  const { meta, obsLimpia } = extraerMetadatosObservaciones(unit.observaciones);
+  const base = { ...meta, ...unit };
+  const destinoLimpio = typeof base.destino === 'string' ? base.destino.replace(/\s*\(Retorno\)/gi, '').trim() : base.destino;
+  const destinosSecundarios = extraerDestinosSecundarios(unit);
+  const idOperador = resolverIdOperador(base);
+  const estatusSupervisor = (base.estatusPlaneacion === 'CARGADO' && (!base.estatusSupervisor || !TRANSIT_STATUSES_LIST.includes(base.estatusSupervisor)))
+    ? 'Cargado'
+    : base.estatusSupervisor;
 
-  // Garantizar array válido para destinosSecundarios (múltiples entregas / paradas por viaje)
-  if (!Array.isArray(res.destinosSecundarios)) {
-    if (typeof res.destinosSecundarios === 'string' && res.destinosSecundarios.trim().startsWith('[')) {
-      try {
-        res.destinosSecundarios = JSON.parse(res.destinosSecundarios);
-      } catch {
-        res.destinosSecundarios = [];
-      }
-    } else if (res.observaciones && typeof res.observaciones === 'string' && res.observaciones.includes('__PARADAS__:')) {
-      try {
-        const match = res.observaciones.match(/__PARADAS__:(\[.*?\])(?:$|\n)/s);
-        if (match && match[1]) {
-          res.destinosSecundarios = JSON.parse(match[1]);
-          res.observaciones = res.observaciones.replace(/__PARADAS__:\[.*?\](?:\n|$)/gs, '').trim();
-        } else {
-          res.destinosSecundarios = [];
-        }
-      } catch {
-        res.destinosSecundarios = [];
-      }
-    } else {
-      res.destinosSecundarios = [];
-    }
-  }
+  return {
+    ...base,
+    destino: destinoLimpio,
+    destinosSecundarios,
+    observaciones: obsLimpia,
+    idOperador,
+    estatusSupervisor
+  };
+};
 
-  // Desempaquetar metadatos adicionales si están en observaciones
-  if (res.observaciones && typeof res.observaciones === 'string' && res.observaciones.includes('__META__:')) {
-    try {
-      const match = res.observaciones.match(/__META__:(\{.*?\})(?:$|\n)/s);
-      if (match && match[1]) {
-        const meta = JSON.parse(match[1]);
-        res = { ...meta, ...res };
-        res.observaciones = res.observaciones.replace(/__META__:\{.*?\}(?:\n|$)/gs, '').trim();
-      }
-    } catch {}
-  }
+const REQUIERE_VALIDACION_VIAJE = {
+  planeacion: ['COLOCADO', 'CARGADO'],
+  patio: ['Colocado p/ Carga', 'Cargado']
+};
 
-  // Si falta idOperador, auto-completar desde el catálogo por nombre o por eco
-  if (!res.idOperador) {
-    if (res.operador) {
-      const foundId = buscarIdOperadorPorNombre(res.operador);
-      if (foundId) res.idOperador = foundId;
-    }
-    if (!res.idOperador && res.economico) {
-      const foundEco = buscarOperadorPorEco(res.economico);
-      if (foundEco?.idOperador) res.idOperador = foundEco.idOperador;
-    }
+const TRANSICIONES_ESTATUS = {
+  patio: {
+    'Colocado p/ Carga': (u) => ({
+      area: 'planeacion',
+      estatusPatio: 'Colocado p/ Carga',
+      estatusPlaneacion: 'COLOCADO',
+      estatusSupervisor: u.estatusSupervisor === 'No Disponible' ? 'Pendiente' : u.estatusSupervisor
+    }),
+    'Taller': () => ({
+      area: 'patio',
+      estatusPatio: 'Taller',
+      estatusSupervisor: 'No Disponible',
+      estatusPlaneacion: 'PENDIENTE'
+    }),
+    'Disponible': () => ({
+      area: 'patio',
+      estatusPatio: 'Disponible',
+      estatusSupervisor: 'Pendiente'
+    })
+  },
+  planeacion: {
+    'COLOCADO': (u) => ({
+      area: 'planeacion',
+      estatusPlaneacion: 'COLOCADO',
+      estatusPatio: 'Colocado p/ Carga',
+      estatusSupervisor: u.estatusSupervisor === 'No Disponible' ? 'Pendiente' : u.estatusSupervisor
+    }),
+    'CARGADO': (u) => ({
+      area: 'supervisor',
+      estatusPlaneacion: 'CARGADO',
+      estatusPatio: 'Cargado',
+      estatusSupervisor: ['No Disponible', 'Pendiente', 'Disponible', ''].includes(u.estatusSupervisor) || !u.estatusSupervisor
+        ? 'Cargado'
+        : u.estatusSupervisor
+    }),
+    'PENDIENTE': () => ({
+      area: 'planeacion',
+      estatusPlaneacion: 'PENDIENTE',
+      estatusPatio: 'Disponible',
+      estatusSupervisor: 'Pendiente'
+    }),
+    'NO SE CUBRE': () => ({
+      area: 'planeacion',
+      estatusPlaneacion: 'NO SE CUBRE',
+      estatusPatio: 'Disponible',
+      estatusSupervisor: 'No Disponible'
+    })
+  },
+  supervisor: {
+    'Completado': () => ({
+      area: 'patio',
+      estatusSupervisor: 'Completado',
+      estatusPatio: 'Disponible',
+      estatusPlaneacion: 'COMPLETADO'
+    }),
+    'Retorno': () => ({
+      area: 'supervisor',
+      estatusSupervisor: 'Retorno',
+      estatusPlaneacion: 'RETORNO',
+      estatusPatio: 'Disponible'
+    }),
+    'En Ruta': () => ({
+      area: 'supervisor',
+      estatusSupervisor: 'En Ruta',
+      estatusPlaneacion: 'CARGADO',
+      estatusPatio: 'En Ruta'
+    }),
+    'Espera Descarga': () => ({
+      area: 'supervisor',
+      estatusSupervisor: 'Espera Descarga',
+      estatusPlaneacion: 'CARGADO',
+      estatusPatio: 'En Sucursal'
+    }),
+    'Descargando': () => ({
+      area: 'supervisor',
+      estatusSupervisor: 'Descargando',
+      estatusPlaneacion: 'CARGADO',
+      estatusPatio: 'Descargando'
+    }),
+    'Retrasado': () => ({
+      area: 'supervisor',
+      estatusSupervisor: 'Retrasado',
+      estatusPlaneacion: 'CARGADO'
+    })
   }
-  // Preservar siempre los estados activos de tránsito del Supervisor
-  const TRANSIT_STATUSES_LIST = ['En Ruta', 'Espera Descarga', 'Descargando', 'Retorno', 'Retrasado', 'Completado', 'Cargado'];
-  if (res.estatusPlaneacion === 'CARGADO' && (!res.estatusSupervisor || !TRANSIT_STATUSES_LIST.includes(res.estatusSupervisor))) {
-    res.estatusSupervisor = 'Cargado';
-  }
-  return res;
 };
 
 export const FleetProvider = ({ children }) => {
@@ -713,86 +800,24 @@ export const FleetProvider = ({ children }) => {
     }
     if (!targetUnit) return;
 
-    // Validación oficial: Si se intenta colocar o poner en caseta/cargado, DEBE tener No. de Viaje, Operador y Destino
-    if (
-      (area === 'planeacion' && (newStatus === 'COLOCADO' || newStatus === 'CARGADO')) ||
-      (area === 'patio' && (newStatus === 'Colocado p/ Carga' || newStatus === 'Cargado'))
-    ) {
-      const { valid } = checkTieneViajeYOperador(targetUnit);
-      if (!valid) {
-        console.warn(`[Validación Bloqueada] La unidad ECO ${targetUnit.economico} requiere No. de Viaje, Operador y Destino para pasar a ${newStatus}.`);
-        return;
-      }
+    const camposArea = {
+      patio: 'estatusPatio',
+      planeacion: 'estatusPlaneacion',
+      supervisor: 'estatusSupervisor'
+    };
+
+    const requiereValidacion = REQUIERE_VALIDACION_VIAJE[area]?.includes(newStatus);
+    if (requiereValidacion && !checkTieneViajeYOperador(targetUnit).valid) {
+      console.warn(`[Validación Bloqueada] La unidad ECO ${targetUnit.economico} requiere No. de Viaje, Operador y Destino para pasar a ${newStatus}.`);
+      return;
     }
 
-    const updated = { ...targetUnit, actualizadoEn: now };
+    const resolverTransicion = TRANSICIONES_ESTATUS[area]?.[newStatus];
+    const cambios = resolverTransicion
+      ? resolverTransicion(targetUnit)
+      : { area, [camposArea[area] || 'estatusSupervisor']: newStatus };
 
-    if (area === 'patio') {
-      updated.estatusPatio = newStatus;
-      if (newStatus === 'Colocado p/ Carga') {
-        updated.area = 'planeacion';
-        updated.estatusPlaneacion = 'COLOCADO';
-        if (updated.estatusSupervisor === 'No Disponible') {
-          updated.estatusSupervisor = 'Pendiente';
-        }
-      } else if (newStatus === 'Taller') {
-        updated.area = 'patio';
-        updated.estatusSupervisor = 'No Disponible';
-        updated.estatusPlaneacion = 'PENDIENTE';
-      } else if (newStatus === 'Disponible') {
-        updated.area = 'patio';
-        updated.estatusSupervisor = 'Pendiente';
-      }
-    } else if (area === 'planeacion') {
-      updated.estatusPlaneacion = newStatus;
-      if (newStatus === 'COLOCADO') {
-        updated.area = 'planeacion';
-        updated.estatusPatio = 'Colocado p/ Carga';
-        if (updated.estatusSupervisor === 'No Disponible') {
-          updated.estatusSupervisor = 'Pendiente';
-        }
-      } else if (newStatus === 'CARGADO') {
-        updated.area = 'supervisor';
-        updated.estatusPatio = 'Cargado';
-        if (['No Disponible', 'Pendiente', 'Disponible', ''].includes(updated.estatusSupervisor) || !updated.estatusSupervisor) {
-          updated.estatusSupervisor = 'Cargado';
-        }
-      } else if (newStatus === 'PENDIENTE') {
-        updated.area = 'planeacion';
-        updated.estatusPatio = 'Disponible';
-        updated.estatusSupervisor = 'Pendiente';
-      } else if (newStatus === 'NO SE CUBRE') {
-        updated.area = 'planeacion';
-        updated.estatusPatio = 'Disponible';
-        updated.estatusSupervisor = 'No Disponible';
-      }
-    } else if (area === 'supervisor') {
-      updated.estatusSupervisor = newStatus;
-      updated.area = 'supervisor';
-
-      if (newStatus === 'Completado') {
-        updated.estatusPatio = 'Disponible';
-        updated.estatusPlaneacion = 'COMPLETADO';
-        updated.area = 'patio';
-      } else if (newStatus === 'Retorno') {
-        updated.estatusPlaneacion = 'RETORNO';
-        updated.estatusPatio = 'Disponible';
-      } else if (newStatus === 'En Ruta') {
-        // En Ruta hacia el destino o siguiente parada multiparada
-        updated.estatusPlaneacion = 'CARGADO';
-        updated.estatusPatio = 'En Ruta';
-      } else if (newStatus === 'Espera Descarga') {
-        // Llegó a sucursal y espera rampa
-        updated.estatusPlaneacion = 'CARGADO';
-        updated.estatusPatio = 'En Sucursal';
-      } else if (newStatus === 'Descargando') {
-        // Proceso activo de descarga en rampa de la sucursal
-        updated.estatusPlaneacion = 'CARGADO';
-        updated.estatusPatio = 'Descargando';
-      } else if (newStatus === 'Retrasado') {
-        updated.estatusPlaneacion = 'CARGADO';
-      }
-    }
+    const updated = { ...targetUnit, ...cambios, actualizadoEn: now };
 
     const exists = units.some(u => String(u.id) === String(targetUnit.id));
     const nextUnits = exists 

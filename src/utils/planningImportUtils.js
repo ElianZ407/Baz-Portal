@@ -327,14 +327,11 @@ export const parseDateValue = (val, fallbackDate = '') => {
     const y = val.getFullYear();
     const m = String(val.getMonth() + 1).padStart(2, '0');
     const d = String(val.getDate()).padStart(2, '0');
-    if (y > 2000 && y < 2100) return `${y}-${m}-${d}`;
-    return val.toISOString().split('T')[0];
+    return (y > 2000 && y < 2100) ? `${y}-${m}-${d}` : val.toISOString().split('T')[0];
   }
 
   if (typeof val === 'number' && val > 30000 && val < 70000) {
-    const days = Math.floor(val);
-    const excelEpoch = new Date(Date.UTC(1899, 11, 30));
-    const jsDate = new Date(excelEpoch.getTime() + days * 86400000);
+    const jsDate = new Date(Date.UTC(1899, 11, 30) + Math.floor(val) * 86400000);
     const y = jsDate.getUTCFullYear();
     const m = String(jsDate.getUTCMonth() + 1).padStart(2, '0');
     const d = String(jsDate.getUTCDate()).padStart(2, '0');
@@ -344,24 +341,14 @@ export const parseDateValue = (val, fallbackDate = '') => {
   const str = String(val).trim();
   const dmyMatch = str.match(/(\d{1,2})[-/](\d{1,2})[-/](\d{2,4})/);
   if (dmyMatch) {
-    let [, p1, p2, p3] = dmyMatch;
-    if (p3.length === 2) p3 = `20${p3}`;
-    const n1 = parseInt(p1, 10);
-    const n2 = parseInt(p2, 10);
-    if (n1 > 12) {
-      return `${p3}-${String(p2).padStart(2, '0')}-${String(p1).padStart(2, '0')}`;
-    }
-    if (n2 > 12) {
-      return `${p3}-${String(p1).padStart(2, '0')}-${String(p2).padStart(2, '0')}`;
-    }
-    return `${p3}-${String(p2).padStart(2, '0')}-${String(p1).padStart(2, '0')}`;
+    const [, p1, p2, rawYear] = dmyMatch;
+    const year = rawYear.length === 2 ? `20${rawYear}` : rawYear;
+    const [dia, mes] = parseInt(p2, 10) > 12 ? [p2, p1] : [p1, p2];
+    return `${year}-${String(mes).padStart(2, '0')}-${String(dia).padStart(2, '0')}`;
   }
 
-  if (str.includes('-')) {
-    const parts = str.split('-');
-    if (parts.length === 3 && parts[0].length === 4) {
-      return str;
-    }
+  if (/^\d{4}-\d{2}-\d{2}$/.test(str)) {
+    return str;
   }
 
   return fallbackDate || new Date().toISOString().split('T')[0];

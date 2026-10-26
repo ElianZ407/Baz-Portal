@@ -142,45 +142,34 @@ export const TvDashboardView = () => {
     filteredUnits.map(unit => String(unit.economico || '').trim()).filter(Boolean)
   ).size;
 
+  const STATUS_SUPERVISOR_MAP = {
+    'En Ruta': { text: 'EN RUTA (TRÁNSITO)', badgeClass: 'status-en-ruta' },
+    'Espera Descarga': { text: 'EN SUCURSAL (ESPERA)', badgeClass: 'status-espera-descarga' },
+    'Descargando': { text: 'DESCARGANDO', badgeClass: 'status-descargando' },
+    'Retorno': { text: 'EN RETORNO', badgeClass: 'status-retorno' },
+    'Retrasado': { text: 'RETRASADO / ALERTA', badgeClass: 'status-retrasado' },
+    'Completado': { text: 'COMPLETADO', badgeClass: 'status-completado' }
+  };
+
   const getUnitOperationalStatus = (unit) => {
     if (!unit) return { text: 'PROGRAMADO', badgeClass: 'status-programado' };
-
-    const isTaller = unit.estatusPatio === 'Taller' || unit.estatus === 'TALLER';
-    if (isTaller) {
+    if (unit.estatusPatio === 'Taller' || unit.estatus === 'TALLER') {
       return { text: 'TALLER', badgeClass: 'status-retrasado' };
     }
 
-    const estatusSup = unit.estatusSupervisor;
-    const estatusPlan = unit.estatusPlaneacion;
+    const supMatch = STATUS_SUPERVISOR_MAP[unit.estatusSupervisor];
+    if (supMatch) return supMatch;
 
-    // 1. Estados de tránsito activo del Supervisor (máxima jerarquía operativa)
-    if (estatusSup === 'En Ruta') {
-      return { text: 'EN RUTA (TRÁNSITO)', badgeClass: 'status-en-ruta' };
-    }
-    if (estatusSup === 'Espera Descarga') {
-      return { text: 'EN SUCURSAL (ESPERA)', badgeClass: 'status-espera-descarga' };
-    }
-    if (estatusSup === 'Descargando') {
-      return { text: 'DESCARGANDO', badgeClass: 'status-descargando' };
-    }
-    if (estatusSup === 'Retorno') {
-      return { text: 'EN RETORNO', badgeClass: 'status-retorno' };
-    }
-    if (estatusSup === 'Retrasado') {
-      return { text: 'RETRASADO / ALERTA', badgeClass: 'status-retrasado' };
-    }
-    if (estatusSup === 'Completado' || estatusPlan === 'COMPLETADO') {
+    if (unit.estatusPlaneacion === 'COMPLETADO') {
       return { text: 'COMPLETADO', badgeClass: 'status-completado' };
     }
-
-    // 2. Estados de patio / planeación
-    if (estatusPlan === 'NO SE CUBRE' || estatusPlan === 'CANCELADO') {
+    if (unit.estatusPlaneacion === 'NO SE CUBRE' || unit.estatusPlaneacion === 'CANCELADO') {
       return { text: 'NO SE CUBRE', badgeClass: 'status-nosecubre' };
     }
-    if (estatusPlan === 'CARGADO' || estatusPlan === 'EN CASETA' || estatusSup === 'Cargado' || unit.estatusPatio === 'Cargado') {
+    if (['CARGADO', 'EN CASETA'].includes(unit.estatusPlaneacion) || unit.estatusSupervisor === 'Cargado' || unit.estatusPatio === 'Cargado') {
       return { text: 'EN CASETA (SALIDA)', badgeClass: 'status-encaseta' };
     }
-    if (estatusPlan === 'COLOCADO' || unit.estatusPatio === 'Colocado p/ Carga') {
+    if (unit.estatusPlaneacion === 'COLOCADO' || unit.estatusPatio === 'Colocado p/ Carga') {
       return { text: 'COLOCADO EN CORTINA', badgeClass: 'status-colocado' };
     }
 

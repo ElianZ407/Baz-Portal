@@ -218,35 +218,31 @@ const UnitModalForm = () => {
     }));
   };
 
-  // Manejo de cambios estándar para inputs de texto
   const handleChange = (e) => {
     const { name, value } = e.target;
-    let updated = { ...formData, [name]: value };
+    const mapaCambios = {
+      CARGADO: (prev) => ({
+        estatusPatio: 'Cargado',
+        estatusSupervisor: ['Pendiente', 'No Disponible', 'En Espera', ''].includes(prev.estatusSupervisor) || !prev.estatusSupervisor
+          ? 'Cargado'
+          : prev.estatusSupervisor
+      }),
+      COLOCADO: (prev) => ({
+        estatusPatio: 'Colocado p/ Carga',
+        estatusSupervisor: prev.estatusSupervisor === 'No Disponible' ? 'Pendiente' : prev.estatusSupervisor
+      }),
+      PENDIENTE: (prev) => ({
+        estatusPatio: 'Disponible',
+        estatusSupervisor: prev.estatusSupervisor === 'No Disponible' ? 'Pendiente' : prev.estatusSupervisor
+      }),
+      'NO SE CUBRE': () => ({
+        estatusPatio: 'Disponible',
+        estatusSupervisor: 'No Disponible'
+      })
+    };
 
-    // Si el usuario cambia el estatus de planeación
-    if (name === 'estatusPlaneacion') {
-      if (value === 'CARGADO') {
-        updated.estatusPatio = 'Cargado';
-        if (['Pendiente', 'No Disponible', 'En Espera', ''].includes(updated.estatusSupervisor) || !updated.estatusSupervisor) {
-          updated.estatusSupervisor = 'Cargado';
-        }
-      } else if (value === 'COLOCADO') {
-        updated.estatusPatio = 'Colocado p/ Carga';
-        if (updated.estatusSupervisor === 'No Disponible') {
-          updated.estatusSupervisor = 'Pendiente';
-        }
-      } else if (value === 'PENDIENTE') {
-        updated.estatusPatio = 'Disponible';
-        if (updated.estatusSupervisor === 'No Disponible') {
-          updated.estatusSupervisor = 'Pendiente';
-        }
-      } else if (value === 'NO SE CUBRE') {
-        updated.estatusPatio = 'Disponible';
-        updated.estatusSupervisor = 'No Disponible';
-      }
-    }
-
-    setFormData(updated);
+    const extras = name === 'estatusPlaneacion' && mapaCambios[value] ? mapaCambios[value](formData) : {};
+    setFormData(prev => ({ ...prev, [name]: value, ...extras }));
   };
 
   // Validaciones operativas según matriz de CD Villahermosa y padrón de flota
