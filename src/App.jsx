@@ -13,6 +13,7 @@ import { HistoricalBanner } from './components/HistoricalBanner';
 import { ImportarPlaneacionModal } from './components/ImportarPlaneacionModal';
 import { RoutesBackground } from './components/RoutesBackground';
 import { PlanColocacionView } from './components/PlanColocacionView';
+import { NipGate } from './components/NipGate';
 
 const AppContent = () => {
   const { activeArea, theme } = useFleet();
@@ -34,7 +35,11 @@ const AppContent = () => {
         {activeArea === 'planeacion' && <PlaneacionView />}
         {activeArea === 'supervisor' && <SupervisorView />}
         {activeArea === 'tv' && <TvDashboardView />}
-        {activeArea === 'colocacion' && <PlanColocacionView />}
+        {activeArea === 'colocacion' && (
+          <NipGate>
+            <PlanColocacionView />
+          </NipGate>
+        )}
       </main>
 
       <footer className="app-footer">
