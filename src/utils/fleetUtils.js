@@ -58,43 +58,48 @@ export const crearIndiceSucursales = (catalogo = SUCURSALES_MAESTRAS) => {
   return { porId, porNombre, lista };
 };
 
-// Validador de Restricciones Operativas
+const CAPACIDADES_SOLO_KANGOO = ['18', 'Kangoo / 18'];
+const CAPACIDAD_MAXIMA_KANGOO = 18;
+
+const REGLAS_INCOMPATIBILIDAD = [
+  {
+    grupo: ['9464'],
+    contra: ['2057', '143', '449'],
+    mensaje: 'Restricción en Carranza: Sucursal 9464 NO debe enviarse combinada con 2057, 143 o 449'
+  },
+  {
+    grupo: ['8396', '6305'],
+    contra: ['3803', '8403', '9684'],
+    mensaje: 'Restricción en Juchitán: No debe enviarse combinada con 3803, 8403 o 9684'
+  },
+  {
+    grupo: ['6134'],
+    contra: ['6240', '3049', '4158', '7548'],
+    mensaje: 'Restricción en Chiapa de Corzo (6134): No enviar con 6240, 3049, 4158 o 7548'
+  },
+  {
+    grupo: ['3049'],
+    contra: ['6240', '6134'],
+    mensaje: 'Restricción en Villaflores (3049): No enviar con 6240 o 6134'
+  }
+];
+
 export const validarRestriccionesViaje = (sucursalesList, capUnidad, catalogo = SUCURSALES_MAESTRAS) => {
   if (!sucursalesList || !Array.isArray(sucursalesList) || sucursalesList.length === 0) return [];
-  const alertas = [];
   const sucursales = sucursalesList
     .map(item => typeof item === 'string' ? buscarSucursal(item, catalogo) : buscarSucursal(item?.id || item?.num, catalogo))
     .filter(Boolean);
 
-  // 1. Validar Capacidad Máxima Vehicular
-  sucursales.forEach(s => {
-    if (s.capMax === "18" || s.capMax === "Kangoo / 18") {
-      if (capUnidad > 18) {
-        alertas.push(`Sucursal ${s.id} (${s.nombre}) tiene restricción de acceso: Solo admite unidades Kangoo / 18 (Cap. asignada: ${capUnidad})`);
-      }
-    }
-  });
+  const alertasCapacidad = sucursales
+    .filter(s => CAPACIDADES_SOLO_KANGOO.includes(s.capMax) && capUnidad > CAPACIDAD_MAXIMA_KANGOO)
+    .map(s => `Sucursal ${s.id} (${s.nombre}) tiene restricción de acceso: Solo admite unidades Kangoo / 18 (Cap. asignada: ${capUnidad})`);
 
-  // 2. Validar Restricciones de Incompatibilidad
   const ids = sucursales.map(s => String(s.id));
-  
-  if (ids.includes("9464") && ids.some(id => ["2057", "143", "449"].includes(id))) {
-    alertas.push("Restricción en Carranza: Sucursal 9464 NO debe enviarse combinada con 2057, 143 o 449");
-  }
+  const alertasIncompatibilidad = REGLAS_INCOMPATIBILIDAD
+    .filter(regla => ids.some(id => regla.grupo.includes(id)) && ids.some(id => regla.contra.includes(id)))
+    .map(regla => regla.mensaje);
 
-  if (ids.some(id => ["8396", "6305"].includes(id)) && ids.some(id => ["3803", "8403", "9684"].includes(id))) {
-    alertas.push("Restricción en Juchitán: No debe enviarse combinada con 3803, 8403 o 9684");
-  }
-
-  if (ids.includes("6134") && ids.some(id => ["6240", "3049", "4158", "7548"].includes(id))) {
-    alertas.push("Restricción en Chiapa de Corzo (6134): No enviar con 6240, 3049, 4158 o 7548");
-  }
-
-  if (ids.includes("3049") && ids.some(id => ["6240", "6134"].includes(id))) {
-    alertas.push("Restricción en Villaflores (3049): No enviar con 6240 o 6134");
-  }
-
-  return alertas;
+  return [...alertasCapacidad, ...alertasIncompatibilidad];
 };
 
 // Buscar una unidad motriz por su número económico o placa
@@ -122,40 +127,21 @@ export const buscarOperadorPorEco = (eco, catalogo = FLOTA_TOTAL) => {
   return (catalogo || FLOTA_TOTAL).find(u => (u.eco || '').toLowerCase() === clean) || null;
 };
 
-// Valida si una unidad/viaje cuenta con Número de Viaje, Operador y Destino asignado
+const INVALIDOS_VIAJE = ['—', '-', '0', 'sin viaje', 'por asignar'];
+const INVALIDOS_OPERADOR = ['—', '-', 'por asignar', 'sin asignar', 'vacante', 'baja'];
+const INVALIDOS_DESTINO = ['—', '-', 'sin destino', 'por asignar', 'sin asignar'];
+
+const esValorAsignado = (valor, invalidos) => {
+  const texto = String(valor || '').trim();
+  return Boolean(texto) && !invalidos.includes(texto.toLowerCase());
+};
+
 export const checkTieneViajeYOperador = (unit) => {
   if (!unit) return { valid: false, hasViaje: false, hasOperador: false, hasDestino: false };
 
-  const noViajeStr = String(unit.noViaje || '').trim();
-  const hasViaje = Boolean(
-    noViajeStr &&
-    noViajeStr !== '—' &&
-    noViajeStr !== '-' &&
-    noViajeStr !== '0' &&
-    noViajeStr.toLowerCase() !== 'sin viaje' &&
-    noViajeStr.toLowerCase() !== 'por asignar'
-  );
-
-  const operadorStr = String(unit.operador || '').trim();
-  const hasOperador = Boolean(
-    operadorStr &&
-    operadorStr !== '—' &&
-    operadorStr !== '-' &&
-    operadorStr.toLowerCase() !== 'por asignar' &&
-    operadorStr.toLowerCase() !== 'sin asignar' &&
-    operadorStr.toLowerCase() !== 'vacante' &&
-    operadorStr.toLowerCase() !== 'baja'
-  );
-
-  const destinoStr = String(unit.destino || unit.numSucursal || '').trim();
-  const hasDestino = Boolean(
-    destinoStr &&
-    destinoStr !== '—' &&
-    destinoStr !== '-' &&
-    destinoStr.toLowerCase() !== 'sin destino' &&
-    destinoStr.toLowerCase() !== 'por asignar' &&
-    destinoStr.toLowerCase() !== 'sin asignar'
-  );
+  const hasViaje = esValorAsignado(unit.noViaje, INVALIDOS_VIAJE);
+  const hasOperador = esValorAsignado(unit.operador, INVALIDOS_OPERADOR);
+  const hasDestino = esValorAsignado(unit.destino || unit.numSucursal, INVALIDOS_DESTINO);
 
   return {
     valid: hasViaje && hasOperador && hasDestino,
@@ -510,24 +496,21 @@ export const evaluarDisponibilidadManana = (unitOrTrips, catalogoFlota = []) => 
     'VILLA HERMOSA': 0.12
   };
 
+  const buscarEnMatriz = (tabla, destino) => {
+    if (tabla[destino] !== undefined) return tabla[destino];
+    const clave = Object.keys(tabla).find(nombre => destino.includes(nombre));
+    return clave === undefined ? null : tabla[clave];
+  };
+
   const getDuracionViajeHrs = (destinoStr) => {
     if (!destinoStr) return 0;
-    const dest = normalizeDest(destinoStr);
-    if (DURACION_VIAJES_HORAS[dest]) return DURACION_VIAJES_HORAS[dest];
-    for (const [key, hrs] of Object.entries(DURACION_VIAJES_HORAS)) {
-      if (dest.includes(key)) return hrs;
-    }
-    return 0;
+    return buscarEnMatriz(DURACION_VIAJES_HORAS, normalizeDest(destinoStr)) ?? 0;
   };
 
   const getDuracionViajeDias = (destinoStr, duracionHrs) => {
-    if (!destinoStr) return duracionHrs > 0 ? Math.round((duracionHrs / 24) * 100) / 100 : 0;
-    const dest = normalizeDest(destinoStr);
-    if (DURACION_VIAJES_DIAS[dest] !== undefined) return DURACION_VIAJES_DIAS[dest];
-    for (const [key, dias] of Object.entries(DURACION_VIAJES_DIAS)) {
-      if (dest.includes(key)) return dias;
-    }
-    return duracionHrs > 0 ? Math.round((duracionHrs / 24) * 100) / 100 : 0;
+    const respaldo = duracionHrs > 0 ? Math.round((duracionHrs / 24) * 100) / 100 : 0;
+    if (!destinoStr) return respaldo;
+    return buscarEnMatriz(DURACION_VIAJES_DIAS, normalizeDest(destinoStr)) ?? respaldo;
   };
 
   const trip = trips.find(t => esViajeForaneo(t)) || trips[0];
@@ -669,40 +652,31 @@ export const contarViajesSinUnidadAsignada = (units = []) => {
   return tripKeys.size;
 };
 
+const DIAS_SEMANA = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+const DIAS_SEMANA_CORTOS = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+const MESES_ANIO = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+const MESES_ANIO_CORTOS = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+
+const extraerAnioMesDia = (texto) => {
+  const iso = texto.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (iso) return [Number(iso[1]), Number(iso[2]), Number(iso[3])];
+  const dmy = texto.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{4})$/);
+  return dmy ? [Number(dmy[3]), Number(dmy[2]), Number(dmy[1])] : null;
+};
+
+const FORMATOS_FECHA_PLAN = {
+  largo: (fecha, d, y) => `${DIAS_SEMANA[fecha.getDay()]} ${d} de ${MESES_ANIO[fecha.getMonth()]}, ${y}`,
+  corto: (fecha, d, y) => `${DIAS_SEMANA_CORTOS[fecha.getDay()]} ${String(d).padStart(2, '0')}/${MESES_ANIO_CORTOS[fecha.getMonth()]}/${y}`
+};
+
 export const formatearFechaPlan = (fechaStr, formato = 'corto') => {
   if (!fechaStr) return '';
   const clean = String(fechaStr).trim();
-  const dias = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
-  const diasCortos = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
-  const meses = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
-  const mesesCortos = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+  const partes = extraerAnioMesDia(clean);
+  if (!partes) return clean;
 
-  const isoMatch = clean.match(/^(\d{4})-(\d{2})-(\d{2})$/);
-  if (isoMatch) {
-    const y = Number(isoMatch[1]);
-    const m = Number(isoMatch[2]);
-    const d = Number(isoMatch[3]);
-    const dateObj = new Date(y, m - 1, d);
-    const dayStr = String(d).padStart(2, '0');
-    if (formato === 'largo') {
-      return `${dias[dateObj.getDay()]} ${d} de ${meses[dateObj.getMonth()]}, ${y}`;
-    }
-    return `${diasCortos[dateObj.getDay()]} ${dayStr}/${mesesCortos[dateObj.getMonth()]}/${y}`;
-  }
-
-  const dmyMatch = clean.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{4})$/);
-  if (dmyMatch) {
-    const d = Number(dmyMatch[1]);
-    const m = Number(dmyMatch[2]);
-    const y = Number(dmyMatch[3]);
-    const dateObj = new Date(y, m - 1, d);
-    const dayStr = String(d).padStart(2, '0');
-    if (formato === 'largo') {
-      return `${dias[dateObj.getDay()]} ${d} de ${meses[dateObj.getMonth()]}, ${y}`;
-    }
-    return `${diasCortos[dateObj.getDay()]} ${dayStr}/${mesesCortos[dateObj.getMonth()]}/${y}`;
-  }
-
-  return clean;
+  const [y, m, d] = partes;
+  const formatear = FORMATOS_FECHA_PLAN[formato] || FORMATOS_FECHA_PLAN.corto;
+  return formatear(new Date(y, m - 1, d), d, y);
 };
 
