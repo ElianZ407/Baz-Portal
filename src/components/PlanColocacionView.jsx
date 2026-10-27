@@ -952,9 +952,11 @@ export const PlanColocacionView = () => {
   const hcSumIncapacidades = hcFilas.reduce((acc, f) => acc + (Number(f.incapacidades) || 0), 0);
   const hcSumVacaciones = hcFilas.reduce((acc, f) => acc + (Number(f.vacaciones) || 0), 0);
   const hcSumFaltas = hcFilas.reduce((acc, f) => acc + (Number(f.faltas) || 0), 0);
-  const hcSumNetoAutorizado = Math.max(0, hcSumAutorizado - hcSumVacantes - hcSumIncapacidades - hcSumVacaciones - hcSumFaltas);
-  const hcSumPctAutorizado = hcSumAutorizado > 0 ? ((hcSumNetoAutorizado / hcSumAutorizado) * 100).toFixed(1) : '0.0';
-  const hcSumPctActivo = hcSumAutorizado > 0 ? ((hcSumActivo / hcSumAutorizado) * 100).toFixed(1) : '0.0';
+  const hcSumCubiertoAut = hcSumAutorizado > 0 ? Math.max(0, hcSumAutorizado - hcSumVacantes) : hcSumActivo;
+  const hcSumPctAutorizado = hcSumAutorizado > 0 ? ((hcSumCubiertoAut / hcSumAutorizado) * 100).toFixed(1) : '0.0';
+  const hcSumBaseActivo = hcSumActivo > 0 ? hcSumActivo : Math.max(0, hcSumAutorizado - hcSumVacantes);
+  const hcSumNetoActivo = Math.max(0, hcSumBaseActivo - hcSumIncapacidades - hcSumVacaciones - hcSumFaltas);
+  const hcSumPctActivo = hcSumBaseActivo > 0 ? ((hcSumNetoActivo / hcSumBaseActivo) * 100).toFixed(1) : '0.0';
 
   return (
     <div className="plan-colocacion-page">
@@ -1267,9 +1269,11 @@ export const PlanColocacionView = () => {
                         const inc = Number(f.incapacidades) || 0;
                         const vaca = Number(f.vacaciones) || 0;
                         const fal = Number(f.faltas) || 0;
-                        const pctActivo = aut > 0 ? ((act / aut) * 100).toFixed(1) : '0.0';
-                        const netoAut = Math.max(0, aut - vac - inc - vaca - fal);
-                        const pctAutorizado = aut > 0 ? ((netoAut / aut) * 100).toFixed(1) : '0.0';
+                        const cubiertoAut = aut > 0 ? Math.max(0, aut - vac) : act;
+                        const pctAutorizado = aut > 0 ? ((cubiertoAut / aut) * 100).toFixed(1) : '0.0';
+                        const baseActivo = act > 0 ? act : Math.max(0, aut - vac);
+                        const netoActivo = Math.max(0, baseActivo - inc - vaca - fal);
+                        const pctActivo = baseActivo > 0 ? ((netoActivo / baseActivo) * 100).toFixed(1) : '0.0';
                         return (
                           <tr key={f.tipo || idx} className={idx % 2 === 0 ? 'pv-row-even' : 'pv-row-odd'}>
                             <td className="pv-td-tipo hc-td-tipo">{(f.tipo === 'Op. Fuller' || f.tipo === 'Fuller') ? 'Op. Fulles' : f.tipo}</td>
@@ -2175,9 +2179,11 @@ export const PlanColocacionView = () => {
                           const inc = Number(fila.incapacidades) || 0;
                           const vaca = Number(fila.vacaciones) || 0;
                           const fal = Number(fila.faltas) || 0;
-                          const pctActivo = aut > 0 ? ((act / aut) * 100).toFixed(1) : '0.0';
-                          const netoAut = Math.max(0, aut - vac - inc - vaca - fal);
-                          const pctAutorizado = aut > 0 ? ((netoAut / aut) * 100).toFixed(1) : '0.0';
+                          const cubiertoAut = aut > 0 ? Math.max(0, aut - vac) : act;
+                          const pctAutorizado = aut > 0 ? ((cubiertoAut / aut) * 100).toFixed(1) : '0.0';
+                          const baseActivo = act > 0 ? act : Math.max(0, aut - vac);
+                          const netoActivo = Math.max(0, baseActivo - inc - vaca - fal);
+                          const pctActivo = baseActivo > 0 ? ((netoActivo / baseActivo) * 100).toFixed(1) : '0.0';
                           return (
                             <tr key={fila.tipo}>
                               <td style={{ fontWeight: 800, color: 'var(--text-primary)', padding: '0.45rem 0.65rem' }}>
