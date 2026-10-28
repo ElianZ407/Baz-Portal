@@ -4038,6 +4038,26 @@ body {
   background: #256a3e;
 }
 
+.btn-sync-cargas {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  background: rgba(255, 255, 255, 0.15);
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 4px;
+  padding: 0.2rem 0.55rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  text-transform: none;
+}
+
+.btn-sync-cargas:hover {
+  background: rgba(255, 255, 255, 0.28);
+}
+
 .header-navy {
   background: #0d284f;
 }
