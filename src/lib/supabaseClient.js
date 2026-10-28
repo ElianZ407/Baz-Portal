@@ -1,11 +1,19 @@
 import { createClient } from '@supabase/supabase-js';
 
-// Obtener credenciales desde localStorage (personalizadas) o variables de entorno (.env/Vercel)
+const esUrlHttpsSegura = (valor) => {
+  try {
+    const parsed = new URL(String(valor || '').trim());
+    return parsed.protocol === 'https:';
+  } catch {
+    return false;
+  }
+};
+
 export const getSupabaseCredentials = () => {
   try {
     const localUrl = localStorage.getItem('baz_supabase_url');
     const localKey = localStorage.getItem('baz_supabase_anon_key');
-    if (localUrl && localKey) {
+    if (localUrl && localKey && esUrlHttpsSegura(localUrl)) {
       return {
         url: localUrl.trim(),
         key: localKey.trim(),
@@ -16,17 +24,12 @@ export const getSupabaseCredentials = () => {
     console.warn('No se pudo acceder a localStorage para Supabase:', e);
   }
 
-  const envUrl = 
-    import.meta.env.VITE_SUPABASE_URL || 
-    import.meta.env.NEXT_PUBLIC_SUPABASE_URL;
-    
-  const envKey = 
-    import.meta.env.VITE_SUPABASE_ANON_KEY || 
-    import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || 
-    import.meta.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 
-    import.meta.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+  const envUrl = import.meta.env.VITE_SUPABASE_URL;
+  const envKey =
+    import.meta.env.VITE_SUPABASE_ANON_KEY ||
+    import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
-  if (envUrl && envKey) {
+  if (envUrl && envKey && esUrlHttpsSegura(envUrl)) {
     return {
       url: envUrl.trim(),
       key: envKey.trim(),
@@ -45,10 +48,9 @@ const credentials = getSupabaseCredentials();
 
 export const isSupabaseConfigured = () => {
   const creds = getSupabaseCredentials();
-  return Boolean(creds.url && creds.key && creds.url.startsWith('https://'));
+  return Boolean(creds.url && creds.key && esUrlHttpsSegura(creds.url));
 };
 
-// Crear cliente Supabase (o null si aún no está configurado)
 export const supabase = isSupabaseConfigured()
   ? createClient(credentials.url, credentials.key, {
       auth: {
@@ -62,21 +64,42 @@ export const supabase = isSupabaseConfigured()
     })
   : null;
 
-// Guardar credenciales desde la UI de la aplicación (para que el usuario no necesite tocar código)
 export const saveSupabaseCredentials = (url, key) => {
-  if (!url || !key) return false;
+  if (!url || !key || !esUrlHttpsSegura(url)) return false;
   localStorage.setItem('baz_supabase_url', url.trim());
   localStorage.setItem('baz_supabase_anon_key', key.trim());
   return true;
 };
 
-// Limpiar credenciales
 export const clearSupabaseCredentials = () => {
   localStorage.removeItem('baz_supabase_url');
   localStorage.removeItem('baz_supabase_anon_key');
 };
 
-// Mapeo de columnas de Base de Datos (snake_case) <-> Objeto de Viaje (camelCase)
+const CAMPOS_META = [
+  ['horaColocacion', false],
+  ['horaColocacionReal', false],
+  ['horaFinCarga', false],
+  ['horaCaseta', false],
+  ['folioEnvio', false],
+  ['sellos', false],
+  ['valeEstructura', false],
+  ['motosEstructuras', true],
+  ['motosCarton', true],
+  ['remolque', false],
+  ['mtrs', true]
+];
+
+const CLAVES_META_PERMITIDAS = new Set(CAMPOS_META.map(([campo]) => campo));
+
+export const sanitizarMeta = (rawMeta) => {
+  if (!rawMeta || typeof rawMeta !== 'object' || Array.isArray(rawMeta)) return {};
+  return Object.entries(rawMeta).reduce((acc, [clave, valor]) => {
+    if (CLAVES_META_PERMITIDAS.has(clave)) acc[clave] = valor;
+    return acc;
+  }, {});
+};
+
 export const mapDbToUnit = (row) => {
   let destinosSecundarios = [];
   let obs = row.observaciones || '';
@@ -86,7 +109,7 @@ export const mapDbToUnit = (row) => {
     try {
       const match = obs.match(/__META__:(\{.*?\})(?:$|\n)/s);
       if (match && match[1]) {
-        meta = JSON.parse(match[1]);
+        meta = sanitizarMeta(JSON.parse(match[1]));
         obs = obs.replace(/__META__:\{.*?\}(?:\n|$)/gs, '').trim();
       }
     } catch {}
@@ -148,20 +171,6 @@ export const mapDbToUnit = (row) => {
     mtrs: Number(meta.mtrs) || 0
   };
 };
-
-const CAMPOS_META = [
-  ['horaColocacion', false],
-  ['horaColocacionReal', false],
-  ['horaFinCarga', false],
-  ['horaCaseta', false],
-  ['folioEnvio', false],
-  ['sellos', false],
-  ['valeEstructura', false],
-  ['motosEstructuras', true],
-  ['motosCarton', true],
-  ['remolque', false],
-  ['mtrs', true]
-];
 
 export const mapUnitToDb = (unit) => {
   let obs = unit.observaciones || '';

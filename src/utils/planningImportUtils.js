@@ -553,13 +553,10 @@ const leerLibroCompleto = async (file) => {
       const esDiaActual = (isDayTab && numVal === hoy) || (matchedDayOfWeek !== null && matchedDayOfWeek === diaSemanaHoy);
       const rows = extractSheetRows(ws);
 
-      let displayName = tabName || `Hoja ${idx + 1}`;
-      if (isDayTab) {
-        displayName = `Día ${String(numVal).padStart(2, '0')}`;
-      } else if (matchedDayOfWeek !== null) {
-        const nombresC = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
-        displayName = nombresC[matchedDayOfWeek] || tabName;
-      }
+      const nombresC = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+      const displayName = isDayTab
+        ? `Día ${String(numVal).padStart(2, '0')}`
+        : (matchedDayOfWeek !== null ? (nombresC[matchedDayOfWeek] || tabName) : (tabName || `Hoja ${idx + 1}`));
 
       return {
         index: idx + 1,
@@ -927,13 +924,12 @@ function parseCsvToRows(text) {
 
   // Detectar delimitador inspeccionando la primera línea no vacía
   const sampleLine = lines.find(l => l.trim().length > 0) || '';
-  let delimiter = ',';
   const commaCount = (sampleLine.match(/,/g) || []).length;
   const semiCount = (sampleLine.match(/;/g) || []).length;
   const tabCount = (sampleLine.match(/\t/g) || []).length;
-
-  if (tabCount > commaCount && tabCount > semiCount) delimiter = '\t';
-  else if (semiCount > commaCount) delimiter = ';';
+  const delimiter = (tabCount > commaCount && tabCount > semiCount)
+    ? '\t'
+    : (semiCount > commaCount ? ';' : ',');
 
   const rows = [];
   for (const line of lines) {
@@ -1056,26 +1052,23 @@ export const downloadPlanningTemplate = async () => {
     worksheet.getColumn(i + 1).width = w;
   });
 
-  // Filas de ejemplo (1 viaje simple + 1 viaje con entrega consolidada/parada secundaria)
   const sampleRows = [
     [
-      1, '3471', 1, 'CV4395F', 18, 'LTI - VHS', 'JESUS CRUZ PEREZ', todayStr,
-      'C800380794', '191', 'EKT CARDENAS BANDALA', '18', 'EN CASETA',
-      '06:00', '04:22', '06:55', '07:23', '151688', '1295824-1295825',
+      1, '00001', 1, 'XX0001A', 18, 'LTI - VHS', 'OPERADOR DEMO 1', todayStr,
+      'CS00000001', '100', 'SUCURSAL DEMO 1', '1', 'EN CASETA',
+      '06:00', '05:50', '07:00', '07:30', '100001', '000001-000002',
       '0', 0, 0, '0', 10
     ],
-    // Parada secundaria del viaje 1
     [
       '', '', '', '', '', '', '', '',
-      'C800380794', '2560', 'EKT CARDENAS TABASCO', '', '',
+      'CS00000001', '101', 'SUCURSAL DEMO 2', '', '',
       '', '', '', '', '', '',
       '', '', '', '', 5
     ],
-    // Viaje 2
     [
-      2, '3153', 1, 'CV4372F', 18, 'LTI - VHS', 'VICTOR MANUEL RAMIREZ CORREA', todayStr,
-      'C800380796', '192', 'MI EKT COMALCALCO JUAREZ', '30', 'COLOCADO',
-      '06:00', '04:22', '07:09', '07:23', '151690', '1295826-1295827',
+      2, '00002', 1, 'XX0002A', 18, 'LTI - VHS', 'OPERADOR DEMO 2', todayStr,
+      'CS00000002', '102', 'SUCURSAL DEMO 3', '2', 'COLOCADO',
+      '06:00', '05:50', '07:00', '07:30', '100002', '000003-000004',
       '0', 0, 0, '0', 15
     ]
   ];

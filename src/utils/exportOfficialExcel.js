@@ -28,6 +28,39 @@ const getExcelJS = async () => {
   }
 };
 
+const PREFIJOS_FORMULA_PELIGROSOS = ['=', '+', '-', '@', '\t', '\r'];
+
+const sanitizarCeldaExcel = (valor) => {
+  if (typeof valor !== 'string') return valor;
+  const limpio = valor.trim();
+  if (!limpio) return valor;
+  return PREFIJOS_FORMULA_PELIGROSOS.some(p => limpio.startsWith(p)) ? `'${valor}` : valor;
+};
+
+const sanitizarFilaExcel = (fila) => fila.map(sanitizarCeldaExcel);
+
+const COLORES_ESTATUS_PATIO = {
+  'Disponible': 'FFD1FAE5',
+  'Colocado p/ Carga': 'FFFEF3C7',
+  'Cargado': 'FFCFFAFE',
+  'Taller': 'FFFEE2E2'
+};
+
+const COLORES_ESTATUS_SUPERVISOR = {
+  'En Ruta': 'FFBAE6FD',
+  'Espera Descarga': 'FFFEF3C7',
+  'Descargando': 'FFE9D5FF',
+  'Retorno': 'FFCFFAFE',
+  'Retrasado': 'FFFEE2E2',
+  'Completado': 'FFD1FAE5'
+};
+
+const COLORES_ESTATUS_TV = {
+  'En Ruta': 'FFBAE6FD',
+  'Completado': 'FFD1FAE5',
+  'Retrasado': 'FFFEE2E2'
+};
+
 export const exportOfficialExcel = async (units = [], selectedDate = null) => {
   const ExcelJS = await getExcelJS();
   const workbook = new ExcelJS.Workbook();
@@ -207,10 +240,9 @@ export const exportOfficialExcel = async (units = [], selectedDate = null) => {
       unit.capUnidad || 15                            // 24. MTRS
     ];
 
-    const row = worksheet.addRow(rowData);
+    const row = worksheet.addRow(sanitizarFilaExcel(rowData));
     row.height = 20;
 
-    // Formatear cada celda con sus colores idénticos
     row.eachCell({ includeEmpty: true }, (cell, colNumber) => {
       cell.font = {
         name: FONT_FAMILY,
@@ -219,55 +251,25 @@ export const exportOfficialExcel = async (units = [], selectedDate = null) => {
         color: { argb: COLOR_TEXT_BLACK }
       };
       cell.border = ALL_BORDERS;
+      cell.alignment = {
+        horizontal: (colNumber === 7 || colNumber === 11) ? 'left' : 'center',
+        vertical: 'middle'
+      };
 
-      // Alineaciones
-      if (colNumber === 7 || colNumber === 11) {
-        // OPERADOR y SUCURSAL: Izquierda
-        cell.alignment = { horizontal: 'left', vertical: 'middle' };
-      } else {
-        // Las demás: Centradas
-        cell.alignment = { horizontal: 'center', vertical: 'middle' };
-      }
+      const esAmarilloBase = colNumber >= 1 && colNumber <= 5;
+      const esNaranjaDestacado = isHighlightedOrange && (colNumber === 9 || colNumber === 10 || colNumber === 11);
+      const esCaseta = colNumber === 13 && String(cell.value || '').toUpperCase().includes('CASETA');
+      const colorFondo = (esAmarilloBase || esCaseta)
+        ? COLOR_YELLOW_SOFT
+        : (esNaranjaDestacado ? COLOR_ORANGE_ROW : COLOR_WHITE);
 
-      // Reglas de Color:
-      // Columnas 1 a 5 (NO. VIAJE, ECO, BLOQUE, PLACAS, CAP): AMARILLO PASTEL (#FFFF99)
-      if (colNumber >= 1 && colNumber <= 5) {
-        cell.fill = {
-          type: 'pattern',
-          pattern: 'solid',
-          fgColor: { argb: COLOR_YELLOW_SOFT }
-        };
-      }
-      // Columna 9, 10, 11 (# CARGA, # SUC, SUCURSAL) si es destacada: NARANJA (#FFC000)
-      else if (isHighlightedOrange && (colNumber === 9 || colNumber === 10 || colNumber === 11)) {
-        cell.fill = {
-          type: 'pattern',
-          pattern: 'solid',
-          fgColor: { argb: COLOR_ORANGE_ROW }
-        };
-      }
-      // Columna 13 (ESTATUS): AMARILLO PASTEL si es EN CASETA
-      else if (colNumber === 13) {
-        const val = String(cell.value || '').toUpperCase();
-        if (val.includes('CASETA')) {
-          cell.fill = {
-            type: 'pattern',
-            pattern: 'solid',
-            fgColor: { argb: COLOR_YELLOW_SOFT }
-          };
-        }
-      }
-      // Fondo Blanco por defecto en las demás
-      else {
-        cell.fill = {
-          type: 'pattern',
-          pattern: 'solid',
-          fgColor: { argb: COLOR_WHITE }
-        };
-      }
+      cell.fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: colorFondo }
+      };
     });
 
-    // Si la unidad tiene entregas secundarias o VTEX (Ruta Multiparada), agregar sub-filas idénticas a la imagen oficial BAZ
     if (Array.isArray(unit.destinosSecundarios) && unit.destinosSecundarios.length > 0) {
       unit.destinosSecundarios.forEach((parada) => {
         const isVtex = Boolean(parada.esVtex);
@@ -278,23 +280,23 @@ export const exportOfficialExcel = async (units = [], selectedDate = null) => {
           : ((parada.destino || '').replace(/\s*\(Retorno\)/gi, '').trim()).toUpperCase();
 
         const secRowData = [
-          '', // 1. NO. VIAJE
-          '', // 2. ECO UNIDAD
-          '', // 3. BLOQUE
-          '', // 4. PLACAS
-          '', // 5. CAP UNIDAD
-          '', // 6. LINEA
-          '', // 7. OPERADOR
-          '', // 8. FECHA
-          parada.numCarga || '', // 9. # CARGA
-          parada.numSucursal || '', // 10. # SUC
-          vtexText, // 11. SUCURSAL
-          parada.cortina || '', // 12. CORTINAS
-          (unit.estatusPlaneacion === 'EN CASETA' || unit.estatusPatio === 'Cargado') ? 'EN CASETA' : (unit.estatusSupervisor || 'PENDIENTE'), // 13. ESTATUS
-          '', '', '', '', '', '', '', '', '', '', '' // 14 a 24
+          '',
+          '',
+          '',
+          '',
+          '',
+          '',
+          '',
+          '',
+          parada.numCarga || '',
+          parada.numSucursal || '',
+          vtexText,
+          parada.cortina || '',
+          (unit.estatusPlaneacion === 'EN CASETA' || unit.estatusPatio === 'Cargado') ? 'EN CASETA' : (unit.estatusSupervisor || 'PENDIENTE'),
+          '', '', '', '', '', '', '', '', '', '', ''
         ];
 
-        const secRow = worksheet.addRow(secRowData);
+        const secRow = worksheet.addRow(sanitizarFilaExcel(secRowData));
         secRow.height = 19;
         secRow.eachCell({ includeEmpty: true }, (cell, colNumber) => {
           cell.font = { 
@@ -304,39 +306,26 @@ export const exportOfficialExcel = async (units = [], selectedDate = null) => {
             color: { argb: COLOR_TEXT_BLACK } 
           };
           cell.border = ALL_BORDERS;
-
-          if (colNumber === 11) {
-            cell.alignment = { horizontal: 'left', vertical: 'middle' };
-          } else {
-            cell.alignment = { horizontal: 'center', vertical: 'middle' };
-          }
-
-          // Si es VTEX, pintar las celdas 10 y 11 de amarillo pastel (#FFFF99) idéntico a la plantilla BAZ
-          if (isVtex && (colNumber === 10 || colNumber === 11)) {
-            cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: COLOR_YELLOW_SOFT } };
-          } else {
-            cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: COLOR_WHITE } };
-          }
+          cell.alignment = {
+            horizontal: colNumber === 11 ? 'left' : 'center',
+            vertical: 'middle'
+          };
+          const colorSec = (isVtex && (colNumber === 10 || colNumber === 11)) ? COLOR_YELLOW_SOFT : COLOR_WHITE;
+          cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: colorSec } };
         });
       });
     } else if (unit.observaciones && unit.observaciones.toLowerCase().includes('vtex')) {
-      // Fallback para notas rápidas de VTEX en observaciones
-      const vtexRow = worksheet.addRow([
+      const vtexRow = worksheet.addRow(sanitizarFilaExcel([
         '', '', '', '', '', '', '', '', '', '',
         `VTEX: ${unit.numCarga || '45713018'} - C`,
         '', '', '', '', '', '', '', '', '', '', '', '', ''
-      ]);
+      ]));
       vtexRow.height = 18;
       vtexRow.eachCell({ includeEmpty: true }, (cell, colNumber) => {
         cell.font = { name: FONT_FAMILY, size: 8.5, color: { argb: COLOR_TEXT_BLACK } };
         cell.border = ALL_BORDERS;
-        if (colNumber === 11) {
-          cell.alignment = { horizontal: 'left', vertical: 'middle' };
-          cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: COLOR_YELLOW_SOFT } };
-        } else {
-          cell.alignment = { horizontal: 'center', vertical: 'middle' };
-          cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: COLOR_WHITE } };
-        }
+        cell.alignment = { horizontal: colNumber === 11 ? 'left' : 'center', vertical: 'middle' };
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: colNumber === 11 ? COLOR_YELLOW_SOFT : COLOR_WHITE } };
       });
     }
   });
@@ -410,10 +399,9 @@ export const exportPatioExcel = async (units = [], selectedDate = null) => {
   const colWidths = [12, 20, 12, 13, 14, 22, 10, 12, 34, 30, 20];
   colWidths.forEach((w, i) => worksheet.getColumn(i + 1).width = w);
 
-  // Llenado de unidades
   units.forEach((unit) => {
     const estatus = unit.estatusPatio || 'Disponible';
-    const row = worksheet.addRow([
+    const row = worksheet.addRow(sanitizarFilaExcel([
       unit.economico || '',
       unit.tipo || '',
       unit.capUnidad || '',
@@ -425,35 +413,21 @@ export const exportPatioExcel = async (units = [], selectedDate = null) => {
       (unit.destino || '').replace(/\s*\(Retorno\)/gi, '').trim().toUpperCase(),
       unit.observaciones || '',
       unit.actualizadoEn || headerDate
-    ]);
+    ]));
     row.height = 20;
 
     row.eachCell({ includeEmpty: true }, (cell, colNumber) => {
       cell.font = { name: 'Arial', size: 9, color: { argb: 'FF000000' } };
       cell.border = ALL_BORDERS;
+      cell.alignment = {
+        horizontal: (colNumber === 9 || colNumber === 10) ? 'left' : 'center',
+        vertical: 'middle'
+      };
 
-      if (colNumber === 9 || colNumber === 10) {
-        cell.alignment = { horizontal: 'left', vertical: 'middle' };
-      } else {
-        cell.alignment = { horizontal: 'center', vertical: 'middle' };
-      }
-
-      // Estilo de estatus de patio
-      if (colNumber === 6) {
-        if (estatus === 'Disponible') {
-          cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFD1FAE5' } }; // Verde suave
-        } else if (estatus === 'Colocado p/ Carga') {
-          cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFEF3C7' } }; // Ámbar
-        } else if (estatus === 'Cargado') {
-          cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFCFFAFE' } }; // Cyan
-        } else if (estatus === 'Taller') {
-          cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFEE2E2' } }; // Rojo
-        }
-      } else if (colNumber === 1) {
-        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFFF99' } }; // Amarillo suave para ECO
-      } else {
-        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFFFFF' } };
-      }
+      const colorPatio = colNumber === 6
+        ? (COLORES_ESTATUS_PATIO[estatus] || 'FFFFFFFF')
+        : (colNumber === 1 ? 'FFFFFF99' : 'FFFFFFFF');
+      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: colorPatio } };
     });
   });
 
@@ -529,7 +503,7 @@ export const exportSupervisorExcel = async (units = [], selectedDate = null) => 
 
   units.forEach((unit, idx) => {
     const estatusSup = unit.estatusSupervisor || 'Pendiente';
-    const row = worksheet.addRow([
+    const row = worksheet.addRow(sanitizarFilaExcel([
       unit.noViaje || (idx + 1),
       unit.economico || '',
       unit.tipo || '',
@@ -547,40 +521,21 @@ export const exportSupervisorExcel = async (units = [], selectedDate = null) => 
       unit.eta || '',
       estatusSup.toUpperCase(),
       unit.observaciones || ''
-    ]);
+    ]));
     row.height = 20;
 
     row.eachCell({ includeEmpty: true }, (cell, colNumber) => {
       cell.font = { name: 'Arial', size: 9, color: { argb: 'FF000000' } };
       cell.border = ALL_BORDERS;
+      cell.alignment = {
+        horizontal: (colNumber === 6 || colNumber === 10 || colNumber === 17) ? 'left' : 'center',
+        vertical: 'middle'
+      };
 
-      if (colNumber === 6 || colNumber === 10 || colNumber === 17) {
-        cell.alignment = { horizontal: 'left', vertical: 'middle' };
-      } else {
-        cell.alignment = { horizontal: 'center', vertical: 'middle' };
-      }
-
-      if (colNumber === 1 || colNumber === 2) {
-        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFFF99' } };
-      } else if (colNumber === 16) {
-        if (estatusSup === 'En Ruta') {
-          cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFBAE6FD' } }; // Azul claro
-        } else if (estatusSup === 'Espera Descarga') {
-          cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFEF3C7' } }; // Ámbar
-        } else if (estatusSup === 'Descargando') {
-          cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE9D5FF' } }; // Púrpura suave
-        } else if (estatusSup === 'Retorno') {
-          cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFCFFAFE' } }; // Cyan
-        } else if (estatusSup === 'Retrasado') {
-          cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFEE2E2' } }; // Rojo
-        } else if (estatusSup === 'Completado') {
-          cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFD1FAE5' } }; // Verde
-        } else {
-          cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFFFFF' } };
-        }
-      } else {
-        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFFFFF' } };
-      }
+      const colorSup = (colNumber === 1 || colNumber === 2)
+        ? 'FFFFFF99'
+        : (colNumber === 16 ? (COLORES_ESTATUS_SUPERVISOR[estatusSup] || 'FFFFFFFF') : 'FFFFFFFF');
+      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: colorSup } };
     });
   });
 
@@ -657,7 +612,7 @@ export const exportTvExcel = async (units = [], selectedDate = null) => {
 
   units.forEach((unit, idx) => {
     const estatusSup = unit.estatusSupervisor || 'Pendiente';
-    const row = worksheet.addRow([
+    const row = worksheet.addRow(sanitizarFilaExcel([
       unit.noViaje || (idx + 1),
       unit.economico || '',
       unit.tipo || '',
@@ -676,34 +631,21 @@ export const exportTvExcel = async (units = [], selectedDate = null) => {
       unit.eta || '',
       estatusSup.toUpperCase(),
       unit.observaciones || ''
-    ]);
+    ]));
     row.height = 20;
 
     row.eachCell({ includeEmpty: true }, (cell, colNumber) => {
       cell.font = { name: 'Arial', size: 9, color: { argb: 'FF000000' } };
       cell.border = ALL_BORDERS;
+      cell.alignment = {
+        horizontal: (colNumber === 7 || colNumber === 11 || colNumber === 18) ? 'left' : 'center',
+        vertical: 'middle'
+      };
 
-      if (colNumber === 7 || colNumber === 11 || colNumber === 18) {
-        cell.alignment = { horizontal: 'left', vertical: 'middle' };
-      } else {
-        cell.alignment = { horizontal: 'center', vertical: 'middle' };
-      }
-
-      if (colNumber === 1 || colNumber === 2) {
-        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFFF99' } };
-      } else if (colNumber === 17) {
-        if (estatusSup === 'En Ruta') {
-          cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFBAE6FD' } };
-        } else if (estatusSup === 'Completado') {
-          cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFD1FAE5' } };
-        } else if (estatusSup === 'Retrasado') {
-          cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFEE2E2' } };
-        } else {
-          cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFEF3C7' } };
-        }
-      } else {
-        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFFFFF' } };
-      }
+      const colorTv = (colNumber === 1 || colNumber === 2)
+        ? 'FFFFFF99'
+        : (colNumber === 17 ? (COLORES_ESTATUS_TV[estatusSup] || 'FFFEF3C7') : 'FFFFFFFF');
+      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: colorTv } };
     });
   });
 
@@ -720,20 +662,15 @@ export const exportTvExcel = async (units = [], selectedDate = null) => {
   window.URL.revokeObjectURL(url);
 };
 
-// ====================================================================
-// 5. FUNCIÓN CONTROLADORA POR MÓDULO
-// ====================================================================
+const EXPORTADORES_POR_MODULO = {
+  patio: exportPatioExcel,
+  supervisor: exportSupervisorExcel,
+  tv: exportTvExcel,
+  planeacion: exportOfficialExcel
+};
+
 export const exportByModule = async (moduleName, units = [], selectedDate = null) => {
-  switch (moduleName) {
-    case 'patio':
-      return exportPatioExcel(units, selectedDate);
-    case 'supervisor':
-      return exportSupervisorExcel(units, selectedDate);
-    case 'tv':
-      return exportTvExcel(units, selectedDate);
-    case 'planeacion':
-    default:
-      return exportOfficialExcel(units, selectedDate);
-  }
+  const exportador = EXPORTADORES_POR_MODULO[moduleName] || exportOfficialExcel;
+  return exportador(units, selectedDate);
 };
 

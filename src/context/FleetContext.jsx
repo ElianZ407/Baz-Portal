@@ -6,6 +6,7 @@ import {
   upsertViajeDb, 
   deleteViajeDb, 
   mapDbToUnit,
+  sanitizarMeta,
   fetchPlanesHistoricosDb,
   savePlanHistoricoDb,
   deletePlanHistoricoDb,
@@ -45,7 +46,7 @@ const extraerDestinosSecundarios = (unit) => {
 const extraerMetadatosObservaciones = (observaciones) => {
   if (typeof observaciones !== 'string') return { meta: {}, obsLimpia: observaciones || '' };
   const match = observaciones.match(/__META__:(\{.*?\})(?:$|\n)/s);
-  const meta = match ? parsearJsonSeguro(match[1], {}) : {};
+  const meta = match ? sanitizarMeta(parsearJsonSeguro(match[1], {})) : {};
   const obsLimpia = observaciones
     .replace(/__PARADAS__:\[.*?\](?:\n|$)/gs, '')
     .replace(/__META__:\{.*?\}(?:\n|$)/gs, '')
@@ -414,29 +415,28 @@ export const FleetProvider = ({ children }) => {
                 return;
               }
 
-              setUnits(prev => {
-                let next = [...prev];
-                for (const item of queue) {
-                  if (item.eventType === 'INSERT') {
-                    const newUnit = cleanUnitDestino(mapDbToUnit(item.new));
-                    const idx = next.findIndex(u => String(u.id) === String(newUnit.id));
-                    if (idx >= 0) {
-                      next[idx] = newUnit;
-                    } else {
-                      next.push(newUnit);
-                    }
-                  } else if (item.eventType === 'UPDATE') {
-                    const updatedUnit = cleanUnitDestino(mapDbToUnit(item.new));
-                    next = next.map(u => String(u.id) === String(updatedUnit.id) ? updatedUnit : u);
-                  } else if (item.eventType === 'DELETE') {
-                    const deletedId = item.old?.id;
-                    if (deletedId) {
-                      next = next.filter(u => String(u.id) !== String(deletedId));
-                    }
-                  }
+              const manejadoresRealtime = {
+                INSERT: (lista, item) => {
+                  const newUnit = cleanUnitDestino(mapDbToUnit(item.new));
+                  const idx = lista.findIndex(u => String(u.id) === String(newUnit.id));
+                  return idx >= 0
+                    ? lista.map((u, i) => (i === idx ? newUnit : u))
+                    : [...lista, newUnit];
+                },
+                UPDATE: (lista, item) => {
+                  const updatedUnit = cleanUnitDestino(mapDbToUnit(item.new));
+                  return lista.map(u => String(u.id) === String(updatedUnit.id) ? updatedUnit : u);
+                },
+                DELETE: (lista, item) => {
+                  const deletedId = item.old?.id;
+                  return deletedId ? lista.filter(u => String(u.id) !== String(deletedId)) : lista;
                 }
-                return next;
-              });
+              };
+
+              setUnits(prev => queue.reduce((lista, item) => {
+                const manejador = manejadoresRealtime[item.eventType];
+                return manejador ? manejador(lista, item) : lista;
+              }, [...prev]));
             }, 60);
           }
         }
@@ -940,16 +940,12 @@ export const FleetProvider = ({ children }) => {
 
       cleanedImported.forEach(u => {
         const ecoKey = u.economico ? `eco-${u.economico}` : null;
-        if (ecoKey && mergedMap.has(ecoKey)) {
-          const prev = mergedMap.get(ecoKey);
-          const updated = { ...prev, ...u, id: prev.id };
-          mergedMap.set(String(prev.id), updated);
-          mergedMap.set(ecoKey, updated);
-        } else if (mergedMap.has(String(u.id))) {
-          mergedMap.set(String(u.id), { ...mergedMap.get(String(u.id)), ...u });
-        } else {
-          mergedMap.set(String(u.id), u);
-        }
+        const prevPorEco = ecoKey ? mergedMap.get(ecoKey) : null;
+        const prevPorId = mergedMap.get(String(u.id));
+        const basePrev = prevPorEco || prevPorId;
+        const updated = basePrev ? { ...basePrev, ...u, id: basePrev.id } : u;
+        mergedMap.set(String(updated.id), updated);
+        if (ecoKey) mergedMap.set(ecoKey, updated);
       });
 
       const seenIds = new Set();

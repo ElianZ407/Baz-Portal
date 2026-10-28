@@ -27,63 +27,55 @@ import { exportOfficialExcel } from '../utils/exportOfficialExcel';
 
 const SUPERVISOR_ACTIVE_STATUSES = ['En Ruta', 'Espera Descarga', 'Descargando', 'Retorno', 'Retrasado', 'Completado'];
 
-// Configuración de colores e iconos para los estados de Supervisor reflejados en Planeación
-const getSupervisorStatusConfig = (status) => {
-  switch (status) {
-    case 'Descargando':
-      return {
-        label: 'DESCARGANDO',
-        color: '#38bdf8', // Cyan idéntico a supervisor
-        bg: 'rgba(56, 189, 248, 0.18)',
-        border: '1px solid rgba(56, 189, 248, 0.4)',
-        borderColor: '#38bdf8',
-        rowBg: 'rgba(56, 189, 248, 0.05)',
-        icon: <ArrowDownCircle size={11} />
-      };
-    case 'En Ruta':
-      return {
-        label: 'EN RUTA',
-        color: '#34d399', // Verde idéntico a supervisor
-        bg: 'rgba(16, 185, 129, 0.18)',
-        border: '1px solid rgba(16, 185, 129, 0.4)',
-        borderColor: '#34d399',
-        rowBg: 'rgba(16, 185, 129, 0.05)',
-        icon: <ArrowRight size={11} />
-      };
-    case 'Espera Descarga':
-      return {
-        label: 'ESPERA DESCARGA',
-        color: '#fbbf24', // Ámbar idéntico a supervisor
-        bg: 'rgba(245, 158, 11, 0.18)',
-        border: '1px solid rgba(245, 158, 11, 0.4)',
-        borderColor: '#f59e0b',
-        rowBg: 'rgba(245, 158, 11, 0.05)',
-        icon: <Clock size={11} />
-      };
-    case 'Retorno':
-      return {
-        label: 'RETORNO',
-        color: '#c084fc', // Púrpura idéntico a supervisor
-        bg: 'rgba(168, 85, 247, 0.18)',
-        border: '1px solid rgba(168, 85, 247, 0.4)',
-        borderColor: '#a855f7',
-        rowBg: 'rgba(168, 85, 247, 0.06)',
-        icon: <RotateCcw size={11} />
-      };
-    case 'Retrasado':
-      return {
-        label: 'RETRASADO / ALERTA',
-        color: '#f87171', // Rojo idéntico a supervisor
-        bg: 'rgba(239, 68, 68, 0.18)',
-        border: '1px solid rgba(239, 68, 68, 0.4)',
-        borderColor: '#ef4444',
-        rowBg: 'rgba(239, 68, 68, 0.06)',
-        icon: <AlertTriangle size={11} />
-      };
-    default:
-      return null;
+const CONFIG_ESTATUS_SUPERVISOR = {
+  'Descargando': {
+    label: 'DESCARGANDO',
+    color: '#38bdf8',
+    bg: 'rgba(56, 189, 248, 0.18)',
+    border: '1px solid rgba(56, 189, 248, 0.4)',
+    borderColor: '#38bdf8',
+    rowBg: 'rgba(56, 189, 248, 0.05)',
+    icon: <ArrowDownCircle size={11} />
+  },
+  'En Ruta': {
+    label: 'EN RUTA',
+    color: '#34d399',
+    bg: 'rgba(16, 185, 129, 0.18)',
+    border: '1px solid rgba(16, 185, 129, 0.4)',
+    borderColor: '#34d399',
+    rowBg: 'rgba(16, 185, 129, 0.05)',
+    icon: <ArrowRight size={11} />
+  },
+  'Espera Descarga': {
+    label: 'ESPERA DESCARGA',
+    color: '#fbbf24',
+    bg: 'rgba(245, 158, 11, 0.18)',
+    border: '1px solid rgba(245, 158, 11, 0.4)',
+    borderColor: '#f59e0b',
+    rowBg: 'rgba(245, 158, 11, 0.05)',
+    icon: <Clock size={11} />
+  },
+  'Retorno': {
+    label: 'RETORNO',
+    color: '#c084fc',
+    bg: 'rgba(168, 85, 247, 0.18)',
+    border: '1px solid rgba(168, 85, 247, 0.4)',
+    borderColor: '#a855f7',
+    rowBg: 'rgba(168, 85, 247, 0.06)',
+    icon: <RotateCcw size={11} />
+  },
+  'Retrasado': {
+    label: 'RETRASADO / ALERTA',
+    color: '#f87171',
+    bg: 'rgba(239, 68, 68, 0.18)',
+    border: '1px solid rgba(239, 68, 68, 0.4)',
+    borderColor: '#ef4444',
+    rowBg: 'rgba(239, 68, 68, 0.06)',
+    icon: <AlertTriangle size={11} />
   }
 };
+
+const getSupervisorStatusConfig = (status) => CONFIG_ESTATUS_SUPERVISOR[status] || null;
 
 export const PlaneacionView = () => {
   const { 
@@ -143,24 +135,18 @@ export const PlaneacionView = () => {
       const matchesFL = filterFL === 'ALL' || (u.fl || 'LOCAL') === filterFL;
       const matchesCapUnidad = filterCapUnidad === 'ALL' || String(u.capUnidad) === filterCapUnidad;
       
-      let matchesEstatus = true;
-      if (filterEstatus === 'ALL') {
-        matchesEstatus = true;
-      } else if (filterEstatus === 'SIN_UNIDAD') {
-        matchesEstatus = !String(u.economico || '').trim();
-      } else if (filterEstatus === 'TALLER') {
-        matchesEstatus = isTaller;
-      } else if (filterEstatus === 'NO_SE_CUBRE') {
-        matchesEstatus = !isTaller && String(u.estatusPlaneacion || '').trim().toUpperCase() === 'NO SE CUBRE';
-      } else if (filterEstatus === 'CARGADO') {
-        matchesEstatus = !isTaller && ((u.estatusPlaneacion || 'PENDIENTE') === 'CARGADO' || isSupervisorActive);
-      } else if (filterEstatus === 'COLOCADO') {
-        matchesEstatus = !isTaller && (u.estatusPlaneacion || 'PENDIENTE') === 'COLOCADO' && !isSupervisorActive;
-      } else if (filterEstatus === 'PENDIENTE') {
-        matchesEstatus = !isTaller && (u.estatusPlaneacion || 'PENDIENTE') === 'PENDIENTE' && !isSupervisorActive;
-      } else {
-        matchesEstatus = !isTaller && (u.estatusPlaneacion || 'PENDIENTE') === filterEstatus;
-      }
+      const estatusPlan = u.estatusPlaneacion || 'PENDIENTE';
+      const evaluadoresEstatus = {
+        ALL: () => true,
+        SIN_UNIDAD: () => !String(u.economico || '').trim(),
+        TALLER: () => isTaller,
+        NO_SE_CUBRE: () => !isTaller && String(u.estatusPlaneacion || '').trim().toUpperCase() === 'NO SE CUBRE',
+        CARGADO: () => !isTaller && (estatusPlan === 'CARGADO' || isSupervisorActive),
+        COLOCADO: () => !isTaller && estatusPlan === 'COLOCADO' && !isSupervisorActive,
+        PENDIENTE: () => !isTaller && estatusPlan === 'PENDIENTE' && !isSupervisorActive
+      };
+      const evaluarFiltro = evaluadoresEstatus[filterEstatus] || (() => !isTaller && estatusPlan === filterEstatus);
+      const matchesEstatus = evaluarFiltro();
 
       return matchesSearch && matchesFL && matchesCapUnidad && matchesEstatus;
     });

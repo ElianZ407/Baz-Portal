@@ -1,14 +1,15 @@
-const TOTAL_PROTECT_API_BASE = import.meta.env.VITE_TOTAL_PROTECT_API_URL || 'https://api.totalprotect.mx/v1';
+const RAW_API_BASE = String(import.meta.env.VITE_TOTAL_PROTECT_API_URL || 'https://api.totalprotect.mx/v1').trim();
+const TOTAL_PROTECT_API_BASE = RAW_API_BASE.startsWith('https://') ? RAW_API_BASE : 'https://api.totalprotect.mx/v1';
 
 let cachedToken = null;
 let tokenExpirationTime = 0;
 
 export const authenticateTotalProtect = async (username, password) => {
-  const user = username || import.meta.env.VITE_TOTAL_PROTECT_USER;
-  const pass = password || import.meta.env.VITE_TOTAL_PROTECT_PASSWORD;
+  const user = String(username || '').trim();
+  const pass = String(password || '').trim();
 
   if (!user || !pass) {
-    throw new Error('Credenciales de Total Protect no configuradas.');
+    throw new Error('Credenciales de Total Protect requeridas para iniciar sesión.');
   }
 
   const now = Date.now();
@@ -29,19 +30,18 @@ export const authenticateTotalProtect = async (username, password) => {
   });
 
   if (!response.ok) {
-    const errorBody = await response.text();
-    throw new Error(`Error de autenticación en Total Protect (${response.status}): ${errorBody}`);
+    throw new Error(`Error de autenticación en Total Protect (${response.status}).`);
   }
 
   const data = await response.json();
-  const token = data.token || data.access_token || data.jwt || (data.data && data.data.token);
-  
+  const token = data.token || data.access_token || data.jwt || data.data?.token;
+
   if (!token) {
     throw new Error('Respuesta de autenticación inválida: no se recibió token.');
   }
 
   cachedToken = token;
-  const expiresInMs = (data.expires_in ? data.expires_in * 1000 : 3600 * 1000) - (60 * 1000);
+  const expiresInMs = (data.expires_in ? data.expires_in * 1000 : 3600 * 1000) - 60000;
   tokenExpirationTime = now + expiresInMs;
 
   return cachedToken;
@@ -63,14 +63,18 @@ export const fetchLivePositions = async () => {
       cachedToken = null;
       tokenExpirationTime = 0;
     }
-    const errorBody = await response.text();
-    throw new Error(`Error al consultar posiciones de Total Protect (${response.status}): ${errorBody}`);
+    throw new Error(`Error al consultar posiciones de Total Protect (${response.status}).`);
   }
 
   const result = await response.json();
   const rawList = Array.isArray(result) ? result : (result.data || result.vehicles || result.units || []);
 
-  return rawList.map(item => normalizeTotalProtectPosition(item));
+  return rawList.map(normalizeTotalProtectPosition);
+};
+
+const resolverEstatusMovimiento = (ignition, speedKmh) => {
+  if (!ignition) return 'STOPPED';
+  return speedKmh > 5 ? 'MOVING' : 'IDLE';
 };
 
 export const normalizeTotalProtectPosition = (item) => {
@@ -82,13 +86,6 @@ export const normalizeTotalProtectPosition = (item) => {
   const speedKmh = Math.round(Number(item.speed ?? item.velocidad ?? 0));
   const ignition = Boolean(item.ignition ?? item.motor ?? item.engineOn ?? (speedKmh > 0));
 
-  let motionStatus = 'STOPPED';
-  if (ignition && speedKmh > 5) {
-    motionStatus = 'MOVING';
-  } else if (ignition) {
-    motionStatus = 'IDLE';
-  }
-
   return {
     idGps: String(item.id || item.deviceId || cleanEco),
     economico: cleanEco,
@@ -98,7 +95,7 @@ export const normalizeTotalProtectPosition = (item) => {
     velocidadKmh: speedKmh,
     rumbo: Number(item.heading ?? item.course ?? item.direction ?? 0),
     motorEncendido: ignition,
-    estatusMovimiento: motionStatus,
+    estatusMovimiento: resolverEstatusMovimiento(ignition, speedKmh),
     direccionReferencia: String(item.address || item.geofence || item.locationName || ''),
     fechaGps: item.timestamp || item.updatedAt || new Date().toISOString(),
     bateria: item.batteryLevel ?? null
@@ -107,26 +104,20 @@ export const normalizeTotalProtectPosition = (item) => {
 
 export const matchGpsToFleetUnits = (fleetUnits = [], gpsPositions = []) => {
   const gpsMap = new Map();
-  
-  gpsPositions.forEach(pos => {
-    if (pos.economico) {
-      gpsMap.set(pos.economico, pos);
-    }
-    if (pos.placas) {
-      const cleanPlate = pos.placas.replace(/[\s-]/g, '').toUpperCase();
-      gpsMap.set(cleanPlate, pos);
-    }
+
+  gpsPositions.forEach((pos) => {
+    if (pos.economico) gpsMap.set(pos.economico, pos);
+    const cleanPlate = String(pos.placas || '').replace(/[\s-]/g, '').toUpperCase();
+    if (cleanPlate) gpsMap.set(cleanPlate, pos);
   });
 
-  return fleetUnits.map(unit => {
+  return fleetUnits.map((unit) => {
     const ecoKey = String(unit.economico || '').replace(/\D/g, '');
     const plateKey = String(unit.placas || '').replace(/[\s-]/g, '').toUpperCase();
 
-    const gpsData = gpsMap.get(ecoKey) || gpsMap.get(plateKey) || null;
-
     return {
       ...unit,
-      gps: gpsData
+      gps: gpsMap.get(ecoKey) || gpsMap.get(plateKey) || null
     };
   });
 };

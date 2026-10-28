@@ -175,24 +175,26 @@ export const OperadorSelector = ({ value, onChange, placeholder = 'Seleccionar O
   };
 
   const handleKeyDown = (e) => {
-    if (e.key === 'ArrowDown') {
-      e.preventDefault();
-      setFocusedIndex((prev) => (prev < filtered.length - 1 ? prev + 1 : prev));
-    } else if (e.key === 'ArrowUp') {
-      e.preventDefault();
-      setFocusedIndex((prev) => (prev > 0 ? prev - 1 : 0));
-    } else if (e.key === 'Enter') {
-      e.preventDefault();
-      if (focusedIndex >= 0 && focusedIndex < filtered.length) {
-        handleSelect(filtered[focusedIndex]);
-      } else if (searchClean && !exactMatch) {
-        handleSelectCustom(searchClean);
-      } else if (filtered.length > 0) {
-        handleSelect(filtered[0]);
-      }
-    } else if (e.key === 'Escape') {
-      setIsOpen(false);
-    }
+    const accionesTecla = {
+      ArrowDown: () => {
+        e.preventDefault();
+        setFocusedIndex((prev) => (prev < filtered.length - 1 ? prev + 1 : prev));
+      },
+      ArrowUp: () => {
+        e.preventDefault();
+        setFocusedIndex((prev) => (prev > 0 ? prev - 1 : 0));
+      },
+      Enter: () => {
+        e.preventDefault();
+        const itemEnfocado = focusedIndex >= 0 && focusedIndex < filtered.length ? filtered[focusedIndex] : null;
+        if (itemEnfocado) return handleSelect(itemEnfocado);
+        if (searchClean && !exactMatch) return handleSelectCustom(searchClean);
+        if (filtered.length > 0) return handleSelect(filtered[0]);
+      },
+      Escape: () => setIsOpen(false)
+    };
+    const accion = accionesTecla[e.key];
+    if (accion) accion();
   };
 
   useEffect(() => {

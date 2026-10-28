@@ -51,18 +51,13 @@ export const ConfirmModal = () => {
     closeConfirm();
   };
 
-  const getIcon = () => {
-    if (confirmType === 'danger') {
-      return <Trash2 size={22} />;
-    }
-    if (confirmType === 'warning') {
-      return <AlertTriangle size={22} />;
-    }
-    if (confirmType === 'primary') {
-      return <CheckCircle2 size={22} />;
-    }
-    return <AlertTriangle size={22} />;
+  const ICONOS_CONFIRMACION = {
+    danger: <Trash2 size={22} />,
+    warning: <AlertTriangle size={22} />,
+    primary: <CheckCircle2 size={22} />
   };
+
+  const getIcon = () => ICONOS_CONFIRMACION[confirmType] || <AlertTriangle size={22} />;
 
   return (
     <div 

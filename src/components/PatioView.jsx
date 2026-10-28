@@ -121,10 +121,9 @@ export const PatioView = () => {
       (u.noViaje && String(u.noViaje).toLowerCase().includes(q)) ||
       (u.placas && u.placas.toLowerCase().includes(q));
 
-    let matchesTipo = true;
-    if (filterTipo === 'CAMIONETA') matchesTipo = isCamioneta(u);
-    else if (filterTipo === 'RABON') matchesTipo = isRabon(u);
-    else if (filterTipo === 'FULL') matchesTipo = isFull(u);
+    const predicadosTipo = { CAMIONETA: isCamioneta, RABON: isRabon, FULL: isFull };
+    const validarTipo = predicadosTipo[filterTipo];
+    const matchesTipo = validarTipo ? validarTipo(u) : true;
 
     return matchesSearch && matchesTipo;
   });

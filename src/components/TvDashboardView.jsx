@@ -91,52 +91,40 @@ export const TvDashboardView = () => {
       return false;
     }
 
-    // Filtro por tipo de unidad (Camioneta / Rabon / Full)
+    const CAPACIDADES_POR_TIPO = {
+      CAMIONETA: [18],
+      RABON: [40, 50],
+      FULL: [90, 110, 180]
+    };
+
     if (filterCapType !== 'ALL') {
-      const cap = Number(unit.capUnidad || 0);
-      if (filterCapType === 'CAMIONETA' && cap !== 18) return false;
-      if (filterCapType === 'RABON' && ![40, 50].includes(cap)) return false;
-      if (filterCapType === 'FULL' && ![90, 110, 180].includes(cap)) return false;
+      const capsPermitidas = CAPACIDADES_POR_TIPO[filterCapType];
+      if (capsPermitidas && !capsPermitidas.includes(Number(unit.capUnidad || 0))) return false;
     }
 
-    // Filtros de estado por KPI
-    if (filterStatus === 'EN_TRANSITO') {
-      return unit.estatusSupervisor === 'En Ruta';
-    }
-    if (filterStatus === 'EN_SUCURSAL') {
-      return ['Espera Descarga', 'Descargando'].includes(unit.estatusSupervisor);
-    }
-    if (filterStatus === 'RETRASADAS') {
-      return unit.estatusSupervisor === 'Retrasado';
-    }
-    if (filterStatus === 'EN_TALLER') {
-      return unit.estatusPatio === 'Taller' || unit.estatus === 'TALLER';
-    }
-    if (filterStatus === 'DISPONIBLE_PATIO' || filterStatus === 'DISPONIBLES') {
-      return unit.estatusPatio === 'Disponible' && !tieneRutaAsignada(unit);
-    }
-    if (filterStatus === 'DISP_MANANA') {
-      return unidadContableManana(unit, padronManana) && (availabilityByUnitId.get(String(unit.id))?.disponible || false);
-    }
-    if (filterStatus === 'REGRESAN_MANANA') {
-      return unidadContableManana(unit, padronManana) && (availabilityByUnitId.get(String(unit.id))?.regresaManana || false);
-    }
-    if (filterStatus === 'NO_REGRESAN_MANANA') {
-      return unidadContableManana(unit, padronManana) && Boolean(availabilityByUnitId.get(String(unit.id))?.noRegresaManana);
-    }
-    if (filterStatus === 'POR_CONFIRMAR') {
-      return unidadContableManana(unit, padronManana) && availabilityByUnitId.get(String(unit.id))?.badge === 'POR CONFIRMAR';
-    }
-    if (filterStatus === 'SIN_UNIDAD') {
-      return !ecoStr;
+    const evalManana = availabilityByUnitId.get(String(unit.id));
+    const esContableManana = unidadContableManana(unit, padronManana);
+
+    const FILTROS_ESTATUS_TV = {
+      EN_TRANSITO: () => unit.estatusSupervisor === 'En Ruta',
+      EN_SUCURSAL: () => ['Espera Descarga', 'Descargando'].includes(unit.estatusSupervisor),
+      RETRASADAS: () => unit.estatusSupervisor === 'Retrasado',
+      EN_TALLER: () => unit.estatusPatio === 'Taller' || unit.estatus === 'TALLER',
+      DISPONIBLE_PATIO: () => unit.estatusPatio === 'Disponible' && !tieneRutaAsignada(unit),
+      DISPONIBLES: () => unit.estatusPatio === 'Disponible' && !tieneRutaAsignada(unit),
+      DISP_MANANA: () => esContableManana && Boolean(evalManana?.disponible),
+      REGRESAN_MANANA: () => esContableManana && Boolean(evalManana?.regresaManana),
+      NO_REGRESAN_MANANA: () => esContableManana && Boolean(evalManana?.noRegresaManana),
+      POR_CONFIRMAR: () => esContableManana && evalManana?.badge === 'POR CONFIRMAR',
+      SIN_UNIDAD: () => !ecoStr
+    };
+
+    const validadorEstatus = FILTROS_ESTATUS_TV[filterStatus];
+    if (validadorEstatus) {
+      return validadorEstatus();
     }
 
-    // Por defecto en la pantalla de TV: solo mostrar unidades físicas con ECO asignado
-    if (!ecoStr) {
-      return false;
-    }
-
-    return true;
+    return Boolean(ecoStr);
   });
   const filteredEcosCount = new Set(
     filteredUnits.map(unit => String(unit.economico || '').trim()).filter(Boolean)
@@ -151,29 +139,37 @@ export const TvDashboardView = () => {
     'Completado': { text: 'COMPLETADO', badgeClass: 'status-completado' }
   };
 
+  const REGLAS_ESTATUS_OPERATIVO = [
+    {
+      match: (u) => u.estatusPatio === 'Taller' || u.estatus === 'TALLER',
+      resolve: () => ({ text: 'TALLER', badgeClass: 'status-retrasado' })
+    },
+    {
+      match: (u) => Boolean(STATUS_SUPERVISOR_MAP[u.estatusSupervisor]),
+      resolve: (u) => STATUS_SUPERVISOR_MAP[u.estatusSupervisor]
+    },
+    {
+      match: (u) => u.estatusPlaneacion === 'COMPLETADO',
+      resolve: () => ({ text: 'COMPLETADO', badgeClass: 'status-completado' })
+    },
+    {
+      match: (u) => u.estatusPlaneacion === 'NO SE CUBRE' || u.estatusPlaneacion === 'CANCELADO',
+      resolve: () => ({ text: 'NO SE CUBRE', badgeClass: 'status-nosecubre' })
+    },
+    {
+      match: (u) => ['CARGADO', 'EN CASETA'].includes(u.estatusPlaneacion) || u.estatusSupervisor === 'Cargado' || u.estatusPatio === 'Cargado',
+      resolve: () => ({ text: 'EN CASETA (SALIDA)', badgeClass: 'status-encaseta' })
+    },
+    {
+      match: (u) => u.estatusPlaneacion === 'COLOCADO' || u.estatusPatio === 'Colocado p/ Carga',
+      resolve: () => ({ text: 'COLOCADO EN CORTINA', badgeClass: 'status-colocado' })
+    }
+  ];
+
   const getUnitOperationalStatus = (unit) => {
     if (!unit) return { text: 'PROGRAMADO', badgeClass: 'status-programado' };
-    if (unit.estatusPatio === 'Taller' || unit.estatus === 'TALLER') {
-      return { text: 'TALLER', badgeClass: 'status-retrasado' };
-    }
-
-    const supMatch = STATUS_SUPERVISOR_MAP[unit.estatusSupervisor];
-    if (supMatch) return supMatch;
-
-    if (unit.estatusPlaneacion === 'COMPLETADO') {
-      return { text: 'COMPLETADO', badgeClass: 'status-completado' };
-    }
-    if (unit.estatusPlaneacion === 'NO SE CUBRE' || unit.estatusPlaneacion === 'CANCELADO') {
-      return { text: 'NO SE CUBRE', badgeClass: 'status-nosecubre' };
-    }
-    if (['CARGADO', 'EN CASETA'].includes(unit.estatusPlaneacion) || unit.estatusSupervisor === 'Cargado' || unit.estatusPatio === 'Cargado') {
-      return { text: 'EN CASETA (SALIDA)', badgeClass: 'status-encaseta' };
-    }
-    if (unit.estatusPlaneacion === 'COLOCADO' || unit.estatusPatio === 'Colocado p/ Carga') {
-      return { text: 'COLOCADO EN CORTINA', badgeClass: 'status-colocado' };
-    }
-
-    return { text: 'PROGRAMADO', badgeClass: 'status-programado' };
+    const regla = REGLAS_ESTATUS_OPERATIVO.find(r => r.match(unit));
+    return regla ? regla.resolve(unit) : { text: 'PROGRAMADO', badgeClass: 'status-programado' };
   };
 
   return (
