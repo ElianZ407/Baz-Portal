@@ -64,10 +64,31 @@ const CARGAS_2026_10_28 = [
   { id: 12, destino: 'Escárcega', tipo: 'Foráneo', capacidad: 50, linea: 'LTI - VHS', estatus: 'Ejecutada' }
 ];
 
-const getCargasPorFecha = (targetDate) => {
-  if (targetDate === '2026-10-27') return CARGAS_2026_10_27.map((c) => ({ ...c }));
-  if (targetDate === '2026-10-28') return CARGAS_2026_10_28.map((c) => ({ ...c }));
-  return [];
+const CARGAS_POR_FECHA = {
+  '2026-10-27': CARGAS_2026_10_27,
+  '2026-10-28': CARGAS_2026_10_28
+};
+
+const getCargasPorFecha = (targetDate) => (CARGAS_POR_FECHA[targetDate] || []).map((c) => ({ ...c }));
+
+const FILTROS_CARGAS_INVALIDAS = {
+  '2026-10-27': (list) => list.some((c) => c.destino === 'Macuspana' && Number(c.capacidad) === 18 && list.length === 12),
+  '2026-10-28': (list) => list.some((c) => c.destino === 'HUB Tuxtla' && Number(c.capacidad) === 153)
+};
+
+const PV_MATCHERS = {
+  'Camionetas': (t) => t.includes('camion'),
+  'Rabones': (t) => t.includes('rabon') || t.includes('rabón'),
+  'Tracto': (t) => t === 'tracto' || t.includes('sencillo'),
+  'Fulles': (t) => t.includes('full')
+};
+
+const HC_MATCHERS = {
+  'Op. Camioneta': (t) => t.includes('camion'),
+  'Op. RM (Rango Medio)': (t) => t.includes('rm') || t.includes('rango medio') || t.includes('rabon') || t.includes('rabón') || t.includes('medio'),
+  'Op. Tractor': (t) => t.includes('tractor') || t === 'tracto' || t.includes('sencillo'),
+  'Op. Fulles': (t) => t.includes('full') || t.includes('fuller') || t.includes('fules'),
+  'Auxiliares': (t) => t.includes('auxiliar') || t.includes('ayudante')
 };
 
 const DEFAULT_PV_FILAS = [
@@ -168,14 +189,11 @@ const getEmptyRecord = (targetDate) => {
 const cleanNumericInput = (val, isDecimal = false) => {
   if (val === undefined || val === null) return '';
   const str = String(val);
-  let cleaned = isDecimal ? str.replace(/[^0-9.]/g, '') : str.replace(/[^0-9]/g, '');
   if (isDecimal) {
-    const parts = cleaned.split('.');
-    if (parts.length > 2) cleaned = `${parts[0]}.${parts.slice(1).join('')}`;
-  } else if (cleaned.length > 1 && cleaned.startsWith('0')) {
-    cleaned = cleaned.replace(/^0+/, '');
+    const parts = str.replace(/[^0-9.]/g, '').split('.');
+    return parts.length > 1 ? `${parts[0]}.${parts.slice(1).join('')}` : parts[0];
   }
-  return cleaned;
+  return str.replace(/[^0-9]/g, '').replace(/^0+(?=\d)/, '');
 };
 
 const BoxParcelIcon = () => (
@@ -199,22 +217,10 @@ const normalizeRecord = (raw, dateKey) => {
     ? Number(rawKpis.planProgramado) || 0
     : 0;
 
-  let rawCargas = Array.isArray(raw.cargasEjecutadas) ? raw.cargasEjecutadas : null;
-
-  if (targetDate === '2026-10-27') {
-    const tieneCargasErroneasDeHoy = rawCargas && rawCargas.some(c => c.destino === 'Macuspana' && Number(c.capacidad) === 18 && rawCargas.length === 12);
-    if (!rawCargas || rawCargas.length === 0 || tieneCargasErroneasDeHoy) {
-      rawCargas = CARGAS_2026_10_27;
-    }
-  } else if (targetDate === '2026-10-28') {
-    const tieneMockViejo = rawCargas && rawCargas.some(c => c.destino === 'HUB Tuxtla' && Number(c.capacidad) === 153);
-    if (!rawCargas || rawCargas.length === 0 || tieneMockViejo) {
-      rawCargas = CARGAS_2026_10_28;
-    }
-  } else if (!rawCargas) {
-    rawCargas = getCargasPorFecha(targetDate);
-  }
-  const cargasEjec = rawCargas.map((c, i) => ({
+  const rawCargas = Array.isArray(raw.cargasEjecutadas) ? raw.cargasEjecutadas : null;
+  const esInvalido = !rawCargas || rawCargas.length === 0 || Boolean(FILTROS_CARGAS_INVALIDAS[targetDate]?.(rawCargas));
+  const cargasFuente = esInvalido ? getCargasPorFecha(targetDate) : rawCargas;
+  const cargasEjec = cargasFuente.map((c, i) => ({
     id: c.id ?? i + 1,
     destino: c.destino || '',
     tipo: c.tipo || 'Foráneo',
@@ -272,16 +278,11 @@ const normalizeRecord = (raw, dateKey) => {
 
   const pvFilas = PV_ORDER.map((tipo) => {
     const fallback = DEFAULT_PV_FILAS.find((f) => f.tipo.toLowerCase() === tipo.toLowerCase()) || { totalFlota: 0, taller: 0, activas: 0 };
-    if (isPvEmpty) {
-      return { ...fallback };
-    }
+    if (isPvEmpty) return { ...fallback };
+
     const found = rawFilas.find((f) => {
       const t = String(f.tipo || '').toLowerCase();
-      if (tipo === 'Camionetas') return t.includes('camion') || t.includes('camioneta');
-      if (tipo === 'Rabones') return t.includes('rabon') || t.includes('rabón');
-      if (tipo === 'Tracto') return t === 'tracto' || t.includes('sencillo');
-      if (tipo === 'Fulles') return t.includes('full');
-      return t === tipo.toLowerCase();
+      return PV_MATCHERS[tipo]?.(t) || t === tipo.toLowerCase();
     });
     const totFlota = found
       ? (found.totalFlota !== undefined
@@ -289,12 +290,11 @@ const normalizeRecord = (raw, dateKey) => {
           : (found.flota !== undefined ? (Number(found.flota) || 0) : (Number(found.activas) || 0)))
       : fallback.totalFlota;
     const tal = found ? (Number(found.taller) || 0) : fallback.taller;
-    const act = Math.max(0, totFlota - tal);
     return {
       tipo,
       totalFlota: totFlota,
       taller: tal,
-      activas: act
+      activas: Math.max(0, totFlota - tal)
     };
   });
 
@@ -310,17 +310,11 @@ const normalizeRecord = (raw, dateKey) => {
 
   const hcFilas = HC_ORDER.map((tipo) => {
     const fallback = DEFAULT_HC_FILAS.find((f) => f.tipo.toLowerCase() === tipo.toLowerCase()) || { autorizado: 0, activo: 0, vacantes: 0, incapacidades: 0, vacaciones: 0, faltas: 0 };
-    if (isHcEmpty) {
-      return { ...fallback };
-    }
+    if (isHcEmpty) return { ...fallback };
+
     const found = rawHcFilas.find((f) => {
       const t = String(f.tipo || '').toLowerCase();
-      if (tipo === 'Op. Camioneta') return t.includes('camion') || t.includes('camioneta');
-      if (tipo.includes('RM') || tipo.includes('Rango Medio')) return t.includes('rm') || t.includes('rango medio') || t.includes('rabon') || t.includes('rabón') || t.includes('medio');
-      if (tipo === 'Op. Tractor') return t.includes('tractor') || t === 'tracto' || t.includes('sencillo');
-      if (tipo === 'Op. Fulles') return t.includes('full') || t.includes('fuller') || t.includes('fules');
-      if (tipo === 'Auxiliares') return t.includes('auxiliar') || t.includes('ayudante');
-      return t === tipo.toLowerCase();
+      return HC_MATCHERS[tipo]?.(t) || t === tipo.toLowerCase();
     });
     return {
       tipo,
@@ -855,17 +849,12 @@ export const PlanColocacionView = () => {
   };
 
   const handleNumericKeyDown = (e, currentValue, onChangeFn, step = 1, isDecimal = false) => {
-    if (e.key === 'ArrowUp') {
-      e.preventDefault();
-      const num = Number(currentValue) || 0;
-      const next = isDecimal ? Number((num + step).toFixed(1)) : num + step;
-      onChangeFn(String(next));
-    } else if (e.key === 'ArrowDown') {
-      e.preventDefault();
-      const num = Number(currentValue) || 0;
-      const next = Math.max(0, isDecimal ? Number((num - step).toFixed(1)) : num - step);
-      onChangeFn(String(next));
-    }
+    const direction = e.key === 'ArrowUp' ? 1 : e.key === 'ArrowDown' ? -1 : 0;
+    if (!direction) return;
+    e.preventDefault();
+    const num = Number(currentValue) || 0;
+    const next = isDecimal ? Number((num + (step * direction)).toFixed(1)) : num + (step * direction);
+    onChangeFn(String(Math.max(0, next)));
   };
 
   const handleAddCarga = () => {
@@ -884,13 +873,11 @@ export const PlanColocacionView = () => {
   const handleUpdateCarga = (id, field, value) => {
     setEditForm((prev) => ({
       ...prev,
-      cargasEjecutadas: prev.cargasEjecutadas.map((c) => {
-        if (c.id === id) {
-          const val = field === 'capacidad' ? cleanNumericInput(value) : value;
-          return { ...c, [field]: val };
-        }
-        return c;
-      })
+      cargasEjecutadas: prev.cargasEjecutadas.map((c) =>
+        c.id === id
+          ? { ...c, [field]: field === 'capacidad' ? cleanNumericInput(value) : value }
+          : c
+      )
     }));
   };
 
@@ -933,13 +920,11 @@ export const PlanColocacionView = () => {
       ...prev,
       piezas: {
         ...prev.piezas,
-        categorias: prev.piezas.categorias.map((c) => {
-          if (c.id === id) {
-            const val = field === 'cantidad' ? cleanNumericInput(value) : value;
-            return { ...c, [field]: val };
-          }
-          return c;
-        })
+        categorias: prev.piezas.categorias.map((c) =>
+          c.id === id
+            ? { ...c, [field]: field === 'cantidad' ? cleanNumericInput(value) : value }
+            : c
+        )
       }
     }));
   };
@@ -997,13 +982,11 @@ export const PlanColocacionView = () => {
       ...prev,
       planProximo: {
         ...prev.planProximo,
-        cargasPendientes: prev.planProximo.cargasPendientes.map((p) => {
-          if (p.id === id) {
-            const val = field === 'capacidad' ? cleanNumericInput(value) : value;
-            return { ...p, [field]: val };
-          }
-          return p;
-        })
+        cargasPendientes: prev.planProximo.cargasPendientes.map((p) =>
+          p.id === id
+            ? { ...p, [field]: field === 'capacidad' ? cleanNumericInput(value) : value }
+            : p
+        )
       }
     }));
   };
@@ -1024,12 +1007,9 @@ export const PlanColocacionView = () => {
       ...prev,
       pvActivo: {
         ...prev.pvActivo,
-        filas: (prev.pvActivo?.filas || DEFAULT_PV_FILAS).map((f) => {
-          if (f.tipo === tipo) {
-            return { ...f, [field]: cleaned };
-          }
-          return f;
-        })
+        filas: (prev.pvActivo?.filas || DEFAULT_PV_FILAS).map((f) =>
+          f.tipo === tipo ? { ...f, [field]: cleaned } : f
+        )
       }
     }));
   };
@@ -1043,10 +1023,7 @@ export const PlanColocacionView = () => {
         ...prev.headcount,
         filas: (prev.headcount?.filas || DEFAULT_HC_FILAS).map((f) => {
           const fTipo = (f.tipo === 'Op. Fuller' || f.tipo === 'Fuller') ? 'Op. Fulles' : f.tipo;
-          if (fTipo === targetTipo) {
-            return { ...f, tipo: targetTipo, [field]: cleaned };
-          }
-          return f;
+          return fTipo === targetTipo ? { ...f, tipo: targetTipo, [field]: cleaned } : f;
         })
       }
     }));
