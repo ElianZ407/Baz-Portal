@@ -35,7 +35,21 @@ const DEFAULT_CATEGORIES = [
   { id: 6, categoria: 'LB Enseres', cantidad: 0 }
 ];
 
-const DEFAULT_CARGAS_EJECUTADAS = [
+const CARGAS_2026_10_27 = [
+  { id: 1, destino: 'Frontera', tipo: 'Retail', capacidad: 18, linea: 'LTI - VHS', estatus: 'Ejecutada' },
+  { id: 2, destino: 'Cárdenas Tabasco', tipo: 'Foráneo', capacidad: 50, linea: 'VALLEY', estatus: 'Ejecutada' },
+  { id: 3, destino: 'Jalpa de Méndez', tipo: 'HUB', capacidad: 50, linea: 'BRITO', estatus: 'Ejecutada' },
+  { id: 4, destino: 'HUB Tuxtla', tipo: 'Retail', capacidad: 153, linea: 'VALLEY', estatus: 'Ejecutada' },
+  { id: 5, destino: 'Coatzacoalcos', tipo: 'Foráneo', capacidad: 50, linea: 'VALLEY', estatus: 'Ejecutada' },
+  { id: 6, destino: 'Tonalá Chiapas', tipo: 'Foráneo', capacidad: 90, linea: 'LIBRA EXPRESS', estatus: 'Ejecutada' },
+  { id: 7, destino: 'Tapachula', tipo: 'Foráneo', capacidad: 110, linea: 'VALLEY', estatus: 'Ejecutada' },
+  { id: 8, destino: 'Matías Romero', tipo: 'HUB', capacidad: 110, linea: 'BRITO', estatus: 'Ejecutada' },
+  { id: 9, destino: 'Pichucalco', tipo: 'Foráneo', capacidad: 50, linea: 'LTI - VHS', estatus: 'Ejecutada' },
+  { id: 10, destino: 'Las Choapas', tipo: 'Foráneo', capacidad: 50, linea: 'LTI - VHS', estatus: 'Ejecutada' },
+  { id: 11, destino: 'Huimanguillo', tipo: 'Foráneo', capacidad: 110, linea: 'LIBRA EXPRESS', estatus: 'Ejecutada' }
+];
+
+const CARGAS_2026_10_28 = [
   { id: 1, destino: 'Macuspana', tipo: 'Retail', capacidad: 18, linea: 'LTI - VHS', estatus: 'Ejecutada' },
   { id: 2, destino: 'Paraíso', tipo: 'Retail', capacidad: 18, linea: 'LTI - VHS', estatus: 'Ejecutada' },
   { id: 3, destino: 'Coatzacoalcos', tipo: 'Foráneo', capacidad: 50, linea: 'YODLOGIXTRADE', estatus: 'Ejecutada' },
@@ -49,6 +63,12 @@ const DEFAULT_CARGAS_EJECUTADAS = [
   { id: 11, destino: 'San Andrés Tuxtla', tipo: 'Foráneo', capacidad: 50, linea: 'LTI - VHS', estatus: 'Ejecutada' },
   { id: 12, destino: 'Escárcega', tipo: 'Foráneo', capacidad: 50, linea: 'LTI - VHS', estatus: 'Ejecutada' }
 ];
+
+const getCargasPorFecha = (targetDate) => {
+  if (targetDate === '2026-10-27') return CARGAS_2026_10_27.map((c) => ({ ...c }));
+  if (targetDate === '2026-10-28') return CARGAS_2026_10_28.map((c) => ({ ...c }));
+  return [];
+};
 
 const DEFAULT_PV_FILAS = [
   { tipo: 'Camionetas', totalFlota: 14, taller: 5, activas: 9 },
@@ -102,44 +122,48 @@ const getNextDayFormatted = (dateStr) => {
   return `TOTAL PLAN DE CARGAS N-02 ${nextDate.getDate()} ${meses[nextDate.getMonth()]} ${nextDate.getFullYear()}`;
 };
 
-const getEmptyRecord = (targetDate) => ({
-  fecha: targetDate,
-  fechaTexto: formatDateToSpanish(targetDate),
-  plaza: 'VILLAHERMOSA',
-  kpis: {
-    planProgramado: 0,
-    cargasEjecutadas: DEFAULT_CARGAS_EJECUTADAS.length,
-    pendientes: 0,
-    cumplimiento: 0,
-    metrosRemisionados: DEFAULT_CARGAS_EJECUTADAS.reduce((acc, c) => acc + (Number(c.capacidad) || 0), 0)
-  },
-  cargasEjecutadas: DEFAULT_CARGAS_EJECUTADAS.map((c) => ({ ...c })),
-  piezas: {
-    ppes: 0,
-    dotCom: 0,
-    categorias: DEFAULT_CATEGORIES.map((c) => ({ ...c }))
-  },
-  comportamiento: {
-    promedioDiarioAsignadoFC: 0,
-    promedioDiarioOperado: 0,
-    remisionadoAcumulado: 0
-  },
-  planProximo: {
-    titulo: getNextDayFormatted(targetDate),
-    cargasProgramadas: 0,
-    cargasPendientes: [],
-    resumenFolio: '',
-    resumenM3: '',
-    observacionPendientes: ''
-  },
-  pvActivo: {
-    filas: getEmptyPvFilas()
-  },
-  headcount: {
-    filas: getEmptyHcFilas()
-  },
-  observacionesGenerales: ''
-});
+const getEmptyRecord = (targetDate) => {
+  const cargas = getCargasPorFecha(targetDate);
+  const totalM3 = cargas.reduce((acc, c) => acc + (Number(c.capacidad) || 0), 0);
+  return {
+    fecha: targetDate,
+    fechaTexto: formatDateToSpanish(targetDate),
+    plaza: 'VILLAHERMOSA',
+    kpis: {
+      planProgramado: 0,
+      cargasEjecutadas: cargas.length,
+      pendientes: 0,
+      cumplimiento: 0,
+      metrosRemisionados: totalM3
+    },
+    cargasEjecutadas: cargas,
+    piezas: {
+      ppes: 0,
+      dotCom: 0,
+      categorias: DEFAULT_CATEGORIES.map((c) => ({ ...c }))
+    },
+    comportamiento: {
+      promedioDiarioAsignadoFC: 0,
+      promedioDiarioOperado: 0,
+      remisionadoAcumulado: 0
+    },
+    planProximo: {
+      titulo: getNextDayFormatted(targetDate),
+      cargasProgramadas: 0,
+      cargasPendientes: [],
+      resumenFolio: '',
+      resumenM3: '',
+      observacionPendientes: ''
+    },
+    pvActivo: {
+      filas: getEmptyPvFilas()
+    },
+    headcount: {
+      filas: getEmptyHcFilas()
+    },
+    observacionesGenerales: ''
+  };
+};
 
 const cleanNumericInput = (val, isDecimal = false) => {
   if (val === undefined || val === null) return '';
@@ -175,13 +199,21 @@ const normalizeRecord = (raw, dateKey) => {
     ? Number(rawKpis.planProgramado) || 0
     : 0;
 
-  const esMockViejo = Array.isArray(raw.cargasEjecutadas) &&
-    raw.cargasEjecutadas.length === 11 &&
-    raw.cargasEjecutadas.some(c => c.destino === 'HUB Tuxtla' && Number(c.capacidad) === 153);
+  let rawCargas = Array.isArray(raw.cargasEjecutadas) ? raw.cargasEjecutadas : null;
 
-  const rawCargas = Array.isArray(raw.cargasEjecutadas) && raw.cargasEjecutadas.length > 0 && !esMockViejo
-    ? raw.cargasEjecutadas
-    : DEFAULT_CARGAS_EJECUTADAS;
+  if (targetDate === '2026-10-27') {
+    const tieneCargasErroneasDeHoy = rawCargas && rawCargas.some(c => c.destino === 'Macuspana' && Number(c.capacidad) === 18 && rawCargas.length === 12);
+    if (!rawCargas || rawCargas.length === 0 || tieneCargasErroneasDeHoy) {
+      rawCargas = CARGAS_2026_10_27;
+    }
+  } else if (targetDate === '2026-10-28') {
+    const tieneMockViejo = rawCargas && rawCargas.some(c => c.destino === 'HUB Tuxtla' && Number(c.capacidad) === 153);
+    if (!rawCargas || rawCargas.length === 0 || tieneMockViejo) {
+      rawCargas = CARGAS_2026_10_28;
+    }
+  } else if (!rawCargas) {
+    rawCargas = getCargasPorFecha(targetDate);
+  }
   const cargasEjec = rawCargas.map((c, i) => ({
     id: c.id ?? i + 1,
     destino: c.destino || '',
