@@ -72,7 +72,9 @@ const getCargasPorFecha = (targetDate) => (CARGAS_POR_FECHA[targetDate] || []).m
 
 const FILTROS_CARGAS_INVALIDAS = {
   '2026-10-27': (list) => list.some((c) => c.destino === 'Macuspana' && Number(c.capacidad) === 18 && list.length === 12),
-  '2026-10-28': (list) => list.some((c) => c.destino === 'HUB Tuxtla' && Number(c.capacidad) === 153)
+  '2026-10-28': (list) =>
+    list.some((c) => c.destino === 'HUB Tuxtla' && Number(c.capacidad) === 153) ||
+    (list.length === 22 && String(list[0]?.destino || '').toUpperCase() === 'PARAISO')
 };
 
 const PV_MATCHERS = {
@@ -228,21 +230,21 @@ const normalizeRecord = (raw, dateKey) => {
     estatus: c.estatus || 'Ejecutada'
   }));
 
-  const ejecCount = rawKpis.cargasEjecutadas !== undefined && rawKpis.cargasEjecutadas !== ''
+  const ejecCount = (!esInvalido && rawKpis.cargasEjecutadas !== undefined && rawKpis.cargasEjecutadas !== '')
     ? Number(rawKpis.cargasEjecutadas) || 0
     : cargasEjec.length;
 
-  const pendCount = rawKpis.pendientes !== undefined && rawKpis.pendientes !== ''
+  const pendCount = (!esInvalido && rawKpis.pendientes !== undefined && rawKpis.pendientes !== '')
     ? Number(rawKpis.pendientes) || 0
     : Math.max(0, planProg - ejecCount);
 
-  const cumpl = rawKpis.cumplimiento !== undefined && rawKpis.cumplimiento !== ''
+  const cumpl = (!esInvalido && rawKpis.cumplimiento !== undefined && rawKpis.cumplimiento !== '')
     ? Number(rawKpis.cumplimiento) || 0
     : (planProg > 0 ? Number(((ejecCount / planProg) * 100).toFixed(1)) : 0);
 
   const totalMetros = cargasEjec.reduce((acc, c) => acc + (Number(c.capacidad) || 0), 0);
 
-  const metrosRem = rawKpis.metrosRemisionados !== undefined && rawKpis.metrosRemisionados !== ''
+  const metrosRem = (!esInvalido && rawKpis.metrosRemisionados !== undefined && rawKpis.metrosRemisionados !== '')
     ? Number(rawKpis.metrosRemisionados) || 0
     : totalMetros;
 
