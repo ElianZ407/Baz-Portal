@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import html2canvas from 'html2canvas';
 import { fetchPlanesColocacionDb, savePlanColocacionDb, isSupabaseConfigured } from '../lib/supabaseClient';
-import { useFleet } from '../context/FleetContext';
 import { 
   Calendar, 
   ChevronLeft, 
@@ -381,8 +380,6 @@ const normalizeRecord = (raw, dateKey) => {
 };
 
 export const PlanColocacionView = () => {
-  const { units } = useFleet();
-
   const toDateKey = (date) => {
     const y = date.getFullYear();
     const m = String(date.getMonth() + 1).padStart(2, '0');
@@ -503,89 +500,6 @@ export const PlanColocacionView = () => {
   }, [records, currentDate]);
 
   const savedDates = useMemo(() => Object.keys(records).sort().reverse(), [records]);
-
-  const handleSyncFromFleet = () => {
-    if (!units || units.length === 0) {
-      showToast('No hay viajes registrados en el plan de hoy');
-      return;
-    }
-
-    const limpiarDestino = (str) => {
-      return String(str || '')
-        .replace(/^mi\s+ekt\s+/i, '')
-        .replace(/^ekt\s+mega\s+tab\s+/i, '')
-        .replace(/^ekt\s+mega\s+/i, '')
-        .replace(/^ekt\s+motos\s+/i, '')
-        .replace(/^ekt\s+/i, '')
-        .replace(/\s*\(Retorno\)/gi, '')
-        .trim();
-    };
-
-    const viajesEjecutados = units.filter((u) => {
-      const plan = String(u.estatusPlaneacion || '').toUpperCase();
-      const patio = String(u.estatusPatio || '').toUpperCase();
-      const sup = String(u.estatusSupervisor || '').toUpperCase();
-      const origen = String(u.estatusOrigen || '').toUpperCase();
-      return origen.includes('CASETA') ||
-        ['CARGADO', 'COLOCADO', 'RETORNO', 'COMPLETADO'].includes(plan) ||
-        ['CARGADO', 'EN RUTA', 'EN SUCURSAL', 'DESCARGANDO'].includes(patio) ||
-        ['EN RUTA', 'ESPERA DESCARGA', 'DESCARGANDO', 'RETORNO', 'COMPLETADO'].includes(sup);
-    });
-
-    if (viajesEjecutados.length === 0) {
-      showToast('Aún no hay viajes con salida en caseta o en ruta en el plan');
-      return;
-    }
-
-    const nuevasCargas = viajesEjecutados.map((u, idx) => {
-      const destLimpio = limpiarDestino(u.destino || u.numSucursal || `Viaje ${idx + 1}`);
-      const esForaneo = String(u.fl || '').toUpperCase() === 'FORANEO';
-      const esHub = destLimpio.toUpperCase().includes('HUB');
-      const tipo = esHub ? 'HUB' : esForaneo ? 'Foráneo' : 'Retail';
-      const cap = Number(u.capUnidad) || 18;
-      const linea = u.linea || 'LTI - VHS';
-
-      return {
-        id: idx + 1,
-        destino: destLimpio,
-        tipo,
-        capacidad: cap,
-        linea,
-        estatus: 'Ejecutada'
-      };
-    });
-
-    const totalM3 = nuevasCargas.reduce((acc, c) => acc + (Number(c.capacidad) || 0), 0);
-
-    setRecords((prev) => {
-      const existing = prev[currentDate] || getEmptyRecord(currentDate);
-      const updated = {
-        ...existing,
-        cargasEjecutadas: nuevasCargas,
-        kpis: {
-          ...existing.kpis,
-          cargasEjecutadas: nuevasCargas.length,
-          metrosRemisionados: totalM3
-        }
-      };
-      persistToCloud(updated);
-      return { ...prev, [currentDate]: updated };
-    });
-
-    if (isEditing && editForm) {
-      setEditForm((prev) => ({
-        ...prev,
-        cargasEjecutadas: nuevasCargas,
-        kpis: {
-          ...prev.kpis,
-          cargasEjecutadas: nuevasCargas.length,
-          metrosRemisionados: totalM3
-        }
-      }));
-    }
-
-    showToast(`Se sincronizaron ${nuevasCargas.length} cargas ejecutadas desde el plan`);
-  };
 
   const handlePrevDay = () => {
     const [y, m, d] = currentDate.split('-').map(Number);
@@ -1294,16 +1208,8 @@ export const PlanColocacionView = () => {
           <main className="flyer-content-grid">
             <div className="flyer-col-left">
               <div className="flyer-panel panel-resumen-cargas">
-                <div className="panel-header header-green" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.45rem 0.85rem' }}>
+                <div className="panel-header header-green">
                   <span>1. RESUMEN DE CARGAS EJECUTADAS – {currentData.fechaTexto}</span>
-                  <button 
-                    type="button" 
-                    className="btn-sync-cargas" 
-                    onClick={handleSyncFromFleet}
-                    title="Sincronizar cargas ejecutadas con los viajes en caseta del plan de hoy"
-                  >
-                    <RefreshCw size={12} /> Sincronizar con Plan de Hoy
-                  </button>
                 </div>
 
                 <div className="panel-table-wrap">
@@ -1847,14 +1753,9 @@ export const PlanColocacionView = () => {
                 <div className="edit-cargas-section">
                   <div className="edit-section-header-bar">
                     <span>Listado de Cargas Ejecutadas</span>
-                    <div style={{ display: 'flex', gap: '0.5rem' }}>
-                      <button type="button" className="btn btn-sm btn-secondary" onClick={handleSyncFromFleet} title="Traer viajes del plan actual">
-                        <RefreshCw size={13} /> Sincronizar desde Plan
-                      </button>
-                      <button type="button" className="btn btn-sm btn-primary" onClick={handleAddCarga}>
-                        <Plus size={14} /> Agregar Carga
-                      </button>
-                    </div>
+                    <button type="button" className="btn btn-sm btn-primary" onClick={handleAddCarga}>
+                      <Plus size={14} /> Agregar Carga
+                    </button>
                   </div>
 
                   <div className="cargas-edit-list">
