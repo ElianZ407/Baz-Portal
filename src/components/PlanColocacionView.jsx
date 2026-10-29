@@ -59,8 +59,32 @@ const CARGAS_2026_10_28 = [
   { id: 8, destino: 'Emiliano Zapata', tipo: 'Foráneo', capacidad: 18, linea: 'LTI - VHS', estatus: 'Ejecutada' },
   { id: 9, destino: 'Frontera', tipo: 'Retail', capacidad: 18, linea: 'LTI - VHS', estatus: 'Ejecutada' },
   { id: 10, destino: 'Macuspana', tipo: 'Retail', capacidad: 18, linea: 'LTI - VHS', estatus: 'Ejecutada' },
-  { id: 11, destino: 'San Andrés Tuxtla', tipo: 'Foráneo', capacidad: 50, linea: 'LTI - VHS', estatus: 'Ejecutada' },
-  { id: 12, destino: 'Escárcega', tipo: 'Foráneo', capacidad: 50, linea: 'LTI - VHS', estatus: 'Ejecutada' }
+  { id: 11, destino: 'Teapa', tipo: 'Retail', capacidad: 18, linea: 'LTI - VHS', estatus: 'Ejecutada' },
+  { id: 12, destino: 'Pichucalco', tipo: 'Foráneo', capacidad: 18, linea: 'LTI - VHS', estatus: 'Ejecutada' },
+  { id: 13, destino: 'Reforma Chiapas', tipo: 'Foráneo', capacidad: 18, linea: 'LTI - VHS', estatus: 'Ejecutada' },
+  { id: 14, destino: 'Ocosingo', tipo: 'Foráneo', capacidad: 90, linea: 'LTI - VHS', estatus: 'Ejecutada' },
+  { id: 15, destino: 'Palenque Chiapas', tipo: 'Foráneo', capacidad: 18, linea: 'LTI - VHS', estatus: 'Ejecutada' },
+  { id: 16, destino: 'San Andrés Tuxtla', tipo: 'Foráneo', capacidad: 50, linea: 'LTI - VHS', estatus: 'Ejecutada' },
+  { id: 17, destino: 'V. Carranza Chiapas', tipo: 'Foráneo', capacidad: 50, linea: 'LTI - VHS', estatus: 'Ejecutada' },
+  { id: 18, destino: 'Escárcega', tipo: 'Foráneo', capacidad: 50, linea: 'LTI - VHS', estatus: 'Ejecutada' },
+  { id: 19, destino: 'Tehuantepec Oaxaca', tipo: 'Foráneo', capacidad: 50, linea: 'LTI - VHS', estatus: 'Ejecutada' },
+  { id: 20, destino: 'Tapachula', tipo: 'Foráneo', capacidad: 90, linea: 'LTI - VHS', estatus: 'Ejecutada' },
+  { id: 21, destino: 'Matías Romero', tipo: 'HUB', capacidad: 110, linea: 'BRITO', estatus: 'Ejecutada' },
+  { id: 22, destino: 'Cd. Hidalgo Chiapas', tipo: 'Foráneo', capacidad: 110, linea: 'BRITO', estatus: 'Ejecutada' },
+  { id: 23, destino: 'BDR Santa Ana', tipo: 'Foráneo', capacidad: 50, linea: 'LTI - VHS', estatus: 'Ejecutada' },
+  { id: 24, destino: 'La Concordia', tipo: 'HUB', capacidad: 110, linea: 'LTI - HUB TUXTLA', estatus: 'Ejecutada' },
+  { id: 25, destino: 'Villahermosa', tipo: 'Retail', capacidad: 18, linea: 'LTI - VHS', estatus: 'Ejecutada' },
+  { id: 26, destino: 'Macuspana', tipo: 'Retail', capacidad: 50, linea: 'LTI - VHS', estatus: 'Ejecutada' },
+  { id: 27, destino: 'Tenosique Tabasco', tipo: 'Foráneo', capacidad: 18, linea: 'LTI - VHS', estatus: 'Ejecutada' },
+  { id: 28, destino: 'Matías Romero', tipo: 'HUB', capacidad: 110, linea: 'VALLEY', estatus: 'Ejecutada' },
+  { id: 29, destino: 'Matías Romero', tipo: 'HUB', capacidad: 80, linea: 'LIBRAS EXPRESS', estatus: 'Ejecutada' },
+  { id: 30, destino: 'Juchitán', tipo: 'Foráneo', capacidad: 110, linea: 'LTI - VHS', estatus: 'Ejecutada' },
+  { id: 31, destino: 'Juchitán', tipo: 'Foráneo', capacidad: 90, linea: 'ROLDAN', estatus: 'Ejecutada' },
+  { id: 32, destino: 'Comitán', tipo: 'Foráneo', capacidad: 90, linea: 'LTI FULL - VHS', estatus: 'Ejecutada' },
+  { id: 33, destino: 'San Cristóbal de las Casas', tipo: 'Foráneo', capacidad: 90, linea: 'LTI FULL - VHS', estatus: 'Ejecutada' },
+  { id: 34, destino: 'La Venta Tabasco', tipo: 'Foráneo', capacidad: 50, linea: 'LTI - VHS', estatus: 'Ejecutada' },
+  { id: 35, destino: 'Minatitlán', tipo: 'Foráneo', capacidad: 50, linea: 'LTI - VHS', estatus: 'Ejecutada' },
+  { id: 36, destino: 'Teapa', tipo: 'Retail', capacidad: 50, linea: 'LTI - VHS', estatus: 'Ejecutada' }
 ];
 
 const CARGAS_POR_FECHA = {
@@ -73,8 +97,9 @@ const getCargasPorFecha = (targetDate) => (CARGAS_POR_FECHA[targetDate] || []).m
 const FILTROS_CARGAS_INVALIDAS = {
   '2026-10-27': (list) => list.some((c) => c.destino === 'Macuspana' && Number(c.capacidad) === 18 && list.length === 12),
   '2026-10-28': (list) =>
+    list.length !== 36 ||
     list.some((c) => c.destino === 'HUB Tuxtla' && Number(c.capacidad) === 153) ||
-    (list.length === 22 && String(list[0]?.destino || '').toUpperCase() === 'PARAISO')
+    String(list[0]?.destino || '').toUpperCase() === 'PARAISO'
 };
 
 const PV_MATCHERS = {
