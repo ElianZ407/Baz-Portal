@@ -96,11 +96,16 @@ const deduplicarCargasPorDestino = (lista) => {
 
 const getCargasPorFecha = (targetDate) => deduplicarCargasPorDestino(CARGAS_POR_FECHA[targetDate] || []).map((c, idx) => ({ ...c, id: idx + 1 }));
 
+const esClonDeOct27 = (list) =>
+  Array.isArray(list) &&
+  list.length === 11 &&
+  list.some((c) => c.destino === 'HUB Tuxtla' && Number(c.capacidad) === 153);
+
 const FILTROS_CARGAS_INVALIDAS = {
   '2026-10-27': (list) => list.some((c) => c.destino === 'Macuspana' && Number(c.capacidad) === 18 && list.length === 12),
   '2026-10-28': (list) =>
     list.length !== 28 ||
-    list.some((c) => c.destino === 'HUB Tuxtla' && Number(c.capacidad) === 153) ||
+    esClonDeOct27(list) ||
     String(list[0]?.destino || '').toUpperCase() === 'PARAISO'
 };
 
@@ -173,17 +178,16 @@ const getNextDayFormatted = (dateStr) => {
 
 const getEmptyRecord = (targetDate) => {
   const cargas = getCargasPorFecha(targetDate);
-  const totalM3 = cargas.reduce((acc, c) => acc + (Number(c.capacidad) || 0), 0);
   return {
     fecha: targetDate,
     fechaTexto: formatDateToSpanish(targetDate),
     plaza: 'VILLAHERMOSA',
     kpis: {
       planProgramado: 0,
-      cargasEjecutadas: cargas.length,
+      cargasEjecutadas: 0,
       pendientes: 0,
       cumplimiento: 0,
-      metrosRemisionados: totalM3
+      metrosRemisionados: 0
     },
     cargasEjecutadas: cargas,
     piezas: {
@@ -246,7 +250,8 @@ const normalizeRecord = (raw, dateKey) => {
     : 0;
 
   const rawCargas = Array.isArray(raw.cargasEjecutadas) ? raw.cargasEjecutadas : null;
-  const esInvalido = !rawCargas || rawCargas.length === 0 || Boolean(FILTROS_CARGAS_INVALIDAS[targetDate]?.(rawCargas));
+  const validadorFecha = FILTROS_CARGAS_INVALIDAS[targetDate] || ((list) => targetDate !== '2026-10-27' && esClonDeOct27(list));
+  const esInvalido = !rawCargas || Boolean(validadorFecha(rawCargas));
   const cargasFuente = deduplicarCargasPorDestino(esInvalido ? getCargasPorFecha(targetDate) : rawCargas);
   const cargasEjec = cargasFuente.map((c, i) => ({
     id: i + 1,
@@ -257,23 +262,23 @@ const normalizeRecord = (raw, dateKey) => {
     estatus: c.estatus || 'Ejecutada'
   }));
 
-  const ejecCount = rawKpis.cargasEjecutadas !== undefined && rawKpis.cargasEjecutadas !== ''
-    ? Number(rawKpis.cargasEjecutadas) || 0
-    : (targetDate === '2026-10-28' ? 36 : cargasEjec.length);
+  const eraClonAutomatico = targetDate !== '2026-10-27' && esClonDeOct27(rawCargas) && planProg === 0;
 
-  const pendCount = rawKpis.pendientes !== undefined && rawKpis.pendientes !== ''
+  const ejecCount = (!eraClonAutomatico && rawKpis.cargasEjecutadas !== undefined && rawKpis.cargasEjecutadas !== '')
+    ? Number(rawKpis.cargasEjecutadas) || 0
+    : 0;
+
+  const pendCount = (!eraClonAutomatico && rawKpis.pendientes !== undefined && rawKpis.pendientes !== '')
     ? Number(rawKpis.pendientes) || 0
     : Math.max(0, planProg - ejecCount);
 
-  const cumpl = rawKpis.cumplimiento !== undefined && rawKpis.cumplimiento !== ''
+  const cumpl = (!eraClonAutomatico && rawKpis.cumplimiento !== undefined && rawKpis.cumplimiento !== '')
     ? Number(rawKpis.cumplimiento) || 0
     : (planProg > 0 ? Number(((ejecCount / planProg) * 100).toFixed(1)) : 0);
 
-  const totalMetros = cargasEjec.reduce((acc, c) => acc + (Number(c.capacidad) || 0), 0);
-
-  const metrosRem = rawKpis.metrosRemisionados !== undefined && rawKpis.metrosRemisionados !== ''
+  const metrosRem = (!eraClonAutomatico && rawKpis.metrosRemisionados !== undefined && rawKpis.metrosRemisionados !== '')
     ? Number(rawKpis.metrosRemisionados) || 0
-    : (targetDate === '2026-10-28' ? 1936 : totalMetros);
+    : 0;
 
   const rawCategorias = Array.isArray(raw.piezas?.categorias)
     ? raw.piezas.categorias
@@ -1773,7 +1778,6 @@ export const PlanColocacionView = () => {
                       onChange={(e) => handleKpiChange('metrosRemisionados', e.target.value)}
                       onKeyDown={(e) => handleNumericKeyDown(e, editForm.kpis.metrosRemisionados, (v) => handleKpiChange('metrosRemisionados', v))}
                     />
-                    <small className="form-hint">Nota: Se actualiza también al sumar las capacidades de las cargas ejecutadas.</small>
                   </div>
                 </div>
               )}
