@@ -2,11 +2,12 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import html2canvas from 'html2canvas';
 import { fetchPlanesColocacionDb, savePlanColocacionDb, isSupabaseConfigured } from '../lib/supabaseClient';
 import { useFleet } from '../context/FleetContext';
-import { extraerCargasDesdeImagen } from '../utils/colocacionImageParser';
+import { extraerCargasDesdeImagen, extraerCargasDesdeTextoOcr } from '../utils/colocacionImageParser';
 import { 
   Calendar, 
   ChevronLeft, 
   ChevronRight, 
+  ClipboardPaste,
   Download, 
   Copy, 
   Edit3, 
@@ -542,6 +543,51 @@ export const PlanColocacionView = () => {
 
   const savedDates = useMemo(() => Object.keys(records).sort().reverse(), [records]);
 
+  const aplicarCargasExtraidas = (nuevasCargas, origenTexto = 'la imagen') => {
+    if (!nuevasCargas || nuevasCargas.length === 0) {
+      showToast(`No se detectaron destinos válidos en ${origenTexto}.`);
+      return false;
+    }
+
+    setRecords((prev) => {
+      const existing = normalizeRecord(prev[currentDate], currentDate);
+      const updated = {
+        ...existing,
+        updatedAt: new Date().toISOString(),
+        cargasEjecutadas: nuevasCargas
+      };
+      persistToCloud(updated);
+      return { ...prev, [currentDate]: updated };
+    });
+
+    if (isEditing && editForm) {
+      setEditForm((prev) => ({
+        ...prev,
+        cargasEjecutadas: nuevasCargas.map((c) => ({
+          ...c,
+          capacidad: String(c.capacidad ?? '')
+        }))
+      }));
+    }
+
+    showToast(`Se rellenaron ${nuevasCargas.length} destinos desde ${origenTexto} (metros manuales intactos).`);
+    return true;
+  };
+
+  const procesarBlobImagen = async (blob, origenTexto = 'la imagen') => {
+    if (!blob || isReadingImage) return;
+    setIsReadingImage(true);
+    showToast(`Analizando ${origenTexto} para extraer destinos y capacidades...`);
+    try {
+      const nuevasCargas = await extraerCargasDesdeImagen(blob, catalogoSucursales);
+      aplicarCargasExtraidas(nuevasCargas, origenTexto);
+    } catch (err) {
+      showToast(err?.message || `Error al procesar ${origenTexto}.`);
+    } finally {
+      setIsReadingImage(false);
+    }
+  };
+
   const handleTriggerImageUpload = () => {
     if (isReadingImage) return;
     imageInputRef.current?.click();
@@ -551,45 +597,71 @@ export const PlanColocacionView = () => {
     const file = e.target.files?.[0];
     e.target.value = '';
     if (!file) return;
+    await procesarBlobImagen(file, 'la imagen');
+  };
 
-    setIsReadingImage(true);
-    showToast('Analizando imagen para extraer destinos y capacidades...');
-
+  const handlePasteFromClipboardButton = async () => {
+    if (isReadingImage) return;
     try {
-      const nuevasCargas = await extraerCargasDesdeImagen(file, catalogoSucursales);
-      if (!nuevasCargas || nuevasCargas.length === 0) {
-        showToast('No se detectaron destinos válidos en la imagen.');
-        return;
+      if (navigator.clipboard?.read) {
+        const items = await navigator.clipboard.read();
+        for (const item of items) {
+          const imageType = item.types.find((t) => t.startsWith('image/'));
+          if (imageType) {
+            const blob = await item.getType(imageType);
+            await procesarBlobImagen(blob, 'el portapapeles');
+            return;
+          }
+        }
       }
-
-      setRecords((prev) => {
-        const existing = normalizeRecord(prev[currentDate], currentDate);
-        const updated = {
-          ...existing,
-          updatedAt: new Date().toISOString(),
-          cargasEjecutadas: nuevasCargas
-        };
-        persistToCloud(updated);
-        return { ...prev, [currentDate]: updated };
-      });
-
-      if (isEditing && editForm) {
-        setEditForm((prev) => ({
-          ...prev,
-          cargasEjecutadas: nuevasCargas.map((c) => ({
-            ...c,
-            capacidad: String(c.capacidad ?? '')
-          }))
-        }));
+      if (navigator.clipboard?.readText) {
+        const texto = await navigator.clipboard.readText();
+        if (texto && texto.trim()) {
+          const cargasTexto = extraerCargasDesdeTextoOcr(texto, catalogoSucursales);
+          if (cargasTexto.length > 0) {
+            aplicarCargasExtraidas(cargasTexto, 'el portapapeles');
+            return;
+          }
+        }
       }
-
-      showToast(`Se rellenaron ${nuevasCargas.length} destinos desde la imagen (metros manuales intactos).`);
-    } catch (err) {
-      showToast(err?.message || 'Error al procesar la imagen seleccionada.');
-    } finally {
-      setIsReadingImage(false);
+      showToast('Copia primero una captura o tabla (Ctrl+C o Win+Shift+S) y vuelve a pegar.');
+    } catch {
+      showToast('Usa Ctrl+V directamente en el teclado para pegar tu captura.');
     }
   };
+
+  useEffect(() => {
+    const onWindowPaste = (e) => {
+      if (isReadingImage) return;
+      const items = Array.from(e.clipboardData?.items || []);
+      const imageItem = items.find((it) => it.type && it.type.startsWith('image/'));
+      const tag = document.activeElement?.tagName;
+      const esInputActivo = tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT';
+
+      if (!esInputActivo) {
+        const textoPlano = e.clipboardData?.getData('text/plain') || '';
+        if (textoPlano && textoPlano.includes('\n')) {
+          const cargasTexto = extraerCargasDesdeTextoOcr(textoPlano, catalogoSucursales);
+          if (cargasTexto.length > 0) {
+            e.preventDefault();
+            aplicarCargasExtraidas(cargasTexto, 'el portapapeles');
+            return;
+          }
+        }
+      }
+
+      if (imageItem) {
+        const blob = imageItem.getAsFile();
+        if (blob) {
+          e.preventDefault();
+          procesarBlobImagen(blob, 'la imagen pegada');
+        }
+      }
+    };
+
+    window.addEventListener('paste', onWindowPaste);
+    return () => window.removeEventListener('paste', onWindowPaste);
+  });
 
   const handlePrevDay = () => {
     const [y, m, d] = currentDate.split('-').map(Number);
@@ -1311,18 +1383,30 @@ export const PlanColocacionView = () => {
           <main className="flyer-content-grid">
             <div className="flyer-col-left">
               <div className="flyer-panel panel-resumen-cargas">
-                <div className="panel-header header-green" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.45rem 0.85rem' }}>
+                <div className="panel-header header-green" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.45rem 0.85rem', gap: '0.5rem' }}>
                   <span>1. RESUMEN DE CARGAS EJECUTADAS – {currentData.fechaTexto}</span>
-                  <button
-                    type="button"
-                    className="btn-sync-cargas"
-                    onClick={handleTriggerImageUpload}
-                    disabled={isReadingImage}
-                    title="Subir imagen de tabla para rellenar destinos automáticamente (sin sumar metros)"
-                  >
-                    {isReadingImage ? <RefreshCw size={12} className="spin-icon" /> : <ImagePlus size={12} />}
-                    <span>{isReadingImage ? 'Leyendo imagen...' : 'Subir Imagen'}</span>
-                  </button>
+                  <div className="btn-sync-cargas-group" style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                    <button
+                      type="button"
+                      className="btn-sync-cargas"
+                      onClick={handlePasteFromClipboardButton}
+                      disabled={isReadingImage}
+                      title="Pegar imagen o tabla copiada del portapapeles (o presiona Ctrl+V)"
+                    >
+                      {isReadingImage ? <RefreshCw size={12} className="spin-icon" /> : <ClipboardPaste size={12} />}
+                      <span>{isReadingImage ? 'Leyendo...' : 'Pegar (Ctrl+V)'}</span>
+                    </button>
+                    <button
+                      type="button"
+                      className="btn-sync-cargas"
+                      onClick={handleTriggerImageUpload}
+                      disabled={isReadingImage}
+                      title="Subir archivo de imagen desde tu equipo"
+                    >
+                      <ImagePlus size={12} />
+                      <span>Subir Imagen</span>
+                    </button>
+                  </div>
                 </div>
 
                 <div className="panel-table-wrap">
@@ -1869,12 +1953,22 @@ export const PlanColocacionView = () => {
                       <button
                         type="button"
                         className="btn btn-sm btn-secondary"
+                        onClick={handlePasteFromClipboardButton}
+                        disabled={isReadingImage}
+                        title="Pegar captura copiada en el portapapeles (o presiona Ctrl+V)"
+                      >
+                        {isReadingImage ? <RefreshCw size={13} className="spin-icon" /> : <ClipboardPaste size={13} />}
+                        <span>{isReadingImage ? 'Leyendo...' : 'Pegar (Ctrl+V)'}</span>
+                      </button>
+                      <button
+                        type="button"
+                        className="btn btn-sm btn-secondary"
                         onClick={handleTriggerImageUpload}
                         disabled={isReadingImage}
                         title="Subir captura o imagen para rellenar el listado sin alterar metros remisionados"
                       >
-                        {isReadingImage ? <RefreshCw size={13} className="spin-icon" /> : <ImagePlus size={13} />}
-                        <span>{isReadingImage ? 'Leyendo...' : 'Subir Imagen'}</span>
+                        <ImagePlus size={13} />
+                        <span>Subir Imagen</span>
                       </button>
                       <button type="button" className="btn btn-sm btn-primary" onClick={handleAddCarga}>
                         <Plus size={14} /> Agregar Carga
