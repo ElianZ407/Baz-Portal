@@ -53,38 +53,30 @@ const CARGAS_2026_10_28 = [
   { id: 2, destino: 'Paraíso', tipo: 'Retail', capacidad: 18, linea: 'LTI - VHS', estatus: 'Ejecutada' },
   { id: 3, destino: 'Coatzacoalcos', tipo: 'Foráneo', capacidad: 50, linea: 'YODLOGIXTRADE', estatus: 'Ejecutada' },
   { id: 4, destino: 'Comalcalco', tipo: 'Retail', capacidad: 50, linea: 'LTI - VHS', estatus: 'Ejecutada' },
-  { id: 5, destino: 'Coatzacoalcos', tipo: 'Foráneo', capacidad: 40, linea: 'LTI MADRINA - VHS', estatus: 'Ejecutada' },
-  { id: 6, destino: 'Coatzacoalcos', tipo: 'Foráneo', capacidad: 50, linea: 'LTI - VHS', estatus: 'Ejecutada' },
-  { id: 7, destino: 'Cárdenas Tabasco', tipo: 'Foráneo', capacidad: 18, linea: 'LTI - VHS', estatus: 'Ejecutada' },
-  { id: 8, destino: 'Emiliano Zapata', tipo: 'Foráneo', capacidad: 18, linea: 'LTI - VHS', estatus: 'Ejecutada' },
-  { id: 9, destino: 'Frontera', tipo: 'Retail', capacidad: 18, linea: 'LTI - VHS', estatus: 'Ejecutada' },
-  { id: 10, destino: 'Macuspana', tipo: 'Retail', capacidad: 18, linea: 'LTI - VHS', estatus: 'Ejecutada' },
-  { id: 11, destino: 'Teapa', tipo: 'Retail', capacidad: 18, linea: 'LTI - VHS', estatus: 'Ejecutada' },
-  { id: 12, destino: 'Pichucalco', tipo: 'Foráneo', capacidad: 18, linea: 'LTI - VHS', estatus: 'Ejecutada' },
-  { id: 13, destino: 'Reforma Chiapas', tipo: 'Foráneo', capacidad: 18, linea: 'LTI - VHS', estatus: 'Ejecutada' },
-  { id: 14, destino: 'Ocosingo', tipo: 'Foráneo', capacidad: 90, linea: 'LTI - VHS', estatus: 'Ejecutada' },
-  { id: 15, destino: 'Palenque Chiapas', tipo: 'Foráneo', capacidad: 18, linea: 'LTI - VHS', estatus: 'Ejecutada' },
-  { id: 16, destino: 'San Andrés Tuxtla', tipo: 'Foráneo', capacidad: 50, linea: 'LTI - VHS', estatus: 'Ejecutada' },
-  { id: 17, destino: 'V. Carranza Chiapas', tipo: 'Foráneo', capacidad: 50, linea: 'LTI - VHS', estatus: 'Ejecutada' },
-  { id: 18, destino: 'Escárcega', tipo: 'Foráneo', capacidad: 50, linea: 'LTI - VHS', estatus: 'Ejecutada' },
-  { id: 19, destino: 'Tehuantepec Oaxaca', tipo: 'Foráneo', capacidad: 50, linea: 'LTI - VHS', estatus: 'Ejecutada' },
-  { id: 20, destino: 'Tapachula', tipo: 'Foráneo', capacidad: 90, linea: 'LTI - VHS', estatus: 'Ejecutada' },
-  { id: 21, destino: 'Matías Romero', tipo: 'HUB', capacidad: 110, linea: 'BRITO', estatus: 'Ejecutada' },
-  { id: 22, destino: 'Cd. Hidalgo Chiapas', tipo: 'Foráneo', capacidad: 110, linea: 'BRITO', estatus: 'Ejecutada' },
-  { id: 23, destino: 'BDR Santa Ana', tipo: 'Foráneo', capacidad: 50, linea: 'LTI - VHS', estatus: 'Ejecutada' },
-  { id: 24, destino: 'La Concordia', tipo: 'HUB', capacidad: 110, linea: 'LTI - HUB TUXTLA', estatus: 'Ejecutada' },
-  { id: 25, destino: 'Villahermosa', tipo: 'Retail', capacidad: 18, linea: 'LTI - VHS', estatus: 'Ejecutada' },
-  { id: 26, destino: 'Macuspana', tipo: 'Retail', capacidad: 50, linea: 'LTI - VHS', estatus: 'Ejecutada' },
-  { id: 27, destino: 'Tenosique Tabasco', tipo: 'Foráneo', capacidad: 18, linea: 'LTI - VHS', estatus: 'Ejecutada' },
-  { id: 28, destino: 'Matías Romero', tipo: 'HUB', capacidad: 110, linea: 'VALLEY', estatus: 'Ejecutada' },
-  { id: 29, destino: 'Matías Romero', tipo: 'HUB', capacidad: 80, linea: 'LIBRAS EXPRESS', estatus: 'Ejecutada' },
-  { id: 30, destino: 'Juchitán', tipo: 'Foráneo', capacidad: 110, linea: 'LTI - VHS', estatus: 'Ejecutada' },
-  { id: 31, destino: 'Juchitán', tipo: 'Foráneo', capacidad: 90, linea: 'ROLDAN', estatus: 'Ejecutada' },
-  { id: 32, destino: 'Comitán', tipo: 'Foráneo', capacidad: 90, linea: 'LTI FULL - VHS', estatus: 'Ejecutada' },
-  { id: 33, destino: 'San Cristóbal de las Casas', tipo: 'Foráneo', capacidad: 90, linea: 'LTI FULL - VHS', estatus: 'Ejecutada' },
-  { id: 34, destino: 'La Venta Tabasco', tipo: 'Foráneo', capacidad: 50, linea: 'LTI - VHS', estatus: 'Ejecutada' },
-  { id: 35, destino: 'Minatitlán', tipo: 'Foráneo', capacidad: 50, linea: 'LTI - VHS', estatus: 'Ejecutada' },
-  { id: 36, destino: 'Teapa', tipo: 'Retail', capacidad: 50, linea: 'LTI - VHS', estatus: 'Ejecutada' }
+  { id: 5, destino: 'Cárdenas Tabasco', tipo: 'Foráneo', capacidad: 18, linea: 'LTI - VHS', estatus: 'Ejecutada' },
+  { id: 6, destino: 'Emiliano Zapata', tipo: 'Foráneo', capacidad: 18, linea: 'LTI - VHS', estatus: 'Ejecutada' },
+  { id: 7, destino: 'Frontera', tipo: 'Retail', capacidad: 18, linea: 'LTI - VHS', estatus: 'Ejecutada' },
+  { id: 8, destino: 'Teapa', tipo: 'Retail', capacidad: 18, linea: 'LTI - VHS', estatus: 'Ejecutada' },
+  { id: 9, destino: 'Pichucalco', tipo: 'Foráneo', capacidad: 18, linea: 'LTI - VHS', estatus: 'Ejecutada' },
+  { id: 10, destino: 'Reforma Chiapas', tipo: 'Foráneo', capacidad: 18, linea: 'LTI - VHS', estatus: 'Ejecutada' },
+  { id: 11, destino: 'Ocosingo', tipo: 'Foráneo', capacidad: 90, linea: 'LTI - VHS', estatus: 'Ejecutada' },
+  { id: 12, destino: 'Palenque Chiapas', tipo: 'Foráneo', capacidad: 18, linea: 'LTI - VHS', estatus: 'Ejecutada' },
+  { id: 13, destino: 'San Andrés Tuxtla', tipo: 'Foráneo', capacidad: 50, linea: 'LTI - VHS', estatus: 'Ejecutada' },
+  { id: 14, destino: 'V. Carranza Chiapas', tipo: 'Foráneo', capacidad: 50, linea: 'LTI - VHS', estatus: 'Ejecutada' },
+  { id: 15, destino: 'Escárcega', tipo: 'Foráneo', capacidad: 50, linea: 'LTI - VHS', estatus: 'Ejecutada' },
+  { id: 16, destino: 'Tehuantepec Oaxaca', tipo: 'Foráneo', capacidad: 50, linea: 'LTI - VHS', estatus: 'Ejecutada' },
+  { id: 17, destino: 'Tapachula', tipo: 'Foráneo', capacidad: 90, linea: 'LTI - VHS', estatus: 'Ejecutada' },
+  { id: 18, destino: 'Matías Romero', tipo: 'HUB', capacidad: 110, linea: 'BRITO', estatus: 'Ejecutada' },
+  { id: 19, destino: 'Cd. Hidalgo Chiapas', tipo: 'Foráneo', capacidad: 110, linea: 'BRITO', estatus: 'Ejecutada' },
+  { id: 20, destino: 'BDR Santa Ana', tipo: 'Foráneo', capacidad: 50, linea: 'LTI - VHS', estatus: 'Ejecutada' },
+  { id: 21, destino: 'La Concordia', tipo: 'HUB', capacidad: 110, linea: 'LTI - HUB TUXTLA', estatus: 'Ejecutada' },
+  { id: 22, destino: 'Villahermosa', tipo: 'Retail', capacidad: 18, linea: 'LTI - VHS', estatus: 'Ejecutada' },
+  { id: 23, destino: 'Tenosique Tabasco', tipo: 'Foráneo', capacidad: 18, linea: 'LTI - VHS', estatus: 'Ejecutada' },
+  { id: 24, destino: 'Juchitán', tipo: 'Foráneo', capacidad: 110, linea: 'LTI - VHS', estatus: 'Ejecutada' },
+  { id: 25, destino: 'Comitán', tipo: 'Foráneo', capacidad: 90, linea: 'LTI FULL - VHS', estatus: 'Ejecutada' },
+  { id: 26, destino: 'San Cristóbal de las Casas', tipo: 'Foráneo', capacidad: 90, linea: 'LTI FULL - VHS', estatus: 'Ejecutada' },
+  { id: 27, destino: 'La Venta Tabasco', tipo: 'Foráneo', capacidad: 50, linea: 'LTI - VHS', estatus: 'Ejecutada' },
+  { id: 28, destino: 'Minatitlán', tipo: 'Foráneo', capacidad: 50, linea: 'LTI - VHS', estatus: 'Ejecutada' }
 ];
 
 const CARGAS_POR_FECHA = {
@@ -92,12 +84,22 @@ const CARGAS_POR_FECHA = {
   '2026-10-28': CARGAS_2026_10_28
 };
 
-const getCargasPorFecha = (targetDate) => (CARGAS_POR_FECHA[targetDate] || []).map((c) => ({ ...c }));
+const deduplicarCargasPorDestino = (lista) => {
+  const vistos = new Set();
+  return (lista || []).filter((c) => {
+    const clave = String(c?.destino || '').trim().toLowerCase();
+    if (!clave || vistos.has(clave)) return false;
+    vistos.add(clave);
+    return true;
+  });
+};
+
+const getCargasPorFecha = (targetDate) => deduplicarCargasPorDestino(CARGAS_POR_FECHA[targetDate] || []).map((c, idx) => ({ ...c, id: idx + 1 }));
 
 const FILTROS_CARGAS_INVALIDAS = {
   '2026-10-27': (list) => list.some((c) => c.destino === 'Macuspana' && Number(c.capacidad) === 18 && list.length === 12),
   '2026-10-28': (list) =>
-    list.length !== 36 ||
+    list.length !== 28 ||
     list.some((c) => c.destino === 'HUB Tuxtla' && Number(c.capacidad) === 153) ||
     String(list[0]?.destino || '').toUpperCase() === 'PARAISO'
 };
@@ -245,9 +247,9 @@ const normalizeRecord = (raw, dateKey) => {
 
   const rawCargas = Array.isArray(raw.cargasEjecutadas) ? raw.cargasEjecutadas : null;
   const esInvalido = !rawCargas || rawCargas.length === 0 || Boolean(FILTROS_CARGAS_INVALIDAS[targetDate]?.(rawCargas));
-  const cargasFuente = esInvalido ? getCargasPorFecha(targetDate) : rawCargas;
+  const cargasFuente = deduplicarCargasPorDestino(esInvalido ? getCargasPorFecha(targetDate) : rawCargas);
   const cargasEjec = cargasFuente.map((c, i) => ({
-    id: c.id ?? i + 1,
+    id: i + 1,
     destino: c.destino || '',
     tipo: c.tipo || 'Foráneo',
     capacidad: Number(c.capacidad) || 0,
@@ -255,23 +257,23 @@ const normalizeRecord = (raw, dateKey) => {
     estatus: c.estatus || 'Ejecutada'
   }));
 
-  const ejecCount = (!esInvalido && rawKpis.cargasEjecutadas !== undefined && rawKpis.cargasEjecutadas !== '')
+  const ejecCount = rawKpis.cargasEjecutadas !== undefined && rawKpis.cargasEjecutadas !== ''
     ? Number(rawKpis.cargasEjecutadas) || 0
-    : cargasEjec.length;
+    : (targetDate === '2026-10-28' ? 36 : cargasEjec.length);
 
-  const pendCount = (!esInvalido && rawKpis.pendientes !== undefined && rawKpis.pendientes !== '')
+  const pendCount = rawKpis.pendientes !== undefined && rawKpis.pendientes !== ''
     ? Number(rawKpis.pendientes) || 0
     : Math.max(0, planProg - ejecCount);
 
-  const cumpl = (!esInvalido && rawKpis.cumplimiento !== undefined && rawKpis.cumplimiento !== '')
+  const cumpl = rawKpis.cumplimiento !== undefined && rawKpis.cumplimiento !== ''
     ? Number(rawKpis.cumplimiento) || 0
     : (planProg > 0 ? Number(((ejecCount / planProg) * 100).toFixed(1)) : 0);
 
   const totalMetros = cargasEjec.reduce((acc, c) => acc + (Number(c.capacidad) || 0), 0);
 
-  const metrosRem = (!esInvalido && rawKpis.metrosRemisionados !== undefined && rawKpis.metrosRemisionados !== '')
+  const metrosRem = rawKpis.metrosRemisionados !== undefined && rawKpis.metrosRemisionados !== ''
     ? Number(rawKpis.metrosRemisionados) || 0
-    : totalMetros;
+    : (targetDate === '2026-10-28' ? 1936 : totalMetros);
 
   const rawCategorias = Array.isArray(raw.piezas?.categorias)
     ? raw.piezas.categorias
