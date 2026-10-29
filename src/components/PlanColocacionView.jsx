@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import html2canvas from 'html2canvas';
 import { fetchPlanesColocacionDb, savePlanColocacionDb, isSupabaseConfigured } from '../lib/supabaseClient';
+import { useFleet } from '../context/FleetContext';
+import { extraerCargasDesdeImagen } from '../utils/colocacionImageParser';
 import { 
   Calendar, 
   ChevronLeft, 
@@ -8,6 +10,7 @@ import {
   Download, 
   Copy, 
   Edit3, 
+  ImagePlus,
   Plus, 
   Trash2, 
   TrendingUp, 
@@ -414,6 +417,8 @@ const normalizeRecord = (raw, dateKey) => {
 };
 
 export const PlanColocacionView = () => {
+  const { catalogoSucursales } = useFleet();
+
   const toDateKey = (date) => {
     const y = date.getFullYear();
     const m = String(date.getMonth() + 1).padStart(2, '0');
@@ -463,10 +468,12 @@ export const PlanColocacionView = () => {
   const [activeTab, setActiveTab] = useState('kpis');
   const [toastMessage, setToastMessage] = useState('');
   const [isExporting, setIsExporting] = useState(false);
+  const [isReadingImage, setIsReadingImage] = useState(false);
 
   const [cloudStatus, setCloudStatus] = useState(isSupabaseConfigured() ? 'loading' : 'offline');
 
   const flyerRef = useRef(null);
+  const imageInputRef = useRef(null);
 
   const applyCloudRows = (rows) => {
     if (!rows) {
@@ -534,6 +541,55 @@ export const PlanColocacionView = () => {
   }, [records, currentDate]);
 
   const savedDates = useMemo(() => Object.keys(records).sort().reverse(), [records]);
+
+  const handleTriggerImageUpload = () => {
+    if (isReadingImage) return;
+    imageInputRef.current?.click();
+  };
+
+  const handleImageFileSelected = async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+
+    setIsReadingImage(true);
+    showToast('Analizando imagen para extraer destinos y capacidades...');
+
+    try {
+      const nuevasCargas = await extraerCargasDesdeImagen(file, catalogoSucursales);
+      if (!nuevasCargas || nuevasCargas.length === 0) {
+        showToast('No se detectaron destinos válidos en la imagen.');
+        return;
+      }
+
+      setRecords((prev) => {
+        const existing = normalizeRecord(prev[currentDate], currentDate);
+        const updated = {
+          ...existing,
+          updatedAt: new Date().toISOString(),
+          cargasEjecutadas: nuevasCargas
+        };
+        persistToCloud(updated);
+        return { ...prev, [currentDate]: updated };
+      });
+
+      if (isEditing && editForm) {
+        setEditForm((prev) => ({
+          ...prev,
+          cargasEjecutadas: nuevasCargas.map((c) => ({
+            ...c,
+            capacidad: String(c.capacidad ?? '')
+          }))
+        }));
+      }
+
+      showToast(`Se rellenaron ${nuevasCargas.length} destinos desde la imagen (metros manuales intactos).`);
+    } catch (err) {
+      showToast(err?.message || 'Error al procesar la imagen seleccionada.');
+    } finally {
+      setIsReadingImage(false);
+    }
+  };
 
   const handlePrevDay = () => {
     const [y, m, d] = currentDate.split('-').map(Number);
@@ -701,6 +757,9 @@ export const PlanColocacionView = () => {
             flyer.style.boxShadow = 'none';
             flyer.style.webkitFontSmoothing = 'antialiased';
           }
+          clonedDoc.querySelectorAll('.btn-sync-cargas').forEach((btn) => {
+            btn.style.display = 'none';
+          });
         }
       });
 
@@ -750,6 +809,9 @@ export const PlanColocacionView = () => {
             flyer.style.boxShadow = 'none';
             flyer.style.webkitFontSmoothing = 'antialiased';
           }
+          clonedDoc.querySelectorAll('.btn-sync-cargas').forEach((btn) => {
+            btn.style.display = 'none';
+          });
         }
       });
 
@@ -1008,6 +1070,13 @@ export const PlanColocacionView = () => {
 
   return (
     <div className="plan-colocacion-page">
+      <input
+        ref={imageInputRef}
+        type="file"
+        accept="image/*"
+        onChange={handleImageFileSelected}
+        style={{ display: 'none' }}
+      />
       {toastMessage && (
         <div className="colocacion-toast">
           <Sparkles size={16} color="#38bdf8" />
@@ -1242,8 +1311,18 @@ export const PlanColocacionView = () => {
           <main className="flyer-content-grid">
             <div className="flyer-col-left">
               <div className="flyer-panel panel-resumen-cargas">
-                <div className="panel-header header-green">
+                <div className="panel-header header-green" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.45rem 0.85rem' }}>
                   <span>1. RESUMEN DE CARGAS EJECUTADAS – {currentData.fechaTexto}</span>
+                  <button
+                    type="button"
+                    className="btn-sync-cargas"
+                    onClick={handleTriggerImageUpload}
+                    disabled={isReadingImage}
+                    title="Subir imagen de tabla para rellenar destinos automáticamente (sin sumar metros)"
+                  >
+                    {isReadingImage ? <RefreshCw size={12} className="spin-icon" /> : <ImagePlus size={12} />}
+                    <span>{isReadingImage ? 'Leyendo imagen...' : 'Subir Imagen'}</span>
+                  </button>
                 </div>
 
                 <div className="panel-table-wrap">
@@ -1786,9 +1865,21 @@ export const PlanColocacionView = () => {
                 <div className="edit-cargas-section">
                   <div className="edit-section-header-bar">
                     <span>Listado de Cargas Ejecutadas</span>
-                    <button type="button" className="btn btn-sm btn-primary" onClick={handleAddCarga}>
-                      <Plus size={14} /> Agregar Carga
-                    </button>
+                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                      <button
+                        type="button"
+                        className="btn btn-sm btn-secondary"
+                        onClick={handleTriggerImageUpload}
+                        disabled={isReadingImage}
+                        title="Subir captura o imagen para rellenar el listado sin alterar metros remisionados"
+                      >
+                        {isReadingImage ? <RefreshCw size={13} className="spin-icon" /> : <ImagePlus size={13} />}
+                        <span>{isReadingImage ? 'Leyendo...' : 'Subir Imagen'}</span>
+                      </button>
+                      <button type="button" className="btn btn-sm btn-primary" onClick={handleAddCarga}>
+                        <Plus size={14} /> Agregar Carga
+                      </button>
+                    </div>
                   </div>
 
                   <div className="cargas-edit-list">
