@@ -244,3 +244,4 @@ export const extraerCargasDesdeImagen = async (file, catalogoSucursales = []) =>
   const { data } = await Tesseract.recognize(canvas, 'spa+eng');
   return extraerCargasDesdeTextoOcr(data?.text || '', catalogoSucursales);
 };
+

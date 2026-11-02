@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import html2canvas from 'html2canvas';
 import { fetchPlanesColocacionDb, savePlanColocacionDb, isSupabaseConfigured } from '../lib/supabaseClient';
 import { useFleet } from '../context/FleetContext';
 import { extraerCargasDesdeImagen, extraerCargasDesdeTextoOcr } from '../utils/colocacionImageParser';
@@ -798,12 +797,18 @@ export const PlanColocacionView = () => {
     }
   };
 
+  const cargarHtml2Canvas = async () => {
+    const modulo = await import('html2canvas');
+    return modulo.default || modulo;
+  };
+
   const handleDownloadImage = async () => {
     if (!flyerRef.current) return;
     setIsExporting(true);
     showToast('Generando imagen en Ultra HD...');
 
     try {
+      const html2canvas = await cargarHtml2Canvas();
       const flyerEl = flyerRef.current;
       const flyerWidth = flyerEl.offsetWidth || 1260;
       const flyerHeight = flyerEl.offsetHeight;
@@ -856,6 +861,7 @@ export const PlanColocacionView = () => {
     showToast('Generando copia en máxima nitidez (Ultra HD)...');
 
     try {
+      const html2canvas = await cargarHtml2Canvas();
       const flyerEl = flyerRef.current;
       const flyerWidth = flyerEl.offsetWidth || 1260;
       const flyerHeight = flyerEl.offsetHeight;
