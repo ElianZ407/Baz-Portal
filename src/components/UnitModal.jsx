@@ -205,17 +205,28 @@ const UnitModalForm = () => {
       }));
       return;
     }
-    setFormData(prev => ({
-      ...prev,
-      economico: unidad.eco,
-      placas: unidad.placas || '',
-      tipo: unidad.tipo || prev.tipo,
-      capUnidad: Number(unidad.capUnidad || prev.capUnidad),
-      linea: unidad.linea || prev.linea,
-      estatusPatio: unidad.estatusPatio || prev.estatusPatio || 'Disponible',
-      operador: isPatioMode ? '' : (prev.operador || unidad.operador || ''),
-      idOperador: isPatioMode ? '' : (prev.idOperador || unidad.idOperador || '')
-    }));
+    const isEco50 = String(unidad.eco || '').trim().startsWith('50') || String(unidad.tipo || '').toLowerCase().includes('tracto');
+    setFormData(prev => {
+      const capNum = Number(unidad.capUnidad);
+      const resolvedCap = isEco50
+        ? ([90, 110].includes(capNum) ? capNum : 110)
+        : (capNum || prev.capUnidad || 50);
+      const resolvedTipo = isEco50
+        ? (unidad.tipo || (resolvedCap === 90 ? 'Tracto / Sencillo' : 'Tracto / Full'))
+        : (unidad.tipo || prev.tipo);
+
+      return {
+        ...prev,
+        economico: unidad.eco,
+        placas: unidad.placas || '',
+        tipo: resolvedTipo,
+        capUnidad: resolvedCap,
+        linea: unidad.linea || prev.linea,
+        estatusPatio: unidad.estatusPatio || prev.estatusPatio || 'Disponible',
+        operador: isPatioMode ? '' : (prev.operador || unidad.operador || ''),
+        idOperador: isPatioMode ? '' : (prev.idOperador || unidad.idOperador || '')
+      };
+    });
   };
 
   const handleChange = (e) => {
@@ -242,7 +253,14 @@ const UnitModalForm = () => {
     };
 
     const extras = name === 'estatusPlaneacion' && mapaCambios[value] ? mapaCambios[value](formData) : {};
-    setFormData(prev => ({ ...prev, [name]: value, ...extras }));
+    let ecoExtras = {};
+    if (name === 'economico' && String(value).trim().startsWith('50') && ![90, 110].includes(Number(formData.capUnidad))) {
+      ecoExtras = {
+        capUnidad: 110,
+        tipo: 'Tracto / Full'
+      };
+    }
+    setFormData(prev => ({ ...prev, [name]: value, ...extras, ...ecoExtras }));
   };
 
   // Validaciones operativas según matriz de CD Villahermosa y padrón de flota
@@ -253,6 +271,45 @@ const UnitModalForm = () => {
 
   const isTallerUnit = formData.estatusPatio === 'Taller' || flotaInfo?.estatus === 'TALLER';
   const isBlockedForPlaneacion = !isPatioMode && isTallerUnit;
+
+  const isUnidad50 = String(formData.economico || '').trim().startsWith('50') ||
+    String(formData.tipo || '').toLowerCase().includes('tracto') ||
+    String(flotaInfo?.tipo || '').toLowerCase().includes('tracto');
+
+  const opcionesCapacidadPatio = isUnidad50 ? [
+    { value: 90,  label: 'Caja seca 90m³' },
+    { value: 110, label: 'Caja seca 110m³' },
+  ] : [
+    { value: 18,  label: '18 m³',  sub: 'Camioneta / Rabón Chico' },
+    { value: 40,  label: '40 m³',  sub: 'Madrina Mediana' },
+    { value: 50,  label: '50 m³',  sub: 'Madrina Estándar / Rango Medio' },
+    { value: 70,  label: '70 m³',  sub: 'Intercedis / Trailer' },
+    { value: 90,  label: '90 m³' },
+    { value: 110, label: '110 m³' },
+  ];
+
+  const opcionesCapacidadPlaneacion = isUnidad50 ? [
+    { value: 90,  label: 'Caja seca 90m³' },
+    { value: 110, label: 'Caja seca 110m³' },
+  ] : [
+    { value: 18,  label: '18',  sub: 'Camioneta / Rabón Chico' },
+    { value: 40,  label: '40',  sub: 'Madrina Mediana' },
+    { value: 50,  label: '50',  sub: 'Madrina Estándar / Rango Medio' },
+    { value: 70,  label: '70',  sub: 'Intercedis / Trailer' },
+    { value: 90,  label: '90' },
+    { value: 110, label: '110' },
+  ];
+
+  const opcionesTipoVehiculo = isUnidad50 ? [
+    { value: 'Tracto / Sencillo', label: 'Tracto / Sencillo', sub: '90 m³' },
+    { value: 'Tracto / Full',     label: 'Tracto / Full',     sub: '110 m³' },
+  ] : [
+    { value: 'Camioneta',             label: 'Camioneta',             sub: '18 m³ — Rabón Chico / Cautiva' },
+    { value: 'Rango Medio',           label: 'Rango Medio',           sub: '50 m³ — Madrina Estándar' },
+    { value: 'Madrina / Rango Medio', label: 'Madrina / Rango Medio', sub: '50 m³' },
+    { value: 'Tracto / Sencillo',     label: 'Tracto / Sencillo',     sub: '90 m³' },
+    { value: 'Tracto / Full',         label: 'Tracto / Full',         sub: '110 m³' },
+  ];
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -556,17 +613,17 @@ const UnitModalForm = () => {
                     <label>Capacidad Unidad (m³)</label>
                     <CustomSelect
                       value={formData.capUnidad}
-                      onChange={v => setFormData(prev => ({ ...prev, capUnidad: Number(v) }))}
+                      onChange={v => {
+                        const cap = Number(v);
+                        setFormData(prev => ({
+                          ...prev,
+                          capUnidad: cap,
+                          ...(isUnidad50 ? { tipo: cap === 90 ? 'Tracto / Sencillo' : 'Tracto / Full' } : {})
+                        }));
+                      }}
                       allowCustom={true}
                       placeholder="Seleccionar o escribir capacidad..."
-                      options={[
-                        { value: 18,  label: '18 m³',  sub: 'Camioneta / Rabón Chico' },
-                        { value: 40,  label: '40 m³',  sub: 'Madrina Mediana' },
-                        { value: 50,  label: '50 m³',  sub: 'Madrina Estándar / Rango Medio' },
-                        { value: 70,  label: '70 m³',  sub: 'Intercedis / Trailer' },
-                        { value: 90,  label: '90 m³' },
-                        { value: 110, label: '110 m³' },
-                      ]}
+                      options={opcionesCapacidadPatio}
                     />
                   </div>
 
@@ -574,16 +631,16 @@ const UnitModalForm = () => {
                     <label>Tipo de Vehículo</label>
                     <CustomSelect
                       value={formData.tipo}
-                      onChange={v => setFormData(prev => ({ ...prev, tipo: v }))}
+                      onChange={v => {
+                        setFormData(prev => ({
+                          ...prev,
+                          tipo: v,
+                          ...(isUnidad50 ? { capUnidad: v === 'Tracto / Sencillo' ? 90 : 110 } : {})
+                        }));
+                      }}
                       allowCustom={true}
                       placeholder="Seleccionar o escribir tipo..."
-                      options={[
-                        { value: 'Camioneta',             label: 'Camioneta',             sub: '18 m³ — Rabón Chico / Cautiva' },
-                        { value: 'Rango Medio',           label: 'Rango Medio',           sub: '50 m³ — Madrina Estándar' },
-                        { value: 'Madrina / Rango Medio', label: 'Madrina / Rango Medio', sub: '50 m³' },
-                        { value: 'Tracto / Sencillo',     label: 'Tracto / Sencillo',     sub: '90 m³' },
-                        { value: 'Tracto / Full',         label: 'Tracto / Full',         sub: '110 m³' },
-                      ]}
+                      options={opcionesTipoVehiculo}
                     />
                   </div>
 
@@ -704,15 +761,15 @@ const UnitModalForm = () => {
                   <label>Capacidad Unidad (Motos / Vol.)</label>
                   <CustomSelect
                     value={formData.capUnidad}
-                    onChange={v => setFormData(prev => ({ ...prev, capUnidad: Number(v) }))}
-                    options={[
-                      { value: 18,  label: '18',  sub: 'Camioneta / Rabón Chico' },
-                      { value: 40,  label: '40',  sub: 'Madrina Mediana' },
-                      { value: 50,  label: '50',  sub: 'Madrina Estándar / Rango Medio' },
-                      { value: 70,  label: '70',  sub: 'Intercedis / Trailer' },
-                      { value: 90,  label: '90' },
-                      { value: 110, label: '110' },
-                    ]}
+                    onChange={v => {
+                      const cap = Number(v);
+                      setFormData(prev => ({
+                        ...prev,
+                        capUnidad: cap,
+                        ...(isUnidad50 ? { tipo: cap === 90 ? 'Tracto / Sencillo' : 'Tracto / Full' } : {})
+                      }));
+                    }}
+                    options={opcionesCapacidadPlaneacion}
                   />
                 </div>
 
