@@ -564,8 +564,8 @@ const UnitModalForm = () => {
                         { value: 40,  label: '40 m³',  sub: 'Madrina Mediana' },
                         { value: 50,  label: '50 m³',  sub: 'Madrina Estándar / Rango Medio' },
                         { value: 70,  label: '70 m³',  sub: 'Intercedis / Trailer' },
-                        { value: 90,  label: '90 m³',  sub: 'Caja Seca Sencilla' },
-                        { value: 110, label: '110 m³', sub: 'Full Tráiler' },
+                        { value: 90,  label: '90 m³' },
+                        { value: 110, label: '110 m³' },
                       ]}
                     />
                   </div>
@@ -711,8 +711,8 @@ const UnitModalForm = () => {
                       { value: 40,  label: '40',  sub: 'Madrina Mediana' },
                       { value: 50,  label: '50',  sub: 'Madrina Estándar / Rango Medio' },
                       { value: 70,  label: '70',  sub: 'Intercedis / Trailer' },
-                      { value: 90,  label: '90',  sub: 'Caja Seca Sencilla' },
-                      { value: 110, label: '110', sub: 'Full Tráiler' },
+                      { value: 90,  label: '90' },
+                      { value: 110, label: '110' },
                     ]}
                   />
                 </div>
