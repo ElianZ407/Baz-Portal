@@ -853,7 +853,7 @@ const construirPlanDesdeFilas = (hoja, libro, catalogoFlota = [], catalogoSucurs
       placas: finalPlacas,
       capUnidad: finalCap,
       linea: finalLinea,
-      tipo: fleetMaster?.tipo || (finalCap > 18 ? 'Sencillo' : 'Camioneta'),
+      tipo: fleetMaster?.tipo || (finalCap <= 18 ? 'Camioneta' : finalCap <= 50 ? 'Rango Medio' : finalCap <= 90 ? 'Tracto / Sencillo' : 'Tracto / Full'),
       operador: finalOperador,
       idOperador: finalIdOperador,
       turno: 'M1',

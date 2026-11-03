@@ -67,7 +67,7 @@ const getDefaultFormData = (selectedUnit) => {
     placas: '',
     capUnidad: 50,
     linea: 'LTI - VHS',
-    tipo: 'Sencillo',
+    tipo: 'Rango Medio',
     operador: '',
     idOperador: '',
     turno: 'M1',
@@ -581,9 +581,8 @@ const UnitModalForm = () => {
                         { value: 'Camioneta',             label: 'Camioneta',             sub: '18 m³ — Rabón Chico / Cautiva' },
                         { value: 'Rango Medio',           label: 'Rango Medio',           sub: '50 m³ — Madrina Estándar' },
                         { value: 'Madrina / Rango Medio', label: 'Madrina / Rango Medio', sub: '50 m³' },
-                        { value: 'Sencillo',              label: 'Sencillo',              sub: '90 m³ — Caja Seca Sencilla' },
                         { value: 'Tracto / Sencillo',     label: 'Tracto / Sencillo',     sub: '90 m³' },
-                        { value: 'Tracto / Full',         label: 'Tracto / Full',         sub: '110 m³ — Full Tráiler' },
+                        { value: 'Tracto / Full',         label: 'Tracto / Full',         sub: '110 m³' },
                       ]}
                     />
                   </div>
