@@ -669,7 +669,8 @@ export const evaluarDisponibilidadManana = (unitOrTrips, catalogoFlota = []) => 
   if (units.length === 0) return { ...RESULTADO_SIN_DATOS };
 
   const eco = String(units[0].economico || '').trim();
-  const fleetUnit = (catalogoFlota || []).find(f => String(f.eco).trim() === eco);
+  const listaFlota = Array.isArray(catalogoFlota) ? catalogoFlota : [];
+  const fleetUnit = listaFlota.find(f => String(f.eco).trim() === eco);
   const fleetStatus = String(fleetUnit?.estatus || '').trim().toUpperCase();
 
   const contexto = { units, fleetUnit, fleetStatus };
@@ -682,7 +683,8 @@ export const evaluarDisponibilidadManana = (unitOrTrips, catalogoFlota = []) => 
 
 export const evaluarDisponibilidadMananaPorUnidad = (units = [], catalogoFlota = []) => {
   const groups = new Map();
-  units.forEach(unit => {
+  (Array.isArray(units) ? units : []).forEach(unit => {
+    if (!unit) return;
     const eco = String(unit.economico || '').trim();
     const groupKey = eco ? `eco-${eco}` : `id-${unit.id}`;
     if (!groups.has(groupKey)) groups.set(groupKey, []);
@@ -716,7 +718,7 @@ export const resumirFlotaPorEstado = (units = [], catalogoFlota = []) => {
   });
 
   const fleetByEco = new Map();
-  (catalogoFlota || []).forEach(unit => {
+  (Array.isArray(catalogoFlota) ? catalogoFlota : []).forEach(unit => {
     const eco = String(unit.eco || '').trim();
     const status = String(unit.estatus || '').trim().toUpperCase();
     if (eco && status !== 'BAJA') fleetByEco.set(eco, unit);
