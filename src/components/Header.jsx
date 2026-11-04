@@ -33,7 +33,7 @@ export const Header = () => {
     formattedPlanDateLong,
     isPlanDateToday,
     todayIso,
-    updatePlanDate,
+    iniciarNuevoPlanHoy,
     historicalPlanView,
     clearAllUnits,
     showConfirm,
@@ -326,14 +326,14 @@ export const Header = () => {
             >
               <Calendar size={13} color={historicalPlanView ? '#fbbf24' : 'var(--accent-cyan)'} />
               <span>
-                {historicalPlanView ? 'Historial: ' : (isPlanDateToday ? 'Plan de Hoy: ' : 'Plan: ')}
+                {historicalPlanView ? 'Historial: ' : (isPlanDateToday ? 'Plan del día (Hoy): ' : 'Plan del día: ')}
                 <strong style={{ color: '#fff', marginLeft: '0.2rem' }}>{formattedPlanDate}</strong>
               </span>
               {!historicalPlanView && !isPlanDateToday && (
                 <button
                   type="button"
-                  onClick={() => updatePlanDate(todayIso)}
-                  title={`Actualizar la fecha de todos los viajes a hoy (${formattedPlanDateLong})`}
+                  onClick={() => iniciarNuevoPlanHoy()}
+                  title={`Crear un nuevo plan vacío para hoy (${todayIso})`}
                   style={{
                     background: '#0ea5e9',
                     border: 'none',

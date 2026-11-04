@@ -33,7 +33,7 @@ export const SupervisorView = () => {
     formattedPlanDateLong,
     isPlanDateToday,
     todayIso,
-    updatePlanDate
+    iniciarNuevoPlanHoy
   } = useFleet();
 
   const [filterSubStatus, setFilterSubStatus] = useState('ALL');
@@ -532,12 +532,12 @@ export const SupervisorView = () => {
                   title={`Fecha del plan de embarques: ${formattedPlanDateLong}`}
                 >
                   <Calendar size={13} />
-                  {isPlanDateToday ? `Plan de Hoy: ${formattedPlanDate}` : `Plan: ${formattedPlanDate}`}
+                  {isPlanDateToday ? `Plan del día (Hoy): ${formattedPlanDate}` : `Plan del día: ${formattedPlanDate}`}
                   {!isPlanDateToday && (
                     <button
                       type="button"
-                      onClick={() => updatePlanDate(todayIso)}
-                      title={`Actualizar la fecha de todos los viajes a hoy (${formattedPlanDateLong})`}
+                      onClick={() => iniciarNuevoPlanHoy()}
+                      title={`Crear un nuevo plan vacío para hoy (${todayIso})`}
                       style={{
                         background: '#0ea5e9',
                         border: 'none',

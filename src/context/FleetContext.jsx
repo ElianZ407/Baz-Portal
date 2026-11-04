@@ -1033,6 +1033,88 @@ export const FleetProvider = ({ children }) => {
     return true;
   };
 
+  const iniciarNuevoPlanHoy = async () => {
+    if (units.length === 0) {
+      showConfirm({
+        title: '¿Iniciar Plan Vacío de Hoy?',
+        message: `El tablero se preparará para la jornada de hoy (${todayIso}). Todas las unidades de la flota estarán Disponibles en Patio para comenzar la nueva planeación.`,
+        confirmText: 'Sí, Iniciar Plan',
+        cancelText: 'Cancelar',
+        confirmType: 'success',
+        onConfirm: async () => {
+          await clearAllUnits();
+          showAlert({
+            title: 'Plan de Hoy Iniciado',
+            message: 'El tablero está listo y vacío para comenzar a planear la jornada de hoy.',
+            confirmType: 'success'
+          });
+        }
+      });
+      return;
+    }
+
+    const planFecha = units.find(u => u.fecha)?.fecha || '';
+    const yaGuardado = savedPlans.some(p => 
+      (p.fecha === planFecha && Math.abs((p.totalViajes || 0) - units.length) <= 1) ||
+      (p.fecha === planFecha && Array.isArray(p.unidades) && p.unidades.length === units.length)
+    );
+
+    if (yaGuardado) {
+      showConfirm({
+        title: '¿Crear Nuevo Plan Vacío para Hoy?',
+        message: `El plan actual (${formattedPlanDateLong || planFecha}) ya se encuentra respaldado en el Historial de Planes.\n\nAl iniciar el nuevo plan de hoy, el tablero activo se vaciará y todas las unidades volverán a estar Disponibles en Patio para la nueva jornada.\n\n¿Deseas continuar?`,
+        confirmText: 'Sí, Crear Plan Vacío',
+        cancelText: 'Cancelar',
+        confirmType: 'warning',
+        onConfirm: async () => {
+          await clearAllUnits();
+          showAlert({
+            title: 'Nuevo Plan Iniciado',
+            message: 'Se ha creado un nuevo plan vacío para la jornada de hoy.',
+            confirmType: 'success'
+          });
+        }
+      });
+    } else {
+      showConfirm({
+        title: '⚠️ Advertencia: Plan Actual No Guardado',
+        message: `El plan actual (${formattedPlanDateLong || planFecha}) con ${units.length} viaje(s) NO ha sido guardado en el Historial de Planes.\n\nSi creas un plan vacío ahora sin guardarlo, estos viajes se descartarán.\n\n¿Deseas guardarlo en el historial antes de iniciar el plan vacío de hoy?`,
+        confirmText: 'Guardar y Crear Nuevo Plan',
+        cancelText: 'Descartar sin Guardar',
+        confirmType: 'danger',
+        onConfirm: async () => {
+          await saveCurrentPlan({
+            nombre: `Plan del ${planFecha || todayIso}`,
+            fecha: planFecha || todayIso,
+            startNewDay: true
+          });
+          showAlert({
+            title: 'Plan Guardado y Nuevo Día Iniciado',
+            message: 'El plan anterior se respaldó con éxito en el Historial y el tablero se preparó vacío para la jornada de hoy.',
+            confirmType: 'success'
+          });
+        },
+        onCancel: () => {
+          showConfirm({
+            title: '¿Confirmar Descarte de Viajes?',
+            message: '¿Estás completamente seguro de descartar los viajes del plan actual sin guardarlos en el historial?',
+            confirmText: 'Sí, Descartar y Vaciar',
+            cancelText: 'Volver',
+            confirmType: 'danger',
+            onConfirm: async () => {
+              await clearAllUnits();
+              showAlert({
+                title: 'Nuevo Plan Vacío Iniciado',
+                message: 'El tablero se ha vaciado para comenzar la planeación de hoy.',
+                confirmType: 'success'
+              });
+            }
+          });
+        }
+      });
+    }
+  };
+
   // 1. Ver un plan histórico en MODO CONSULTA (sin borrar ni reemplazar el plan activo de hoy)
   const viewHistoricalPlan = (planId) => {
     const plan = savedPlans.find(p => p.id === planId);
@@ -1201,6 +1283,7 @@ export const FleetProvider = ({ children }) => {
       currentPlanDate,
       todayIso,
       updatePlanDate,
+      iniciarNuevoPlanHoy,
       formattedPlanDate,
       formattedPlanDateLong,
       isPlanDateToday,
