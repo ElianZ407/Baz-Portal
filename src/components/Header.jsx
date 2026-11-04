@@ -143,7 +143,7 @@ export const Header = () => {
             Control de Flota
             <span className="brand-badge">CD Villahermosa</span>
           </h1>
-          <p className="brand-subtitle">Patio, Planeación y Monitoreo Satelital en Vivo</p>
+          <p className="brand-subtitle">Patio, Planeación y Monitoreo</p>
         </div>
       </div>
 
