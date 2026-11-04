@@ -7,7 +7,7 @@ import {
 } from 'lucide-react';
 import { useFleet } from '../context/FleetContext';
 import { KpiBar } from './KpiBar';
-import { evaluarDisponibilidadMananaPorUnidad, tieneRutaAsignada, construirPadronManana, unidadContableManana } from '../utils/fleetUtils';
+import { evaluarDisponibilidadMananaPorUnidad, tieneRutaAsignada, construirPadronManana, unidadContableManana, consolidarCargasFull } from '../utils/fleetUtils';
 
 export const TvDashboardView = () => {
   const { 
@@ -25,9 +25,11 @@ export const TvDashboardView = () => {
   const [filterFL, setFilterFL] = useState('ALL');
   const [filterCapType, setFilterCapType] = useState('ALL');
 
+  const consolidatedUnits = useMemo(() => consolidarCargasFull(units), [units]);
+
   const tripEcos = useMemo(
-    () => new Set(units.map(unit => String(unit.economico || '').trim()).filter(Boolean)),
-    [units]
+    () => new Set(consolidatedUnits.map(unit => String(unit.economico || '').trim()).filter(Boolean)),
+    [consolidatedUnits]
   );
   const catalogOnlyUnits = useMemo(() => (catalogoFlota || [])
     .filter(unit => !tripEcos.has(String(unit.eco || '').trim()))
@@ -58,8 +60,8 @@ export const TvDashboardView = () => {
   [catalogoFlota, tripEcos]);
   const includeCatalogOnly = ['DISP_MANANA', 'DISPONIBLE_PATIO', 'DISPONIBLES', 'EN_TALLER'].includes(filterStatus);
   const unitsForFilter = useMemo(
-    () => includeCatalogOnly ? [...units, ...catalogOnlyUnits] : units,
-    [units, catalogOnlyUnits, includeCatalogOnly]
+    () => includeCatalogOnly ? [...consolidatedUnits, ...catalogOnlyUnits] : consolidatedUnits,
+    [consolidatedUnits, catalogOnlyUnits, includeCatalogOnly]
   );
   const availabilityByUnitId = useMemo(
     () => evaluarDisponibilidadMananaPorUnidad(unitsForFilter, catalogoFlota),
@@ -68,8 +70,8 @@ export const TvDashboardView = () => {
   const padronManana = useMemo(() => construirPadronManana(catalogoFlota), [catalogoFlota]);
 
   const unassignedTripsCount = useMemo(
-    () => units.filter(u => !String(u.economico || '').trim()).length,
-    [units]
+    () => consolidatedUnits.filter(u => !String(u.economico || '').trim()).length,
+    [consolidatedUnits]
   );
 
   // Filtrar según el estado seleccionado, búsqueda y F/L

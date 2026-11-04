@@ -249,6 +249,87 @@ export const consolidarUnidadesPatioPorEconomico = (units = []) => {
   return unitsByEco;
 };
 
+export const esFull = (item) => {
+  if (!item) return false;
+  const tipo = String(item.tipo || '').toLowerCase();
+  const linea = String(item.linea || '').toUpperCase();
+  const eco = String(item.economico || item.eco || '').trim();
+  const cap = Number(item.capUnidad || item.capacidad);
+  return tipo.includes('full') || linea.includes('FULL') || eco.startsWith('50') || cap === 110;
+};
+
+export const consolidarCargasFull = (units = []) => {
+  if (!Array.isArray(units) || units.length === 0) return [];
+  const resultado = [];
+  const mapaFull = new Map();
+
+  for (const u of units) {
+    const eco = String(u.economico || '').trim();
+    if (eco && esFull(u)) {
+      if (mapaFull.has(eco)) {
+        const principal = mapaFull.get(eco);
+        principal.idsConsolidados = principal.idsConsolidados || [principal.id];
+        if (u.id && !principal.idsConsolidados.includes(u.id)) {
+          principal.idsConsolidados.push(u.id);
+        }
+        if (u.noViaje && principal.noViaje && !principal.noViaje.includes(u.noViaje)) {
+          principal.noViaje = `${principal.noViaje} - ${u.noViaje}`;
+        }
+        if (u.numCarga && principal.numCarga && !principal.numCarga.includes(u.numCarga)) {
+          principal.numCarga = `${principal.numCarga} / ${u.numCarga}`;
+        }
+        const rem = String(u.remolque || '').trim();
+        if (rem && rem !== '0') {
+          if (principal.remolque && principal.remolque !== '0' && !principal.remolque.includes(rem)) {
+            principal.remolque = `${principal.remolque} / ${rem}`;
+          } else if (!principal.remolque || principal.remolque === '0') {
+            principal.remolque = rem;
+          }
+        }
+        if (u.cortina && principal.cortina && !principal.cortina.includes(u.cortina)) {
+          principal.cortina = `${principal.cortina} / ${u.cortina}`;
+        }
+        if (u.horaSalida && (!principal.horaSalida || u.horaSalida > principal.horaSalida)) {
+          principal.horaSalida = u.horaSalida;
+        }
+        principal.mtrs = (Number(principal.mtrs) || 0) + (Number(u.mtrs) || 0);
+        principal.motosEstructuras = (Number(principal.motosEstructuras) || 0) + (Number(u.motosEstructuras) || 0);
+        principal.motosCarton = (Number(principal.motosCarton) || 0) + (Number(u.motosCarton) || 0);
+
+        const paradasNuevas = Array.isArray(u.destinosSecundarios) ? u.destinosSecundarios : [];
+        if (u.destino && u.destino !== principal.destino) {
+          principal.destinosSecundarios = [
+            ...(principal.destinosSecundarios || []),
+            {
+              id: `parada-cons-${u.id}`,
+              numSucursal: u.numSucursal,
+              destino: u.destino,
+              numCarga: u.numCarga,
+              cortina: u.cortina,
+              mtrs: u.mtrs,
+              closter: u.closter
+            },
+            ...paradasNuevas
+          ];
+        } else if (paradasNuevas.length > 0) {
+          principal.destinosSecundarios = [
+            ...(principal.destinosSecundarios || []),
+            ...paradasNuevas
+          ];
+        }
+        continue;
+      }
+      const copia = { ...u, idsConsolidados: [u.id] };
+      mapaFull.set(eco, copia);
+      resultado.push(copia);
+    } else {
+      resultado.push(u);
+    }
+  }
+
+  return resultado;
+};
+
 export const esCamioneta = (item) =>
   Number(item?.capUnidad) === 18 || String(item?.tipo || '').toLowerCase().includes('camioneta');
 

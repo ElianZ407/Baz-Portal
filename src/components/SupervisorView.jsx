@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { 
   Radio, 
   Navigation, 
@@ -13,6 +13,9 @@ import {
   Calendar
 } from 'lucide-react';
 import { useFleet } from '../context/FleetContext';
+import { consolidarCargasFull } from '../utils/fleetUtils';
+
+const TRANSIT_STATUSES = ['En Ruta', 'Espera Descarga', 'Descargando', 'Retorno', 'Retrasado', 'Completado'];
 
 export const SupervisorView = () => {
   const { 
@@ -36,8 +39,6 @@ export const SupervisorView = () => {
   const [filterSubStatus, setFilterSubStatus] = useState('ALL');
   const [filterFL, setFilterFL] = useState('ALL');
 
-  const TRANSIT_STATUSES = ['En Ruta', 'Espera Descarga', 'Descargando', 'Retorno', 'Retrasado', 'Completado'];
-
   const getEffectiveSupervisorStatus = (unit) => {
     if (!unit) return 'Pendiente';
     if (unit.estatusPlaneacion === 'CARGADO' && (!unit.estatusSupervisor || ['No Disponible', 'Pendiente', 'Cargado', 'Disponible'].includes(unit.estatusSupervisor))) {
@@ -46,13 +47,16 @@ export const SupervisorView = () => {
     return unit.estatusSupervisor || 'Pendiente';
   };
 
-  const supervisorBaseUnits = units.filter(u => {
-    const isTaller = u.estatusPatio === 'Taller' || u.estatus === 'TALLER';
-    if (isTaller) return false;
-    const isCargado = u.estatusPlaneacion === 'CARGADO';
-    const hasTransitStatus = TRANSIT_STATUSES.includes(u.estatusSupervisor);
-    return isCargado || hasTransitStatus;
-  });
+  const supervisorBaseUnits = useMemo(() => {
+    const base = units.filter(u => {
+      const isTaller = u.estatusPatio === 'Taller' || u.estatus === 'TALLER';
+      if (isTaller) return false;
+      const isCargado = u.estatusPlaneacion === 'CARGADO';
+      const hasTransitStatus = TRANSIT_STATUSES.includes(u.estatusSupervisor);
+      return isCargado || hasTransitStatus;
+    });
+    return consolidarCargasFull(base);
+  }, [units]);
 
   const supervisorUnits = supervisorBaseUnits.filter(u => {
     const matchesSearch = 
@@ -80,6 +84,14 @@ export const SupervisorView = () => {
   const handleEdit = (unit) => {
     setSelectedUnit(unit);
     setIsModalOpen(true);
+  };
+
+  const handleStatusChange = (unit, newStatus) => {
+    if (Array.isArray(unit.idsConsolidados) && unit.idsConsolidados.length > 0) {
+      unit.idsConsolidados.forEach(id => updateStatus(id, 'supervisor', newStatus));
+    } else {
+      updateStatus(unit.id, 'supervisor', newStatus);
+    }
   };
 
   const handleLimpiarTodo = () => {
@@ -131,9 +143,16 @@ export const SupervisorView = () => {
     }}>
       <td>
         {unit.economico ? (
-          <span className="eco-pill" style={isCompleted ? { borderColor: 'rgba(16, 185, 129, 0.35)', color: '#6ee7b7' } : {}}>
-            ECO {unit.economico}
-          </span>
+          <div>
+            <span className="eco-pill" style={isCompleted ? { borderColor: 'rgba(16, 185, 129, 0.35)', color: '#6ee7b7' } : {}}>
+              ECO {unit.economico}
+            </span>
+            {unit.remolque && unit.remolque !== '0' && (
+              <div style={{ fontSize: '0.68rem', color: '#94a3b8', marginTop: '0.2rem', fontFamily: 'var(--font-mono)' }}>
+                Rem: {unit.remolque}
+              </div>
+            )}
+          </div>
         ) : (
           <span style={{ 
             fontSize: '0.72rem', 
@@ -170,14 +189,24 @@ export const SupervisorView = () => {
             {unit.destino ? unit.destino.replace(/\s*\(Retorno\)/gi, '').trim() : 'Sin definir'}
           </span>
         </div>
-        <div style={{ display: 'flex', gap: '0.35rem', marginTop: '0.25rem', alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: '0.35rem', marginTop: '0.25rem', alignItems: 'center', flexWrap: 'wrap' }}>
           <span className={unit.fl === 'FORANEO' ? 'badge-fl-foraneo' : 'badge-fl-local'}>
             {unit.fl === 'FORANEO' ? 'FORÁNEO' : 'LOCAL'}
           </span>
           <span className="badge-closter" style={{ fontSize: '0.68rem' }}>
             {unit.closter || 'HUB-VHSA'}
           </span>
+          {unit.destinosSecundarios && unit.destinosSecundarios.length > 0 && (
+            <span style={{ fontSize: '0.68rem', background: 'rgba(56, 189, 248, 0.15)', color: '#38bdf8', border: '1px solid rgba(56, 189, 248, 0.3)', padding: '0.1rem 0.35rem', borderRadius: '4px', fontWeight: 600 }}>
+              +{unit.destinosSecundarios.length} entrega{unit.destinosSecundarios.length > 1 ? 's' : ''}
+            </span>
+          )}
         </div>
+        {unit.numCarga && (
+          <div style={{ fontSize: '0.68rem', color: '#94a3b8', marginTop: '0.2rem', fontFamily: 'var(--font-mono)' }}>
+            Carga: {unit.numCarga}
+          </div>
+        )}
       </td>
       <td className="eta-cell">{unit.horaSalida}</td>
       <td style={{ fontFamily: 'var(--font-mono)' }}>
@@ -220,7 +249,7 @@ export const SupervisorView = () => {
                 fontWeight: 700,
                 background: 'rgba(192, 132, 252, 0.08)'
               }}
-              onClick={() => updateStatus(unit.id, 'supervisor', 'Retorno')}
+              onClick={() => handleStatusChange(unit, 'Retorno')}
               title="Reactivar viaje y regresar a estatus Retorno"
             >
               <RotateCcw size={12} style={{ display: 'inline', marginRight: '3px' }} />
@@ -237,7 +266,7 @@ export const SupervisorView = () => {
                   color: '#34d399',
                   fontWeight: 700
                 }}
-                onClick={() => updateStatus(unit.id, 'supervisor', 'En Ruta')}
+                onClick={() => handleStatusChange(unit, 'En Ruta')}
                 title="Cambiar a En Ruta (Tránsito hacia sucursal o siguiente entrega)"
               >
                 Ruta
@@ -251,7 +280,7 @@ export const SupervisorView = () => {
                   color: '#fbbf24',
                   fontWeight: 700
                 }}
-                onClick={() => updateStatus(unit.id, 'supervisor', 'Espera Descarga')}
+                onClick={() => handleStatusChange(unit, 'Espera Descarga')}
                 title="Llegó a la sucursal y espera rampa/descarga"
               >
                 En Sucursal
@@ -265,7 +294,7 @@ export const SupervisorView = () => {
                   color: '#38bdf8',
                   fontWeight: 700
                 }}
-                onClick={() => updateStatus(unit.id, 'supervisor', 'Descargando')}
+                onClick={() => handleStatusChange(unit, 'Descargando')}
                 title="En proceso de descarga activa en rampa"
               >
                 Descargando
@@ -279,7 +308,7 @@ export const SupervisorView = () => {
                   color: '#c084fc',
                   fontWeight: 700
                 }}
-                onClick={() => updateStatus(unit.id, 'supervisor', 'Retorno')}
+                onClick={() => handleStatusChange(unit, 'Retorno')}
                 title="Retorno a CEDIS Villahermosa tras terminar entregas"
               >
                 Retorno
@@ -289,7 +318,7 @@ export const SupervisorView = () => {
               <button 
                 className="btn-move"
                 style={{ borderColor: 'rgba(239, 68, 68, 0.4)', color: '#fca5a5' }}
-                onClick={() => updateStatus(unit.id, 'supervisor', 'Retrasado')}
+                onClick={() => handleStatusChange(unit, 'Retrasado')}
                 title="Reportar retraso o incidente"
               >
                 Alerta
@@ -303,7 +332,7 @@ export const SupervisorView = () => {
                 background: 'rgba(16, 185, 129, 0.12)',
                 fontWeight: 800
               }}
-              onClick={() => updateStatus(unit.id, 'supervisor', 'Completado')}
+              onClick={() => handleStatusChange(unit, 'Completado')}
               title="Ciclo completado y cerrado. Desplaza hacia abajo a viajes finalizados."
             >
               Fin
@@ -335,7 +364,15 @@ export const SupervisorView = () => {
                 unit: unit,
                 confirmText: 'Sí, eliminar',
                 confirmType: 'danger',
-                onConfirm: () => deleteUnit(unit.id)
+                onConfirm: async () => {
+                  if (Array.isArray(unit.idsConsolidados) && unit.idsConsolidados.length > 1) {
+                    for (const id of unit.idsConsolidados) {
+                      await deleteUnit(id);
+                    }
+                  } else {
+                    await deleteUnit(unit.id);
+                  }
+                }
               });
             }}
             title={`Eliminar unidad ECO ${unit.economico}`}

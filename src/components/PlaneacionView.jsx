@@ -22,7 +22,7 @@ import {
   Calendar
 } from 'lucide-react';
 import { useFleet } from '../context/FleetContext';
-import { validarRestriccionesViaje, checkTieneViajeYOperador, resumirFlotaPorEstado, contarViajesSinUnidadAsignada } from '../utils/fleetUtils';
+import { validarRestriccionesViaje, checkTieneViajeYOperador, resumirFlotaPorEstado, contarViajesSinUnidadAsignada, consolidarCargasFull } from '../utils/fleetUtils';
 import { exportOfficialExcel } from '../utils/exportOfficialExcel';
 
 const SUPERVISOR_ACTIVE_STATUSES = ['En Ruta', 'Espera Descarga', 'Descargando', 'Retorno', 'Retrasado', 'Completado'];
@@ -106,7 +106,7 @@ export const PlaneacionView = () => {
   const [expandedStops, setExpandedStops] = useState(() => new Set());
 
   // En Planeación aparecen todos los viajes del día, con rutas repetidas agrupadas por ECO.
-  const planeacionBaseUnits = units;
+  const planeacionBaseUnits = useMemo(() => consolidarCargasFull(units), [units]);
   const fleetStatusCounts = useMemo(
     () => resumirFlotaPorEstado(planeacionBaseUnits, catalogoFlota),
     [planeacionBaseUnits, catalogoFlota]

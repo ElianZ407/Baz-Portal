@@ -842,6 +842,90 @@ const construirPlanDesdeFilas = (hoja, libro, catalogoFlota = [], catalogoSucurs
     const finalCapMax = sucInfo ? (sucInfo.capMax || '') : '';
 
     const finalFL = inferirFL(finalDestino, finalNumSuc, sucInfo);
+    const finalTipo = fleetMaster?.tipo || (finalCap <= 18 ? 'Camioneta' : finalCap <= 50 ? 'Rango Medio' : finalCap <= 90 ? 'Tracto / Sencillo' : 'Tracto / Full');
+
+    const isFullLoad = Boolean(
+      finalTipo === 'Tracto / Full' ||
+      finalLinea.toUpperCase().includes('FULL') ||
+      eco.startsWith('50') ||
+      finalCap === 110
+    );
+
+    const existingFull = isFullLoad && eco ? parsedUnits.find(u => u.economico === eco) : null;
+    if (existingFull) {
+      existingFull.capUnidad = 110;
+      existingFull.tipo = 'Tracto / Full';
+      if (noViaje && existingFull.noViaje && !existingFull.noViaje.includes(noViaje)) {
+        existingFull.noViaje = `${existingFull.noViaje} - ${noViaje}`;
+      } else if (noViaje && !existingFull.noViaje) {
+        existingFull.noViaje = noViaje;
+      }
+      if (numCarga && existingFull.numCarga && !existingFull.numCarga.includes(numCarga)) {
+        existingFull.numCarga = `${existingFull.numCarga} / ${numCarga}`;
+      } else if (numCarga && !existingFull.numCarga) {
+        existingFull.numCarga = numCarga;
+      }
+      const rem2 = String(rowData.remolque || '').trim();
+      if (rem2 && rem2 !== '0') {
+        if (existingFull.remolque && existingFull.remolque !== '0' && !existingFull.remolque.includes(rem2)) {
+          existingFull.remolque = `${existingFull.remolque} / ${rem2}`;
+        } else if (!existingFull.remolque || existingFull.remolque === '0') {
+          existingFull.remolque = rem2;
+        }
+      }
+      if (cortina && existingFull.cortina && !existingFull.cortina.includes(cortina)) {
+        existingFull.cortina = `${existingFull.cortina} / ${cortina}`;
+      } else if (cortina && !existingFull.cortina) {
+        existingFull.cortina = cortina;
+      }
+      existingFull.mtrs = (Number(existingFull.mtrs) || 0) + (Number(mtrs) || 0);
+
+      const horaCaseta2 = parseTimeValue(rowData.horaCaseta) || '';
+      if (horaCaseta2 && (!existingFull.horaCaseta || horaCaseta2 > existingFull.horaCaseta)) {
+        existingFull.horaCaseta = horaCaseta2;
+        existingFull.horaSalida = horaCaseta2;
+      }
+      const horaFin2 = parseTimeValue(rowData.horaFinCarga) || '';
+      if (horaFin2 && (!existingFull.horaFinCarga || horaFin2 > existingFull.horaFinCarga)) {
+        existingFull.horaFinCarga = horaFin2;
+      }
+
+      const sellos2 = String(rowData.sellos || '').trim();
+      if (sellos2 && existingFull.sellos && !existingFull.sellos.includes(sellos2)) {
+        existingFull.sellos = `${existingFull.sellos} / ${sellos2}`;
+      } else if (sellos2 && !existingFull.sellos) {
+        existingFull.sellos = sellos2;
+      }
+      const vale2 = String(rowData.valeEstructura || '').trim();
+      if (vale2 && vale2 !== '0' && existingFull.valeEstructura && existingFull.valeEstructura !== '0' && !existingFull.valeEstructura.includes(vale2)) {
+        existingFull.valeEstructura = `${existingFull.valeEstructura} / ${vale2}`;
+      } else if (vale2 && vale2 !== '0') {
+        existingFull.valeEstructura = vale2;
+      }
+      existingFull.motosEstructuras = (Number(existingFull.motosEstructuras) || 0) + (Number(rowData.motosEstructuras) || 0);
+      existingFull.motosCarton = (Number(existingFull.motosCarton) || 0) + (Number(rowData.motosCarton) || 0);
+
+      if (finalDestino && (finalDestino !== existingFull.destino || (finalNumSuc && finalNumSuc !== existingFull.numSucursal))) {
+        existingFull.destinosSecundarios.push({
+          id: `parada-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+          numSucursal: finalNumSuc,
+          destino: finalDestino,
+          numCarga: numCarga || '',
+          cortina: cortina || '',
+          mtrs: mtrs || 0,
+          closter: finalCloster
+        });
+      }
+
+      if (estatusObj.estatusSupervisor === 'En Ruta' || existingFull.estatusSupervisor === 'En Ruta') {
+        existingFull.estatusSupervisor = 'En Ruta';
+        existingFull.estatusPatio = 'En Ruta';
+        existingFull.estatusPlaneacion = 'CARGADO';
+      }
+
+      currentUnit = existingFull;
+      continue;
+    }
 
     const newUnit = {
       id: (typeof crypto !== 'undefined' && crypto.randomUUID) 
@@ -853,7 +937,7 @@ const construirPlanDesdeFilas = (hoja, libro, catalogoFlota = [], catalogoSucurs
       placas: finalPlacas,
       capUnidad: finalCap,
       linea: finalLinea,
-      tipo: fleetMaster?.tipo || (finalCap <= 18 ? 'Camioneta' : finalCap <= 50 ? 'Rango Medio' : finalCap <= 90 ? 'Tracto / Sencillo' : 'Tracto / Full'),
+      tipo: finalTipo,
       operador: finalOperador,
       idOperador: finalIdOperador,
       turno: 'M1',
