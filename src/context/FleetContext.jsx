@@ -261,7 +261,8 @@ export const FleetProvider = ({ children }) => {
       cancelText: config.cancelText || 'Cancelar',
       confirmType: config.confirmType || 'danger',
       hideCancel: Boolean(config.hideCancel),
-      onConfirm: config.onConfirm || (() => {})
+      onConfirm: config.onConfirm || (() => {}),
+      onCancel: config.onCancel || null
     });
   };
 
@@ -295,6 +296,7 @@ export const FleetProvider = ({ children }) => {
   // Función para recargar datos desde Supabase
   const reloadCloudData = useCallback(async () => {
     if (!isSupabaseConfigured()) return;
+    if (isBulkOperatingRef.current) return;
     try {
       setIsCloudLoading(true);
       const remoteData = await fetchViajesDb();
@@ -876,7 +878,7 @@ export const FleetProvider = ({ children }) => {
 
   // Guardar el plan o día actual
   const saveCurrentPlan = async ({ nombre, fecha, startNewDay = false }) => {
-    const planDate = fecha || new Date().toISOString().split('T')[0];
+    const planDate = fecha || todayIso;
     const planId = `plan-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
     const snapshotUnits = JSON.parse(JSON.stringify(units));
     
@@ -1136,7 +1138,7 @@ export const FleetProvider = ({ children }) => {
 
     // Respaldo automático del plan actual si contiene unidades para que NADA se pierda
     if (units.length > 0) {
-      const todayDate = new Date().toISOString().split('T')[0];
+      const todayDate = todayIso;
       const timeStr = new Date().toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' });
       const backupPlan = {
         id: `backup-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,

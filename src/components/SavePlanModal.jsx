@@ -7,6 +7,7 @@ import {
   AlertCircle 
 } from 'lucide-react';
 import { useFleet } from '../context/FleetContext';
+import { fechaLocalIso } from '../utils/fleetUtils';
 
 export const SavePlanModal = () => {
   const { 
@@ -17,7 +18,7 @@ export const SavePlanModal = () => {
     showAlert 
   } = useFleet();
 
-  const todayStr = new Date().toISOString().split('T')[0];
+  const todayStr = fechaLocalIso();
   const [fecha, setFecha] = useState(todayStr);
   const [nombre, setNombre] = useState('');
   const [startNewDay, setStartNewDay] = useState(false);

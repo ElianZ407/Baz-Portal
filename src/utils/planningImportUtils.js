@@ -9,7 +9,7 @@
  * NO. VALE DE ESTRUCTURAS | MOTOS ESTRUCTURAS | MOTOS CARTON | REMOLQUE | MTRS
  */
 
-import { buscarSucursal, crearIndiceFlota, crearIndiceSucursales } from './fleetUtils';
+import { buscarSucursal, crearIndiceFlota, crearIndiceSucursales, fechaLocalIso } from './fleetUtils';
 
 // Clave de comparación para eco, placas, operador o sucursal: sin acentos ni mayúsculas
 const claveEco = (value) => String(value === null || value === undefined ? '' : value)
@@ -351,7 +351,7 @@ export const parseDateValue = (val, fallbackDate = '') => {
     return str;
   }
 
-  return fallbackDate || new Date().toISOString().split('T')[0];
+  return fallbackDate || fechaLocalIso();
 };
 
 // Los tres estatus canónicos que consumen las vistas de la app
@@ -1175,7 +1175,7 @@ export const downloadPlanningTemplate = async () => {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `PLANTILLA_PLANEACION_BAZ_${new Date().toISOString().split('T')[0]}.xlsx`;
+  a.download = `PLANTILLA_PLANEACION_BAZ_${fechaLocalIso()}.xlsx`;
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);

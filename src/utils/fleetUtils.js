@@ -94,7 +94,10 @@ export const validarRestriccionesViaje = (sucursalesList, capUnidad, catalogo = 
     .filter(s => CAPACIDADES_SOLO_KANGOO.includes(s.capMax) && capUnidad > CAPACIDAD_MAXIMA_KANGOO)
     .map(s => `Sucursal ${s.id} (${s.nombre}) tiene restricción de acceso: Solo admite unidades Kangoo / 18 (Cap. asignada: ${capUnidad})`);
 
-  const ids = sucursales.map(s => String(s.id));
+  const idsCrudos = sucursalesList
+    .map(item => String(typeof item === 'string' ? item : (item?.id || item?.num || '')).trim())
+    .filter(Boolean);
+  const ids = [...new Set([...sucursales.map(s => String(s.id)), ...idsCrudos])];
   const alertasIncompatibilidad = REGLAS_INCOMPATIBILIDAD
     .filter(regla => ids.some(id => regla.grupo.includes(id)) && ids.some(id => regla.contra.includes(id)))
     .map(regla => regla.mensaje);
@@ -238,7 +241,8 @@ export const tieneRutaAsignada = (unit) => {
 
 export const consolidarUnidadesPatioPorEconomico = (units = []) => {
   const unitsByEco = new Map();
-  units.forEach(unit => {
+  (Array.isArray(units) ? units : []).forEach(unit => {
+    if (!unit) return;
     const eco = String(unit.economico || '').trim();
     if (!eco) return;
     const existing = unitsByEco.get(eco);
@@ -264,6 +268,7 @@ export const consolidarCargasFull = (units = []) => {
   const mapaFull = new Map();
 
   for (const u of units) {
+    if (!u) continue;
     const eco = String(u.economico || '').trim();
     if (eco && esFull(u)) {
       if (mapaFull.has(eco)) {
@@ -272,22 +277,26 @@ export const consolidarCargasFull = (units = []) => {
         if (u.id && !principal.idsConsolidados.includes(u.id)) {
           principal.idsConsolidados.push(u.id);
         }
-        if (u.noViaje && principal.noViaje && !principal.noViaje.includes(u.noViaje)) {
-          principal.noViaje = `${principal.noViaje} - ${u.noViaje}`;
+        const viaje = String(u.noViaje || '').trim();
+        if (viaje && principal.noViaje && !String(principal.noViaje).includes(viaje)) {
+          principal.noViaje = `${principal.noViaje} - ${viaje}`;
         }
-        if (u.numCarga && principal.numCarga && !principal.numCarga.includes(u.numCarga)) {
-          principal.numCarga = `${principal.numCarga} / ${u.numCarga}`;
+        const carga = String(u.numCarga || '').trim();
+        if (carga && principal.numCarga && !String(principal.numCarga).includes(carga)) {
+          principal.numCarga = `${principal.numCarga} / ${carga}`;
         }
         const rem = String(u.remolque || '').trim();
+        const remPrincipal = String(principal.remolque || '').trim();
         if (rem && rem !== '0') {
-          if (principal.remolque && principal.remolque !== '0' && !principal.remolque.includes(rem)) {
-            principal.remolque = `${principal.remolque} / ${rem}`;
-          } else if (!principal.remolque || principal.remolque === '0') {
+          if (remPrincipal && remPrincipal !== '0' && !remPrincipal.includes(rem)) {
+            principal.remolque = `${remPrincipal} / ${rem}`;
+          } else if (!remPrincipal || remPrincipal === '0') {
             principal.remolque = rem;
           }
         }
-        if (u.cortina && principal.cortina && !principal.cortina.includes(u.cortina)) {
-          principal.cortina = `${principal.cortina} / ${u.cortina}`;
+        const cortina = String(u.cortina || '').trim();
+        if (cortina && principal.cortina && !String(principal.cortina).includes(cortina)) {
+          principal.cortina = `${principal.cortina} / ${cortina}`;
         }
         if (u.horaSalida && (!principal.horaSalida || u.horaSalida > principal.horaSalida)) {
           principal.horaSalida = u.horaSalida;
@@ -698,7 +707,8 @@ const CATEGORIAS_FLOTA = [
 
 export const resumirFlotaPorEstado = (units = [], catalogoFlota = []) => {
   const unitsByEco = new Map();
-  units.forEach(unit => {
+  (Array.isArray(units) ? units : []).forEach(unit => {
+    if (!unit) return;
     const eco = String(unit.economico || '').trim();
     if (!eco) return;
     if (!unitsByEco.has(eco)) unitsByEco.set(eco, []);
@@ -760,6 +770,13 @@ export const contarViajesSinUnidadAsignada = (units = []) => {
   return tripKeys.size;
 };
 
+export const fechaLocalIso = (fecha = new Date()) => {
+  const y = fecha.getFullYear();
+  const m = String(fecha.getMonth() + 1).padStart(2, '0');
+  const d = String(fecha.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+};
+
 const DIAS_SEMANA = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
 const DIAS_SEMANA_CORTOS = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
 const MESES_ANIO = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
@@ -784,7 +801,9 @@ export const formatearFechaPlan = (fechaStr, formato = 'corto') => {
   if (!partes) return clean;
 
   const [y, m, d] = partes;
+  const fecha = new Date(y, m - 1, d);
+  if (fecha.getFullYear() !== y || fecha.getMonth() !== m - 1 || fecha.getDate() !== d) return clean;
   const formatear = FORMATOS_FECHA_PLAN[formato] || FORMATOS_FECHA_PLAN.corto;
-  return formatear(new Date(y, m - 1, d), d, y);
+  return formatear(fecha, d, y);
 };
 

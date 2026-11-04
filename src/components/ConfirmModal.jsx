@@ -20,10 +20,11 @@ export const ConfirmModal = () => {
         closeConfirm();
       } else if (e.key === 'Enter') {
         e.preventDefault();
-        if (confirmModal.onConfirm) {
-          confirmModal.onConfirm();
-        }
+        const accion = confirmModal.onConfirm;
         closeConfirm();
+        if (accion) {
+          accion();
+        }
       }
     };
 
@@ -41,14 +42,22 @@ export const ConfirmModal = () => {
     cancelText = 'Cancelar',
     confirmType = 'danger',
     hideCancel = false,
-    onConfirm
+    onConfirm,
+    onCancel
   } = confirmModal;
 
   const handleConfirm = () => {
+    closeConfirm();
     if (onConfirm) {
       onConfirm();
     }
+  };
+
+  const handleCancel = () => {
     closeConfirm();
+    if (onCancel) {
+      onCancel();
+    }
   };
 
   const ICONOS_CONFIRMACION = {
@@ -129,7 +138,7 @@ export const ConfirmModal = () => {
             <button 
               type="button" 
               className="btn-confirm-cancel" 
-              onClick={closeConfirm}
+              onClick={handleCancel}
             >
               {cancelText}
             </button>

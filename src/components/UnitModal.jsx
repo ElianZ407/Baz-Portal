@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { X, Save, Truck, Layers, FileSpreadsheet, AlertTriangle, Wrench, Trash2, Plus, Package, Search, PlusCircle } from 'lucide-react';
 import { useFleet } from '../context/FleetContext';
 import { LINEAS_TRANSPORTE, BLOQUES, SUCURSALES_MAESTRAS, FLOTA_TOTAL } from '../constants/fleetConstants';
-import { buscarSucursal, validarRestriccionesViaje, buscarUnidadPorEco, buscarIdOperadorPorNombre, buscarOperadorPorEco, checkTieneViajeYOperador } from '../utils/fleetUtils';
+import { buscarSucursal, validarRestriccionesViaje, buscarUnidadPorEco, buscarIdOperadorPorNombre, buscarOperadorPorEco, checkTieneViajeYOperador, fechaLocalIso } from '../utils/fleetUtils';
 import { SucursalSelector } from './SucursalSelector';
 import { UnidadSelector } from './UnidadSelector';
 import { OperadorSelector } from './OperadorSelector';
@@ -38,7 +38,7 @@ const getDefaultFormData = (selectedUnit) => {
       closter: selectedUnit.closter || '',
       fl: selectedUnit.fl || 'LOCAL',
       capMax: selectedUnit.capMax || '',
-      fecha: selectedUnit.fecha || new Date().toISOString().split('T')[0],
+      fecha: selectedUnit.fecha || fechaLocalIso(),
       horaSalida: selectedUnit.horaSalida || '',
       tiempoEstimadoHrs: Number(selectedUnit.tiempoEstimadoHrs) || 0,
       eta: selectedUnit.eta || '',
@@ -80,7 +80,7 @@ const getDefaultFormData = (selectedUnit) => {
     closter: '',
     fl: 'LOCAL',
     capMax: '',
-    fecha: new Date().toISOString().split('T')[0],
+    fecha: fechaLocalIso(),
     horaSalida: '',
     tiempoEstimadoHrs: 0,
     eta: '',

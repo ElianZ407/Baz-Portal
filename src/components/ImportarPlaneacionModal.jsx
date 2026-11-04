@@ -16,7 +16,7 @@ import {
 } from 'lucide-react';
 import { useFleet } from '../context/FleetContext';
 import { parsePlanningFile, downloadPlanningTemplate } from '../utils/planningImportUtils';
-import { formatearFechaPlan } from '../utils/fleetUtils';
+import { formatearFechaPlan, fechaLocalIso } from '../utils/fleetUtils';
 
 export const ImportarPlaneacionModal = () => {
   const { 
@@ -127,7 +127,7 @@ export const ImportarPlaneacionModal = () => {
       setIsProcessing(true);
       setErrorMessage('');
       const result = await parsePlanningFile(file, catalogoFlota, catalogoSucursales, preferredSheet);
-      const detectedDate = result.fechaDetectada || new Date().toISOString().split('T')[0];
+      const detectedDate = result.fechaDetectada || fechaLocalIso();
       setSelectedPlanDate(detectedDate);
       setParsedData({
         ...result,
@@ -188,7 +188,7 @@ export const ImportarPlaneacionModal = () => {
 
     try {
       setIsProcessing(true);
-      const finalDate = selectedPlanDate || parsedData.fechaDetectada || new Date().toISOString().split('T')[0];
+      const finalDate = selectedPlanDate || parsedData.fechaDetectada || fechaLocalIso();
       const finalUnits = parsedData.units.map(u => ({
         ...u,
         fecha: finalDate
@@ -502,7 +502,7 @@ export const ImportarPlaneacionModal = () => {
                       <Calendar size={14} />
                       <span>FECHA DEL PLAN</span>
                     </div>
-                    {selectedPlanDate === new Date().toISOString().split('T')[0] && (
+                    {selectedPlanDate === fechaLocalIso() && (
                       <span style={{ background: '#0ea5e9', color: '#fff', fontSize: '0.65rem', padding: '0.1rem 0.4rem', borderRadius: '4px', fontWeight: 800 }}>
                         HOY
                       </span>
