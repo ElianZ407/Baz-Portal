@@ -80,9 +80,9 @@ npx oxlint -D all -A no-unused-vars -A no-unused-expressions src/
    solo con placeholders, nunca con credenciales reales.
 4. **El `README.md` está desactualizado:** describe 4 KPIs en la TV, pero ya hay
    un quinto (Disponibles Mañana) y filtros por estatus.
-5. **`src/components/SatelliteBackground.jsx` (66 lineas) es codigo muerto** —
-   solo se referencia a si mismo; `App.jsx` importa `RoutesBackground`. Lo
-   mismo con `src/App.css` (158 lineas), que no lo importa nadie.
+5. **Código muerto ya purgado:** `SatelliteBackground.jsx`, `ManualAyudaModal.jsx`,
+   `totalProtectClient.js` y `src/App.css` fueron eliminados. `RoutesBackground`
+   es el fondo activo y los estilos globales viven en `src/index.css`.
 6. **`fl` es el campo LOCAL/FORANEO de la SUCURSAL destino**, no del viaje. Se
    copia a la fila del viaje (`viajes_diarios.fl`) y se lee con
    `unit.fl === 'FORANEO'`, comparacion exacta y sin acentos. `mapDbToUnit` lo
