@@ -23,6 +23,7 @@ import {
   RefreshCw,
   Sparkles,
   Save,
+  RotateCcw,
   X
 } from 'lucide-react';
 
@@ -128,20 +129,20 @@ const HC_MATCHERS = {
 };
 
 const DEFAULT_PV_FILAS = [
-  { tipo: 'Camionetas', totalFlota: 14, taller: 5, activas: 9 },
+  { tipo: 'Camionetas', totalFlota: 17, taller: 4, activas: 13 },
   { tipo: 'Rabones', totalFlota: 25, taller: 6, activas: 19 },
-  { tipo: 'Tracto', totalFlota: 7, taller: 0, activas: 7 },
+  { tipo: 'Tracto', totalFlota: 7, taller: 2, activas: 5 },
   { tipo: 'Fulles', totalFlota: 6, taller: 0, activas: 6 }
 ];
 
 const getEmptyPvFilas = () => DEFAULT_PV_FILAS.map((f) => ({ ...f }));
 
 const DEFAULT_HC_FILAS = [
-  { tipo: 'Op. Camioneta', autorizado: 14, activo: 14, vacantes: 0, incapacidades: 0, vacaciones: 0, faltas: 0 },
+  { tipo: 'Op. Camioneta', autorizado: 14, activo: 14, vacantes: 1, incapacidades: 0, vacaciones: 0, faltas: 0 },
   { tipo: 'Op. RM (Rango Medio)', autorizado: 24, activo: 23, vacantes: 1, incapacidades: 0, vacaciones: 0, faltas: 0 },
   { tipo: 'Op. Tractor', autorizado: 7, activo: 7, vacantes: 0, incapacidades: 0, vacaciones: 0, faltas: 0 },
   { tipo: 'Op. Fulles', autorizado: 6, activo: 5, vacantes: 1, incapacidades: 0, vacaciones: 0, faltas: 0 },
-  { tipo: 'Auxiliares', autorizado: 38, activo: 38, vacantes: 0, incapacidades: 2, vacaciones: 2, faltas: 0 }
+  { tipo: 'Auxiliares', autorizado: 38, activo: 38, vacantes: 3, incapacidades: 2, vacaciones: 2, faltas: 0 }
 ];
 
 const getEmptyHcFilas = () => DEFAULT_HC_FILAS.map((f) => ({ ...f }));
@@ -537,7 +538,20 @@ export const PlanColocacionView = () => {
   };
 
   const currentData = useMemo(() => {
-    return normalizeRecord(records[currentDate], currentDate);
+    if (records[currentDate]) {
+      return normalizeRecord(records[currentDate], currentDate);
+    }
+    const allDates = Object.keys(records).filter((d) => d < currentDate && records[d]).sort();
+    const prevDate = allDates.length > 0 ? allDates[allDates.length - 1] : null;
+    const prevRecord = prevDate ? records[prevDate] : null;
+    const empty = getEmptyRecord(currentDate);
+    if (prevRecord?.pvActivo?.filas) {
+      empty.pvActivo = JSON.parse(JSON.stringify(prevRecord.pvActivo));
+    }
+    if (prevRecord?.headcount?.filas) {
+      empty.headcount = JSON.parse(JSON.stringify(prevRecord.headcount));
+    }
+    return empty;
   }, [records, currentDate]);
 
   const savedDates = useMemo(() => Object.keys(records).sort().reverse(), [records]);
@@ -794,6 +808,46 @@ export const PlanColocacionView = () => {
       }
     } catch {
       showToast('Ocurrió un error al guardar el día.');
+    }
+  };
+
+  const handleCopyFromPreviousDay = async () => {
+    try {
+      const allDates = Object.keys(records).filter((d) => d < currentDate && records[d]).sort();
+      const prevDate = allDates.length > 0 ? allDates[allDates.length - 1] : null;
+      if (!prevDate || !records[prevDate]) {
+        showToast('No se encontró un día anterior con información guardada.');
+        return;
+      }
+      const prevRecord = records[prevDate];
+      const prevPv = prevRecord.pvActivo?.filas ? prevRecord.pvActivo : null;
+      const prevHc = prevRecord.headcount?.filas ? prevRecord.headcount : null;
+
+      if (!prevPv && !prevHc) {
+        showToast('El día anterior no tiene datos de plantilla o parque vehicular.');
+        return;
+      }
+
+      const updated = {
+        ...currentData,
+        pvActivo: prevPv ? JSON.parse(JSON.stringify(prevPv)) : currentData.pvActivo,
+        headcount: prevHc ? JSON.parse(JSON.stringify(prevHc)) : currentData.headcount,
+        updatedAt: new Date().toISOString()
+      };
+
+      setRecords((prev) => ({
+        ...prev,
+        [currentDate]: updated
+      }));
+
+      const ok = await persistToCloud(updated);
+      if (ok) {
+        showToast(`¡Plantilla y PV copiados con éxito del ${formatDateToSpanish(prevDate)}!`);
+      } else {
+        showToast(`¡Plantilla y PV copiados localmente del ${formatDateToSpanish(prevDate)}!`);
+      }
+    } catch {
+      showToast('Error al copiar plantilla del día anterior.');
     }
   };
 
@@ -1240,6 +1294,15 @@ export const PlanColocacionView = () => {
           >
             <Edit3 size={15} />
             <span>Editar Datos</span>
+          </button>
+
+          <button 
+            className="btn btn-secondary btn-header-action"
+            onClick={handleCopyFromPreviousDay}
+            title="Traer la información de Plantilla y Parque Vehicular del día anterior al día de hoy"
+          >
+            <RotateCcw size={15} />
+            <span>Traer de Ayer</span>
           </button>
 
           <button 
