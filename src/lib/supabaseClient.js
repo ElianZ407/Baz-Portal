@@ -87,7 +87,10 @@ const CAMPOS_META = [
   ['motosEstructuras', true],
   ['motosCarton', true],
   ['remolque', false],
-  ['mtrs', true]
+  ['mtrs', true],
+  ['horaEmrampe', false],
+  ['horaDesemrampe', false],
+  ['patiero', false]
 ];
 
 const CLAVES_META_PERMITIDAS = new Set(CAMPOS_META.map(([campo]) => campo));
@@ -168,7 +171,10 @@ export const mapDbToUnit = (row) => {
     motosEstructuras: Number(meta.motosEstructuras) || 0,
     motosCarton: Number(meta.motosCarton) || 0,
     remolque: meta.remolque || '0',
-    mtrs: Number(meta.mtrs) || 0
+    mtrs: Number(meta.mtrs) || 0,
+    horaEmrampe: meta.horaEmrampe || meta.horaColocacionReal || '',
+    horaDesemrampe: meta.horaDesemrampe || meta.horaFinCarga || '',
+    patiero: meta.patiero || ''
   };
 };
 

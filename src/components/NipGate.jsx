@@ -1,15 +1,9 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useMemo, useCallback } from 'react';
 import { Lock, ShieldAlert } from 'lucide-react';
 
 const NIP_LENGTH = 4;
-const SESSION_KEY = 'baz_colocacion_nip_token';
-const LOCKOUT_KEY = 'baz_colocacion_nip_lockout';
-const ATTEMPTS_KEY = 'baz_colocacion_nip_attempts';
 const MAX_INTENTOS = 5;
 const TIEMPO_BLOQUEO_MS = 30000;
-
-const NIP_CONFIGURADO = String(import.meta.env.VITE_PLAN_COLOCACION_NIP || '').trim();
-const NIP_VALIDO = new RegExp(`^\\d{${NIP_LENGTH}}$`).test(NIP_CONFIGURADO);
 
 const generarFingerprintNip = (valor) => {
   const entrada = `baz_v1_salt_${valor}_cd_vhsa`;
@@ -36,8 +30,6 @@ const compararTiempoConstante = (a, b) => {
   return diff === 0;
 };
 
-const TOKEN_ESPERADO = NIP_VALIDO ? generarFingerprintNip(NIP_CONFIGURADO) : '';
-
 const leerStorageSeguro = (clave, fallback = '') => {
   try {
     return sessionStorage.getItem(clave) ?? fallback;
@@ -58,63 +50,95 @@ const eliminarStorageSeguro = (clave) => {
   } catch {}
 };
 
-const yaDesbloqueado = () =>
-  NIP_VALIDO && compararTiempoConstante(leerStorageSeguro(SESSION_KEY), TOKEN_ESPERADO);
-
-const obtenerBloqueoRestanteSeg = () => {
-  const hasta = Number(leerStorageSeguro(LOCKOUT_KEY, '0')) || 0;
-  return Math.max(0, Math.ceil((hasta - Date.now()) / 1000));
-};
-
-const guardarIntentoFallidoStorage = () => {
-  const previos = Number(leerStorageSeguro(ATTEMPTS_KEY, '0')) || 0;
+const guardarFalloStorage = (attemptsKey, lockoutKey) => {
+  const ahora = Date.now();
+  const previos = Number(leerStorageSeguro(attemptsKey, '0')) || 0;
   const nuevos = previos + 1;
-  escribirStorageSeguro(ATTEMPTS_KEY, nuevos);
+  escribirStorageSeguro(attemptsKey, nuevos);
   if (nuevos >= MAX_INTENTOS) {
-    escribirStorageSeguro(LOCKOUT_KEY, Date.now() + TIEMPO_BLOQUEO_MS);
+    escribirStorageSeguro(lockoutKey, ahora + TIEMPO_BLOQUEO_MS);
     return Math.ceil(TIEMPO_BLOQUEO_MS / 1000);
   }
   return 0;
 };
 
-export const NipGate = ({ children }) => {
-  const [desbloqueado, setDesbloqueado] = useState(yaDesbloqueado);
+export const NipGate = ({ 
+  children,
+  title = 'Plan de Colocación',
+  subtitle = 'Ingresa el NIP de 4 dígitos para continuar.',
+  sessionKey = 'baz_colocacion_nip_token',
+  lockoutKey = 'baz_colocacion_nip_lockout',
+  attemptsKey = 'baz_colocacion_nip_attempts',
+  nipConfigurado,
+  defaultNip = '',
+  envVarName = 'VITE_PLAN_COLOCACION_NIP'
+}) => {
+  const effectiveNip = useMemo(() => {
+    const fromEnv = nipConfigurado !== undefined 
+      ? nipConfigurado 
+      : import.meta.env[envVarName];
+    const clean = String(fromEnv || defaultNip || '').trim();
+    return clean;
+  }, [nipConfigurado, defaultNip, envVarName]);
+
+  const nipValido = useMemo(() => {
+    return new RegExp(`^\\d{${NIP_LENGTH}}$`).test(effectiveNip);
+  }, [effectiveNip]);
+
+  const tokenEsperado = useMemo(() => {
+    return nipValido ? generarFingerprintNip(effectiveNip) : '';
+  }, [nipValido, effectiveNip]);
+
+  const [desbloqueado, setDesbloqueado] = useState(() => {
+    return nipValido && compararTiempoConstante(leerStorageSeguro(sessionKey), tokenEsperado);
+  });
+
   const [digitos, setDigitos] = useState(() => Array(NIP_LENGTH).fill(''));
   const [error, setError] = useState(false);
-  const [segundosBloqueo, setSegundosBloqueo] = useState(obtenerBloqueoRestanteSeg);
+  const [segundosBloqueo, setSegundosBloqueo] = useState(() => {
+    const hasta = Number(leerStorageSeguro(lockoutKey, '0')) || 0;
+    return Math.max(0, Math.ceil((hasta - Date.now()) / 1000));
+  });
   const refs = useRef([]);
+
+  const estaDesbloqueado = desbloqueado || (nipValido && compararTiempoConstante(leerStorageSeguro(sessionKey), tokenEsperado));
+
+  const checkBloqueo = useCallback(() => {
+    const hasta = Number(leerStorageSeguro(lockoutKey, '0')) || 0;
+    return Math.max(0, Math.ceil((hasta - Date.now()) / 1000));
+  }, [lockoutKey]);
 
   useEffect(() => {
     if (segundosBloqueo <= 0) return undefined;
     const timer = setInterval(() => {
-      const restante = obtenerBloqueoRestanteSeg();
+      const restante = checkBloqueo();
       setSegundosBloqueo(restante);
       if (restante <= 0) {
-        eliminarStorageSeguro(LOCKOUT_KEY);
-        eliminarStorageSeguro(ATTEMPTS_KEY);
+        eliminarStorageSeguro(lockoutKey);
+        eliminarStorageSeguro(attemptsKey);
       }
     }, 1000);
     return () => clearInterval(timer);
-  }, [segundosBloqueo]);
+  }, [segundosBloqueo, checkBloqueo, lockoutKey, attemptsKey]);
 
-  if (desbloqueado) return children;
+  if (estaDesbloqueado) return children;
 
   const bloqueadoPorIntentos = segundosBloqueo > 0;
 
   const verificar = (lista) => {
     if (bloqueadoPorIntentos) return;
     const candidatoHash = generarFingerprintNip(lista.join(''));
-    const coincide = compararTiempoConstante(candidatoHash, TOKEN_ESPERADO);
+    const coincide = compararTiempoConstante(candidatoHash, tokenEsperado);
 
     if (coincide) {
-      escribirStorageSeguro(SESSION_KEY, TOKEN_ESPERADO);
-      eliminarStorageSeguro(ATTEMPTS_KEY);
-      eliminarStorageSeguro(LOCKOUT_KEY);
+      escribirStorageSeguro(sessionKey, tokenEsperado);
+      eliminarStorageSeguro(attemptsKey);
+      eliminarStorageSeguro(lockoutKey);
       setDesbloqueado(true);
       return;
     }
 
-    const segBloqueo = guardarIntentoFallidoStorage();
+    const segBloqueo = guardarFalloStorage(attemptsKey, lockoutKey);
     if (segBloqueo > 0) setSegundosBloqueo(segBloqueo);
     setError(true);
     setTimeout(() => {
@@ -162,12 +186,12 @@ export const NipGate = ({ children }) => {
     <section className="nip-gate" aria-labelledby="nip-gate-titulo">
       <div className={`nip-gate-card ${error || bloqueadoPorIntentos ? 'nip-gate-card-error' : ''}`}>
         <div className="nip-gate-icon">
-          {NIP_VALIDO ? <Lock size={28} /> : <ShieldAlert size={28} />}
+          {nipValido ? <Lock size={28} /> : <ShieldAlert size={28} />}
         </div>
-        <h1 id="nip-gate-titulo" className="nip-gate-title">Plan de Colocación</h1>
-        {NIP_VALIDO ? (
+        <h1 id="nip-gate-titulo" className="nip-gate-title">{title}</h1>
+        {nipValido ? (
           <>
-            <p className="nip-gate-text">Ingresa el NIP de {NIP_LENGTH} dígitos para continuar.</p>
+            <p className="nip-gate-text">{subtitle}</p>
             <div className="nip-gate-inputs" onPaste={handlePaste}>
               {digitos.map((digito, indice) => (
                 <input
@@ -195,7 +219,7 @@ export const NipGate = ({ children }) => {
         ) : (
           <p className="nip-gate-text">
             Este módulo está protegido, pero el NIP no está configurado. Define
-            {' '}<strong>VITE_PLAN_COLOCACION_NIP</strong> con {NIP_LENGTH} dígitos en el archivo .env
+            {' '}<strong>{envVarName}</strong> con {NIP_LENGTH} dígitos en el archivo .env
             y en las variables de entorno del despliegue.
           </p>
         )}

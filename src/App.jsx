@@ -10,6 +10,7 @@ const PlaneacionView = lazy(() => import('./components/PlaneacionView').then(m =
 const SupervisorView = lazy(() => import('./components/SupervisorView').then(m => ({ default: m.SupervisorView })));
 const TvDashboardView = lazy(() => import('./components/TvDashboardView').then(m => ({ default: m.TvDashboardView })));
 const PlanColocacionView = lazy(() => import('./components/PlanColocacionView').then(m => ({ default: m.PlanColocacionView })));
+const ControlEmrampeView = lazy(() => import('./components/ControlEmrampeView').then(m => ({ default: m.ControlEmrampeView })));
 
 const UnitModal = lazy(() => import('./components/UnitModal').then(m => ({ default: m.UnitModal })));
 const ConfirmModal = lazy(() => import('./components/ConfirmModal').then(m => ({ default: m.ConfirmModal })));
@@ -58,13 +59,27 @@ const AppContent = () => {
               <PlanColocacionView />
             </NipGate>
           )}
+          {activeArea === 'emrampe' && (
+            <NipGate
+              title="Control de Emrampe"
+              subtitle="Módulo exclusivo para el personal de patio de CD Villahermosa."
+              sessionKey="baz_emrampe_nip_token"
+              lockoutKey="baz_emrampe_nip_lockout"
+              attemptsKey="baz_emrampe_nip_attempts"
+              nipConfigurado={import.meta.env.VITE_EMRAMPE_NIP}
+              defaultNip="2026"
+              envVarName="VITE_EMRAMPE_NIP"
+            >
+              <ControlEmrampeView />
+            </NipGate>
+          )}
         </Suspense>
       </main>
 
       <footer className="app-footer">
         <span className="app-footer-brand">BAZ Entregas — Sistema Integrado de Control de Flota y Patio</span>
         <span className="app-footer-divider">•</span>
-        <span className="app-footer-modules">Patio (En CD) | Planeación | Supervisor (Ruta) | Resumen General | Colocación</span>
+        <span className="app-footer-modules">Patio (En CD) | Planeación | Supervisor (Ruta) | Resumen General | Colocación | Control de Emrampe</span>
       </footer>
 
       {isModalOpen && (

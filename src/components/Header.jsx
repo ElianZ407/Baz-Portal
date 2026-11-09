@@ -12,6 +12,7 @@ import {
   UploadCloud,
   Calendar,
   FileText,
+  Warehouse,
   RotateCcw
 } from 'lucide-react';
 import { useFleet } from '../context/FleetContext';
@@ -86,6 +87,7 @@ export const Header = () => {
   const getExportButtonLabel = () => {
     switch (activeArea) {
       case 'patio': return 'Excel Patio';
+      case 'emrampe': return 'Excel Emrampe';
       case 'supervisor': return 'Excel Supervisor';
       case 'tv': return 'Excel Resumen';
       default: return 'Excel Oficial';
@@ -95,6 +97,7 @@ export const Header = () => {
   const getExportButtonTitle = () => {
     switch (activeArea) {
       case 'patio': return 'Descargar reporte Excel del control de patio y andenes';
+      case 'emrampe': return 'Descargar reporte Excel del control de emrampe';
       case 'supervisor': return 'Descargar reporte Excel de supervisión y estatus en ruta';
       case 'tv': return 'Descargar reporte Excel del resumen general de monitoreo';
       default: return 'Descargar archivo Excel oficial BAZ';
@@ -200,6 +203,16 @@ export const Header = () => {
           <span className="tab-full-text">Plan Colocación</span>
           <span className="tab-short-text">Colocación</span>
         </button>
+
+        <button 
+          className={`nav-tab ${activeArea === 'emrampe' ? 'active' : ''}`}
+          onClick={() => setActiveArea('emrampe')}
+          title="Control de Emrampe: Registro de Unidades en Rampa, Horas y Patiero"
+        >
+          <Warehouse size={16} />
+          <span className="tab-full-text">Control de Emrampe</span>
+          <span className="tab-short-text">Emrampe</span>
+        </button>
       </nav>
 
       <div className="header-actions">
@@ -231,7 +244,7 @@ export const Header = () => {
             </>
           )}
 
-          {activeArea !== 'colocacion' && (
+          {activeArea !== 'colocacion' && activeArea !== 'emrampe' && (
             <>
               <button 
                 className="btn btn-secondary btn-header-action" 
