@@ -126,7 +126,7 @@ export const OperadorSelector = ({ value, onChange, placeholder = 'Seleccionar O
   const categories = [
     { id: 'ALL', label: `Todos (${allOperadores.length})` },
     { id: 'RECENT', label: `En Ruta (${recentCount})` },
-    { id: 'CATALOG', label: `Padrón VHS (${catalogCount})` }
+    { id: 'CATALOG', label: `Catálogo (${catalogCount})` }
   ];
 
   const searchClean = search.trim();
@@ -274,7 +274,7 @@ export const OperadorSelector = ({ value, onChange, placeholder = 'Seleccionar O
             <input 
               ref={searchRef}
               type="text"
-              placeholder="Buscar por nombre, nómina, ECO o línea..."
+              placeholder="Buscar operador por nombre..."
               value={search}
               onChange={(e) => {
                 setSearch(e.target.value);
@@ -381,7 +381,7 @@ export const OperadorSelector = ({ value, onChange, placeholder = 'Seleccionar O
                       </div>
 
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', flexShrink: 0 }}>
-                        {isRecent ? (
+                        {isRecent && (
                           <span style={{ 
                             display: 'inline-flex', 
                             alignItems: 'center', 
@@ -395,21 +395,6 @@ export const OperadorSelector = ({ value, onChange, placeholder = 'Seleccionar O
                             padding: '0.15rem 0.45rem' 
                           }}>
                             <Clock size={10} /> En Ruta
-                          </span>
-                        ) : (
-                          <span style={{ 
-                            display: 'inline-flex', 
-                            alignItems: 'center', 
-                            gap: '0.25rem', 
-                            fontSize: '0.68rem', 
-                            fontWeight: 700, 
-                            background: 'rgba(255, 255, 255, 0.05)', 
-                            color: '#94a3b8', 
-                            border: '1px solid rgba(255, 255, 255, 0.1)', 
-                            borderRadius: '4px', 
-                            padding: '0.15rem 0.45rem' 
-                          }}>
-                            Padrón
                           </span>
                         )}
                         {isSelected && (

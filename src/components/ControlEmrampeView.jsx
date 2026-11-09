@@ -628,15 +628,6 @@ export const ControlEmrampeView = () => {
         )}
       </div>
 
-      <button 
-        type="button" 
-        className="floating-mobile-add-btn mobile-only"
-        onClick={openNewModal}
-        aria-label="Nuevo Emrampe"
-      >
-        <Plus size={24} />
-      </button>
-
       {isModalOpen && (
         <div className="emrampe-modal-overlay" onClick={closeModal}>
           <div className="emrampe-modal-card" onClick={(e) => e.stopPropagation()}>
@@ -664,31 +655,15 @@ export const ControlEmrampeView = () => {
             <form id="form-emrampe" onSubmit={handleSaveForm} className="emrampe-modal-form">
               <div className="form-group-emrampe">
                 <label>Número de Unidad (ECO) *</label>
-                <div className="input-with-list">
-                  <input 
-                    type="text" 
-                    placeholder="Ej. 5054"
-                    required
-                    value={formData.economico}
-                    onChange={(e) => handleEcoChange(e.target.value)}
-                    className="emrampe-input"
-                    autoFocus={!editingUnitId}
-                  />
-                  {(catalogoFlota || []).length > 0 && !editingUnitId && (
-                    <select 
-                      className="emrampe-eco-dropdown"
-                      value={formData.economico}
-                      onChange={(e) => handleEcoChange(e.target.value)}
-                    >
-                      <option value="">Seleccionar del catálogo...</option>
-                      {(catalogoFlota || []).map(f => (
-                        <option key={f.eco} value={f.eco}>
-                          ECO {f.eco} — {f.operador || f.tipo || 'Activo'}
-                        </option>
-                      ))}
-                    </select>
-                  )}
-                </div>
+                <input 
+                  type="text" 
+                  placeholder="Ej. 5054"
+                  required
+                  value={formData.economico}
+                  onChange={(e) => handleEcoChange(e.target.value)}
+                  className="emrampe-input"
+                  autoFocus={!editingUnitId}
+                />
               </div>
 
               <div className="form-row-2">
@@ -720,7 +695,7 @@ export const ControlEmrampeView = () => {
                 <OperadorSelector 
                   value={formData.operador}
                   onChange={(nombre) => setFormData(prev => ({ ...prev, operador: nombre }))}
-                  placeholder="Buscar operador por nombre, nómina, ECO o línea..."
+                  placeholder="Buscar operador por nombre..."
                 />
               </div>
 
