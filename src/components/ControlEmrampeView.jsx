@@ -4,7 +4,6 @@ import {
   Plus, 
   Search, 
   Clock, 
-  UserCheck, 
   CheckCircle2, 
   Edit3, 
   Trash2, 
@@ -15,6 +14,7 @@ import {
 } from 'lucide-react';
 import { useFleet } from '../context/FleetContext';
 import { CATALOGO_RAMPAS, detectarZonaRampa } from '../constants/fleetConstants';
+import { OperadorSelector } from './OperadorSelector';
 
 export const ControlEmrampeView = () => {
   const { 
@@ -39,9 +39,6 @@ export const ControlEmrampeView = () => {
     }
   });
 
-  const [isChangingPatiero, setIsChangingPatiero] = useState(!patieroActivo);
-  const [tempPatieroInput, setTempPatieroInput] = useState(patieroActivo);
-
   const [formData, setFormData] = useState({
     economico: '',
     numCarga: '',
@@ -63,7 +60,6 @@ export const ControlEmrampeView = () => {
         localStorage.removeItem('baz_patiero_activo');
       }
     } catch {}
-    setIsChangingPatiero(false);
   };
 
   const getHoraActual = () => {
@@ -166,6 +162,10 @@ export const ControlEmrampeView = () => {
       actualizadoEn: nowStr
     };
 
+    if (payload.patiero) {
+      guardarPatieroActivo(payload.patiero);
+    }
+
     saveUnit(payload);
     closeModal();
   };
@@ -264,68 +264,6 @@ export const ControlEmrampeView = () => {
 
   return (
     <div className="emrampe-container">
-      <div className="emrampe-header-card">
-        <div className="emrampe-header-left">
-          <div className="emrampe-title-wrap">
-            <div className="emrampe-icon-badge">
-              <Warehouse size={22} color="var(--accent-cyan)" />
-            </div>
-            <div>
-              <h2 className="emrampe-title">Control de Emrampe</h2>
-              <p className="emrampe-subtitle">Módulo operativo exclusivo para personal de Patio — CD Villahermosa</p>
-            </div>
-          </div>
-        </div>
-
-        <div className="emrampe-header-right">
-          {isChangingPatiero ? (
-            <div className="emrampe-patiero-input-wrap">
-              <User size={15} color="var(--accent-cyan)" />
-              <input 
-                type="text" 
-                placeholder="Nombre del Patiero..."
-                className="emrampe-patiero-field"
-                value={tempPatieroInput}
-                onChange={(e) => setTempPatieroInput(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') guardarPatieroActivo(tempPatieroInput);
-                }}
-                autoFocus
-              />
-              <button 
-                type="button" 
-                className="btn-patiero-ok"
-                onClick={() => guardarPatieroActivo(tempPatieroInput)}
-              >
-                Guardar
-              </button>
-            </div>
-          ) : (
-            <button 
-              type="button" 
-              className="emrampe-patiero-badge"
-              onClick={() => {
-                setTempPatieroInput(patieroActivo);
-                setIsChangingPatiero(true);
-              }}
-              title="Clic para cambiar el nombre del patiero en turno"
-            >
-              <UserCheck size={16} color="#38bdf8" />
-              <span>Patio: <strong>{patieroActivo || 'Asignar Patiero'}</strong></span>
-            </button>
-          )}
-
-          <button 
-            type="button" 
-            className="btn-emrampe-primary"
-            onClick={openNewModal}
-          >
-            <Plus size={18} />
-            <span>Nuevo Emrampe</span>
-          </button>
-        </div>
-      </div>
-
       <div className="emrampe-kpi-grid">
         <div 
           className={`emrampe-kpi-card ${filterTab === 'ALL' ? 'active' : ''}`}
@@ -365,7 +303,7 @@ export const ControlEmrampeView = () => {
           <Search size={18} className="emrampe-search-icon" />
           <input 
             type="text" 
-            placeholder="Buscar por unidad, rampa, operador, destino o patiero..."
+            placeholder="Buscar por unidad, rampa, operador, destino..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="emrampe-search-input"
@@ -407,6 +345,16 @@ export const ControlEmrampeView = () => {
             Desemrampadas ({kpis.desemrampadas})
           </button>
         </div>
+
+        <button 
+          type="button" 
+          className="btn-emrampe-primary"
+          onClick={openNewModal}
+          title="Registrar nuevo emrampe en patio"
+        >
+          <Plus size={17} />
+          <span>Nuevo Emrampe</span>
+        </button>
       </div>
 
       <div className="emrampe-table-wrapper desktop-only">
@@ -743,15 +691,24 @@ export const ControlEmrampeView = () => {
                 </div>
 
                 <div className="form-group-emrampe">
-                  <label>Operador</label>
+                  <label>Destino</label>
                   <input 
                     type="text" 
-                    placeholder="Nombre oficial del operador..."
-                    value={formData.operador}
-                    onChange={(e) => setFormData({ ...formData, operador: e.target.value })}
+                    placeholder="Ej. San Cristóbal, Cárdenas, BDR Santa Ana..."
+                    value={formData.destino}
+                    onChange={(e) => setFormData({ ...formData, destino: e.target.value })}
                     className="emrampe-input"
                   />
                 </div>
+              </div>
+
+              <div className="form-group-emrampe">
+                <label>Operador Asignado</label>
+                <OperadorSelector 
+                  value={formData.operador}
+                  onChange={(nombre) => setFormData(prev => ({ ...prev, operador: nombre }))}
+                  placeholder="Buscar operador por nombre, nómina, ECO o línea..."
+                />
               </div>
 
               <div className="form-group-emrampe rampa-section-card">
@@ -906,17 +863,6 @@ export const ControlEmrampeView = () => {
                     </>
                   )}
                 </div>
-              </div>
-
-              <div className="form-group-emrampe">
-                <label>Destino</label>
-                <input 
-                  type="text" 
-                  placeholder="Ej. San Cristóbal, Cárdenas, BDR Santa Ana..."
-                  value={formData.destino}
-                  onChange={(e) => setFormData({ ...formData, destino: e.target.value })}
-                  className="emrampe-input"
-                />
               </div>
 
               <div className="form-row-2">
