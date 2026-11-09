@@ -90,7 +90,8 @@ const CAMPOS_META = [
   ['mtrs', true],
   ['horaEmrampe', false],
   ['horaDesemrampe', false],
-  ['patiero', false]
+  ['patiero', false],
+  ['enControlEmrampe', true]
 ];
 
 const CLAVES_META_PERMITIDAS = new Set(CAMPOS_META.map(([campo]) => campo));
@@ -172,16 +173,20 @@ export const mapDbToUnit = (row) => {
     motosCarton: Number(meta.motosCarton) || 0,
     remolque: meta.remolque || '0',
     mtrs: Number(meta.mtrs) || 0,
-    horaEmrampe: meta.horaEmrampe || meta.horaColocacionReal || '',
-    horaDesemrampe: meta.horaDesemrampe || meta.horaFinCarga || '',
-    patiero: meta.patiero || ''
+    horaEmrampe: meta.horaEmrampe || '',
+    horaDesemrampe: meta.horaEmrampe ? (meta.horaDesemrampe || '') : (meta.horaDesemrampe && meta.horaDesemrampe !== '07:30' ? meta.horaDesemrampe : ''),
+    patiero: meta.patiero || '',
+    enControlEmrampe: meta.enControlEmrampe
   };
 };
 
 export const mapUnitToDb = (unit) => {
-  let obs = unit.observaciones || '';
+  let obs = (unit.observaciones || '')
+    .replace(/__PARADAS__:\[.*?\](?:\n|$)/gs, '')
+    .replace(/__META__:\{.*?\}(?:\n|$)/gs, '')
+    .trim();
+
   if (Array.isArray(unit.destinosSecundarios) && unit.destinosSecundarios.length > 0) {
-    obs = obs.replace(/__PARADAS__:\[.*?\](?:\n|$)/gs, '').trim();
     obs = obs 
       ? `${obs}\n__PARADAS__:${JSON.stringify(unit.destinosSecundarios)}` 
       : `__PARADAS__:${JSON.stringify(unit.destinosSecundarios)}`;
@@ -196,7 +201,6 @@ export const mapUnitToDb = (unit) => {
   });
 
   if (Object.keys(meta).length > 0) {
-    obs = obs.replace(/__META__:\{.*?\}(?:\n|$)/gs, '').trim();
     obs = obs ? `${obs}\n__META__:${JSON.stringify(meta)}` : `__META__:${JSON.stringify(meta)}`;
   }
 

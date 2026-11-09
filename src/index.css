@@ -6510,6 +6510,12 @@ body {
   box-shadow: 0 0 10px rgba(192, 132, 252, 0.45);
 }
 
+.rampa-pill-btn.pill-ocupada:not(.active) {
+  border-color: rgba(239, 68, 68, 0.55);
+  background: rgba(239, 68, 68, 0.14);
+  color: #fca5a5;
+}
+
 @media (max-width: 768px) {
   .rampa-pills-grid {
     grid-template-columns: repeat(4, 1fr);

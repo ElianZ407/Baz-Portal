@@ -73,6 +73,10 @@ const cleanUnitDestino = (unit) => {
   const estatusSupervisor = (base.estatusPlaneacion === 'CARGADO' && (!base.estatusSupervisor || !TRANSIT_STATUSES_LIST.includes(base.estatusSupervisor)))
     ? 'Cargado'
     : base.estatusSupervisor;
+  const horaEmrampe = base.horaEmrampe || '';
+  const horaDesemrampe = horaEmrampe
+    ? (base.horaDesemrampe || '')
+    : (base.horaDesemrampe && base.horaDesemrampe !== '07:30' ? base.horaDesemrampe : '');
 
   return {
     ...base,
@@ -80,7 +84,9 @@ const cleanUnitDestino = (unit) => {
     destinosSecundarios,
     observaciones: obsLimpia,
     idOperador,
-    estatusSupervisor
+    estatusSupervisor,
+    horaEmrampe,
+    horaDesemrampe
   };
 };
 
@@ -299,6 +305,7 @@ export const FleetProvider = ({ children }) => {
   const isBulkOperatingRef = useRef(false);
   const realtimeQueueRef = useRef([]);
   const realtimeTimeoutRef = useRef(null);
+  const lastUnitsJsonRef = useRef('');
 
   // Estados de conectividad Cloud / Supabase
   const [isCloudConnected, setIsCloudConnected] = useState(isSupabaseConfigured());
@@ -369,22 +376,26 @@ export const FleetProvider = ({ children }) => {
   }, []);
 
   // Función para recargar datos desde Supabase
-  const reloadCloudData = useCallback(async () => {
+  const reloadCloudData = useCallback(async (silent = false) => {
     if (!isSupabaseConfigured()) return;
     if (isBulkOperatingRef.current) return;
     try {
-      setIsCloudLoading(true);
+      if (!silent) setIsCloudLoading(true);
       const remoteData = await fetchViajesDb();
       if (remoteData) {
         const cleaned = remoteData.map(cleanUnitDestino);
-        setUnits(cleaned);
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(cleaned));
+        const serialized = JSON.stringify(cleaned);
+        if (serialized !== lastUnitsJsonRef.current) {
+          lastUnitsJsonRef.current = serialized;
+          setUnits(cleaned);
+          localStorage.setItem(STORAGE_KEY, serialized);
+        }
         setIsCloudConnected(true);
       }
     } catch (err) {
       console.error('Error al sincronizar con Supabase:', err);
     } finally {
-      setIsCloudLoading(false);
+      if (!silent) setIsCloudLoading(false);
     }
   }, []);
 
@@ -462,9 +473,11 @@ export const FleetProvider = ({ children }) => {
 
     // Cargar catálogos remotos, datos remotos y planes históricos al inicio
     const initData = async () => {
-      await reloadCatalogos();
-      await reloadCloudData();
-      await reloadHistoricalPlans();
+      await Promise.all([
+        reloadCatalogos(),
+        reloadCloudData(),
+        reloadHistoricalPlans()
+      ]);
     };
     initData();
 
@@ -488,7 +501,7 @@ export const FleetProvider = ({ children }) => {
               if (queue.length === 0) return;
 
               if (queue.length >= 10) {
-                reloadCloudData();
+                reloadCloudData(true);
                 return;
               }
 
@@ -525,21 +538,21 @@ export const FleetProvider = ({ children }) => {
           console.warn('Estado del canal Realtime Supabase:', status);
           setIsCloudConnected(false);
           // Si el canal se desconecta o se duerme, forzar refresco
-          reloadCloudData();
+          reloadCloudData(true);
         }
       });
 
     // Polling inteligente de respaldo cada 7 segundos para garantizar sincronía total entre computadoras
     const pollInterval = setInterval(() => {
       if (typeof document !== 'undefined' && !document.hidden) {
-        reloadCloudData();
+        reloadCloudData(true);
       }
-    }, 7000);
+    }, 15000);
 
     // Re-sincronizar inmediatamente al volver a enfocar la ventana o cambiar de monitor
     const handleVisibilityOrFocus = () => {
       if (typeof document !== 'undefined' && !document.hidden) {
-        reloadCloudData();
+        reloadCloudData(true);
       }
     };
 
@@ -602,7 +615,9 @@ export const FleetProvider = ({ children }) => {
   useEffect(() => {
     const timer = setTimeout(() => {
       try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(units));
+        const serialized = JSON.stringify(units);
+        lastUnitsJsonRef.current = serialized;
+        localStorage.setItem(STORAGE_KEY, serialized);
         if (broadcastRef.current) {
           broadcastRef.current.postMessage({ type: 'SYNC_UNITS', units, senderId: CLIENT_ID });
         }
@@ -742,7 +757,7 @@ export const FleetProvider = ({ children }) => {
     
     // Resolver la unidad completa de forma síncrona
     let existingUnit = units.find(u => u.id === unitData.id);
-    if (!existingUnit && unitData.economico) {
+    if (!existingUnit && unitData.economico && !String(unitData.id || '').startsWith('emrampe-')) {
       // Si no trae ID (ej. creado desde 'Nuevo Viaje') pero el ECO ya existe en la lista de hoy
       // sin un viaje activo asignado, actualizar esa unidad en vez de duplicarla
       existingUnit = units.find(u => 
@@ -775,7 +790,7 @@ export const FleetProvider = ({ children }) => {
     if (isSupabaseConfigured() && fullUnit) {
       try {
         await upsertViajeDb(fullUnit);
-        await reloadCloudData();
+        await reloadCloudData(true);
       } catch (err) {
         console.error('Error al persistir unidad en Supabase:', err);
       }
@@ -797,7 +812,7 @@ export const FleetProvider = ({ children }) => {
     if (isSupabaseConfigured()) {
       try {
         await deleteViajeDb(id);
-        await reloadCloudData();
+        await reloadCloudData(true);
       } catch (err) {
         console.error('Error al eliminar unidad en Supabase:', err);
       }

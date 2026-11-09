@@ -109,28 +109,50 @@ export const ControlEmrampeView = () => {
 
   const handleEcoChange = (ecoValor) => {
     const cleanEco = String(ecoValor).trim();
-    const existingActive = units.find(u => String(u.economico).trim() === cleanEco);
+    if (editingUnitId) {
+      setFormData(prev => ({ ...prev, economico: cleanEco }));
+      return;
+    }
+
+    const existingPending = units.find(
+      u => String(u.economico).trim() === cleanEco && !u.horaDesemrampe
+    );
     const fromMaster = (catalogoFlota || []).find(f => String(f.eco).trim() === cleanEco);
 
-    setFormData(prev => ({
-      ...prev,
-      economico: cleanEco,
-      operador: prev.operador || existingActive?.operador || fromMaster?.operador || '',
-      destino: prev.destino || existingActive?.destino || '',
-      numCarga: prev.numCarga || existingActive?.numCarga || '',
-      cortina: prev.cortina || existingActive?.cortina || ''
-    }));
+    if (existingPending || fromMaster) {
+      const nextCortina = existingPending?.cortina || '';
+      const autoZona = detectarZonaRampa(nextCortina);
+      if (autoZona) setZonaRampa(autoZona);
+
+      setFormData(prev => ({
+        ...prev,
+        economico: cleanEco,
+        operador: existingPending?.operador || fromMaster?.operador || prev.operador || '',
+        destino: existingPending?.destino || prev.destino || '',
+        numCarga: existingPending?.numCarga || prev.numCarga || '',
+        cortina: nextCortina || prev.cortina || ''
+      }));
+    } else {
+      setFormData(prev => ({
+        ...prev,
+        economico: cleanEco
+      }));
+    }
   };
 
   const handleSaveForm = (e) => {
     e.preventDefault();
-    if (!formData.economico) return;
+    const cleanEco = String(formData.economico || '').trim();
+    if (!cleanEco) return;
 
     let targetUnit = editingUnitId ? units.find(u => u.id === editingUnitId) : null;
     if (!targetUnit) {
-      targetUnit = units.find(u => String(u.economico).trim() === String(formData.economico).trim());
+      targetUnit = units.find(
+        u => String(u.economico).trim() === cleanEco && !u.horaDesemrampe && u.enControlEmrampe !== false
+      );
     }
 
+    const fromMaster = (catalogoFlota || []).find(f => String(f.eco).trim() === cleanEco);
     const nowStr = getHoraActual();
     const horaEmr = formData.horaEmrampe ? String(formData.horaEmrampe).trim() : '';
     const horaDes = formData.horaDesemrampe ? String(formData.horaDesemrampe).trim() : '';
@@ -147,9 +169,16 @@ export const ControlEmrampeView = () => {
     }
 
     const payload = {
+      ...(fromMaster ? {
+        placas: fromMaster.placas || '',
+        tipo: fromMaster.tipo || '',
+        capUnidad: Number(fromMaster.capUnidad) || 0,
+        linea: fromMaster.linea || 'LTI - VHS',
+        idOperador: fromMaster.idOperador || ''
+      } : {}),
       ...(targetUnit || {}),
       id: targetUnit?.id || `emrampe-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
-      economico: String(formData.economico).trim(),
+      economico: cleanEco,
       numCarga: String(formData.numCarga || '').trim(),
       operador: String(formData.operador || '').trim(),
       cortina: String(formData.cortina || '').trim(),
@@ -157,6 +186,7 @@ export const ControlEmrampeView = () => {
       horaEmrampe: horaEmr,
       horaDesemrampe: horaDes,
       patiero: String(formData.patiero || patieroActivo || '').trim(),
+      enControlEmrampe: true,
       estatusPatio: targetUnit?.estatusPatio === 'Taller' ? 'Taller' : estatusPatio,
       estatusPlaneacion: estatusPlaneacion,
       actualizadoEn: nowStr
@@ -176,7 +206,8 @@ export const ControlEmrampeView = () => {
       ...unit,
       horaEmrampe: hora,
       patiero: unit.patiero || patieroActivo || 'Patio',
-      estatusPatio: 'Colocado p/ Carga',
+      enControlEmrampe: true,
+      estatusPatio: unit.estatusPatio === 'Taller' ? 'Taller' : 'Colocado p/ Carga',
       estatusPlaneacion: 'COLOCADO',
       actualizadoEn: hora
     });
@@ -187,19 +218,55 @@ export const ControlEmrampeView = () => {
     saveUnit({
       ...unit,
       horaDesemrampe: hora,
-      estatusPatio: 'Cargado',
+      enControlEmrampe: true,
+      estatusPatio: unit.estatusPatio === 'Taller' ? 'Taller' : 'Cargado',
       estatusPlaneacion: 'CARGADO',
       actualizadoEn: hora
     });
   };
 
+  const handleRemoveEmrampe = (unit) => {
+    const esSoloEmrampe = String(unit.id || '').startsWith('emrampe-') || !unit.noViaje;
+    if (esSoloEmrampe) {
+      deleteUnit(unit.id);
+    } else {
+      saveUnit({
+        ...unit,
+        cortina: '',
+        horaEmrampe: '',
+        horaDesemrampe: '',
+        patiero: '',
+        enControlEmrampe: false
+      });
+    }
+  };
+
   const emrampeUnits = useMemo(() => {
     return units.filter(u => {
+      if (u.enControlEmrampe === false) return false;
       const tieneEco = Boolean(String(u.economico || '').trim());
-      const tieneRampaOEmrampe = Boolean(u.cortina || u.horaEmrampe || u.horaDesemrampe || u.numCarga);
+      const tieneRampaOEmrampe = Boolean(
+        u.enControlEmrampe ||
+        String(u.id || '').startsWith('emrampe-') ||
+        u.cortina ||
+        u.horaEmrampe ||
+        u.horaDesemrampe ||
+        u.patiero
+      );
       return tieneEco && tieneRampaOEmrampe;
     });
   }, [units]);
+
+  const rampasOcupadas = useMemo(() => {
+    const map = new Map();
+    emrampeUnits.forEach(u => {
+      if (u.id === editingUnitId) return;
+      if (u.cortina && u.horaEmrampe && !u.horaDesemrampe) {
+        map.set(String(u.cortina).trim().toUpperCase(), u.economico);
+      }
+    });
+    return map;
+  }, [emrampeUnits, editingUnitId]);
 
   const kpis = useMemo(() => {
     let enRampa = 0;
@@ -475,7 +542,7 @@ export const ControlEmrampeView = () => {
                               message: 'Esta acción removerá el registro de emrampe.',
                               confirmText: 'Sí, eliminar',
                               confirmType: 'danger',
-                              onConfirm: () => deleteUnit(u.id)
+                              onConfirm: () => handleRemoveEmrampe(u)
                             });
                           }}
                           title="Eliminar registro"
@@ -613,7 +680,7 @@ export const ControlEmrampeView = () => {
                           message: 'Se removerá el registro de emrampe.',
                           confirmText: 'Sí, eliminar',
                           confirmType: 'danger',
-                          onConfirm: () => deleteUnit(u.id)
+                          onConfirm: () => handleRemoveEmrampe(u)
                         });
                       }}
                       title="Eliminar"
@@ -773,30 +840,38 @@ export const ControlEmrampeView = () => {
                     <>
                       <div className="rampa-subgroup-label">Cortinas Numéricas (1 al 16):</div>
                       <div className="rampa-pills-grid">
-                        {CATALOGO_RAMPAS.recibo.numericas.map(r => (
-                          <button 
-                            key={r}
-                            type="button" 
-                            className={`rampa-pill-btn pill-recibo ${formData.cortina === r ? 'active' : ''}`}
-                            onClick={() => setFormData({ ...formData, cortina: r })}
-                          >
-                            {r}
-                          </button>
-                        ))}
+                        {CATALOGO_RAMPAS.recibo.numericas.map(r => {
+                          const ocupadaEco = rampasOcupadas.get(r.toUpperCase());
+                          return (
+                            <button 
+                              key={r}
+                              type="button" 
+                              className={`rampa-pill-btn pill-recibo ${formData.cortina === r ? 'active' : ''} ${ocupadaEco ? 'pill-ocupada' : ''}`}
+                              onClick={() => setFormData({ ...formData, cortina: r })}
+                              title={ocupadaEco ? `En rampa: ECO ${ocupadaEco}` : `Rampa ${r}`}
+                            >
+                              {r}
+                            </button>
+                          );
+                        })}
                       </div>
 
                       <div className="rampa-subgroup-label" style={{ marginTop: '0.45rem' }}>Especiales Recibo (R1 a R6):</div>
                       <div className="rampa-pills-grid rampa-pills-esp">
-                        {CATALOGO_RAMPAS.recibo.especiales.map(r => (
-                          <button 
-                            key={r}
-                            type="button" 
-                            className={`rampa-pill-btn pill-recibo-esp ${formData.cortina === r ? 'active' : ''}`}
-                            onClick={() => setFormData({ ...formData, cortina: r })}
-                          >
-                            {r}
-                          </button>
-                        ))}
+                        {CATALOGO_RAMPAS.recibo.especiales.map(r => {
+                          const ocupadaEco = rampasOcupadas.get(r.toUpperCase());
+                          return (
+                            <button 
+                              key={r}
+                              type="button" 
+                              className={`rampa-pill-btn pill-recibo-esp ${formData.cortina === r ? 'active' : ''} ${ocupadaEco ? 'pill-ocupada' : ''}`}
+                              onClick={() => setFormData({ ...formData, cortina: r })}
+                              title={ocupadaEco ? `En rampa: ECO ${ocupadaEco}` : `Rampa ${r}`}
+                            >
+                              {r}
+                            </button>
+                          );
+                        })}
                       </div>
                     </>
                   )}
@@ -805,30 +880,38 @@ export const ControlEmrampeView = () => {
                     <>
                       <div className="rampa-subgroup-label">Cortinas Embarque (17 al 32):</div>
                       <div className="rampa-pills-grid">
-                        {CATALOGO_RAMPAS.embarque.numericas.map(r => (
-                          <button 
-                            key={r}
-                            type="button" 
-                            className={`rampa-pill-btn pill-embarque ${formData.cortina === r ? 'active' : ''}`}
-                            onClick={() => setFormData({ ...formData, cortina: r })}
-                          >
-                            {r}
-                          </button>
-                        ))}
+                        {CATALOGO_RAMPAS.embarque.numericas.map(r => {
+                          const ocupadaEco = rampasOcupadas.get(r.toUpperCase());
+                          return (
+                            <button 
+                              key={r}
+                              type="button" 
+                              className={`rampa-pill-btn pill-embarque ${formData.cortina === r ? 'active' : ''} ${ocupadaEco ? 'pill-ocupada' : ''}`}
+                              onClick={() => setFormData({ ...formData, cortina: r })}
+                              title={ocupadaEco ? `En rampa: ECO ${ocupadaEco}` : `Rampa ${r}`}
+                            >
+                              {r}
+                            </button>
+                          );
+                        })}
                       </div>
 
                       <div className="rampa-subgroup-label" style={{ marginTop: '0.45rem' }}>Especiales Embarque (S1 a S6):</div>
                       <div className="rampa-pills-grid rampa-pills-esp">
-                        {CATALOGO_RAMPAS.embarque.especiales.map(r => (
-                          <button 
-                            key={r}
-                            type="button" 
-                            className={`rampa-pill-btn pill-embarque-esp ${formData.cortina === r ? 'active' : ''}`}
-                            onClick={() => setFormData({ ...formData, cortina: r })}
-                          >
-                            {r}
-                          </button>
-                        ))}
+                        {CATALOGO_RAMPAS.embarque.especiales.map(r => {
+                          const ocupadaEco = rampasOcupadas.get(r.toUpperCase());
+                          return (
+                            <button 
+                              key={r}
+                              type="button" 
+                              className={`rampa-pill-btn pill-embarque-esp ${formData.cortina === r ? 'active' : ''} ${ocupadaEco ? 'pill-ocupada' : ''}`}
+                              onClick={() => setFormData({ ...formData, cortina: r })}
+                              title={ocupadaEco ? `En rampa: ECO ${ocupadaEco}` : `Rampa ${r}`}
+                            >
+                              {r}
+                            </button>
+                          );
+                        })}
                       </div>
                     </>
                   )}
@@ -837,16 +920,20 @@ export const ControlEmrampeView = () => {
                     <>
                       <div className="rampa-subgroup-label">Rampas DS (Descarga / Especial):</div>
                       <div className="rampa-pills-grid rampa-pills-ds">
-                        {CATALOGO_RAMPAS.ds.especiales.map(r => (
-                          <button 
-                            key={r}
-                            type="button" 
-                            className={`rampa-pill-btn pill-ds ${formData.cortina === r ? 'active' : ''}`}
-                            onClick={() => setFormData({ ...formData, cortina: r })}
-                          >
-                            {r}
-                          </button>
-                        ))}
+                        {CATALOGO_RAMPAS.ds.especiales.map(r => {
+                          const ocupadaEco = rampasOcupadas.get(r.toUpperCase());
+                          return (
+                            <button 
+                              key={r}
+                              type="button" 
+                              className={`rampa-pill-btn pill-ds ${formData.cortina === r ? 'active' : ''} ${ocupadaEco ? 'pill-ocupada' : ''}`}
+                              onClick={() => setFormData({ ...formData, cortina: r })}
+                              title={ocupadaEco ? `En rampa: ECO ${ocupadaEco}` : `Rampa ${r}`}
+                            >
+                              {r}
+                            </button>
+                          );
+                        })}
                       </div>
                     </>
                   )}

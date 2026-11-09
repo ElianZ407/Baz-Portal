@@ -439,9 +439,10 @@ export const RoutesBackground = memo(function RoutesBackground() {
     };
 
     const motionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const isMobileScreen = () => window.innerWidth <= 768;
 
     const start = () => {
-      if (running || motionQuery.matches) return;
+      if (running || motionQuery.matches || isMobileScreen()) return;
       running = true;
       lastTime = 0;
       animationFrameId = requestAnimationFrame(frame);
@@ -469,7 +470,13 @@ export const RoutesBackground = memo(function RoutesBackground() {
       // setTransform (no scale) para que el DPR no se acumule entre resizes.
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       initNodes();
-      drawStaticFrame();
+      if (isMobileScreen()) {
+        stop();
+        drawStaticFrame();
+      } else {
+        drawStaticFrame();
+        start();
+      }
     };
 
     const handleResize = () => {
