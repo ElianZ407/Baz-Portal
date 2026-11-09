@@ -195,6 +195,21 @@ export const FleetProvider = ({ children }) => {
     return [];
   });
 
+  const checkIsMobileDevice = () => {
+    if (typeof window === 'undefined') return false;
+    const isTouchMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    const isSmallScreen = window.innerWidth <= 768;
+    return isTouchMobile || isSmallScreen;
+  };
+
+  const [isMobile, setIsMobile] = useState(() => {
+    try {
+      return checkIsMobileDevice();
+    } catch {
+      return false;
+    }
+  });
+
   const [esRolPatio, setEsRolPatio] = useState(() => {
     try {
       if (typeof window !== 'undefined') {
@@ -217,6 +232,9 @@ export const FleetProvider = ({ children }) => {
   const [activeArea, setActiveArea] = useState(() => {
     try {
       if (typeof window !== 'undefined') {
+        if (checkIsMobileDevice()) {
+          return 'emrampe';
+        }
         const params = new URLSearchParams(window.location.search);
         const rolParam = params.get('rol') || params.get('modulo') || params.get('area');
         if (rolParam && ['patio', 'emrampe'].includes(rolParam.toLowerCase())) {
@@ -229,6 +247,14 @@ export const FleetProvider = ({ children }) => {
     } catch {}
     return 'tv';
   });
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(checkIsMobileDevice());
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   const activarModoPatio = () => {
     try {
@@ -1289,8 +1315,12 @@ export const FleetProvider = ({ children }) => {
       exitHistoricalPlanView,
       restorePlanAsActive,
       kpis,
-      activeArea,
-      setActiveArea,
+      activeArea: isMobile ? 'emrampe' : activeArea,
+      setActiveArea: (area) => {
+        if (isMobile) return;
+        setActiveArea(area);
+      },
+      isMobile,
       esRolPatio,
       activarModoPatio,
       desactivarModoPatio,

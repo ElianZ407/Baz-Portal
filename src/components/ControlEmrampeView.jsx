@@ -23,8 +23,7 @@ export const ControlEmrampeView = () => {
     saveUnit, 
     deleteUnit, 
     catalogoFlota, 
-    showConfirm,
-    desactivarModoPatio
+    showConfirm
   } = useFleet();
 
   const [search, setSearch] = useState('');
@@ -303,15 +302,6 @@ export const ControlEmrampeView = () => {
           >
             <Plus size={18} />
             <span>Nuevo Emrampe</span>
-          </button>
-
-          <button 
-            type="button" 
-            className="btn-emrampe-salir"
-            onClick={desactivarModoPatio}
-            title="Ocultar módulo de patio en este equipo"
-          >
-            Ocultar Módulo
           </button>
         </div>
       </div>

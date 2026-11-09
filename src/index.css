@@ -1956,6 +1956,17 @@ body {
     gap: 0.3rem;
   }
 
+  .nav-tab-desktop-only {
+    display: none !important;
+  }
+
+  .nav-tab-emrampe:only-child {
+    flex: 1;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 0.85rem;
+  }
+
   .header-action-buttons {
     display: flex;
     overflow-x: auto;

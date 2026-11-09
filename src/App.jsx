@@ -28,7 +28,7 @@ const ModuloCargando = () => (
 const AppContent = () => {
   const {
     activeArea,
-    esRolPatio,
+    isMobile,
     theme,
     isModalOpen,
     confirmModal,
@@ -60,7 +60,7 @@ const AppContent = () => {
               <PlanColocacionView />
             </NipGate>
           )}
-          {activeArea === 'emrampe' && esRolPatio && <ControlEmrampeView />}
+          {activeArea === 'emrampe' && <ControlEmrampeView />}
         </Suspense>
       </main>
 
@@ -68,8 +68,11 @@ const AppContent = () => {
         <span className="app-footer-brand">BAZ Entregas — Sistema Integrado de Control de Flota y Patio</span>
         <span className="app-footer-divider">•</span>
         <span className="app-footer-modules">
-          Patio (En CD) | Planeación | Supervisor (Ruta) | Resumen General | Colocación
-          {esRolPatio ? ' | Control de Emrampe' : ''}
+          {isMobile ? (
+            'Control de Emrampe (Patio CEDIS)'
+          ) : (
+            'Patio (En CD) | Planeación | Supervisor (Ruta) | Resumen General | Colocación | Control de Emrampe'
+          )}
         </span>
       </footer>
 

@@ -22,7 +22,7 @@ export const Header = () => {
   const { 
     activeArea, 
     setActiveArea, 
-    esRolPatio,
+    isMobile,
     setIsModalOpen, 
     setSelectedUnit, 
     units,
@@ -154,68 +154,70 @@ export const Header = () => {
       <div className="header-brand-divider" />
 
       <nav className="nav-areas">
-        <button 
-          className={`nav-tab ${activeArea === 'patio' ? 'active' : ''}`}
-          onClick={() => setActiveArea('patio')}
-          title="1. Patio (En CD: Cargado, Taller, Disponible, Colocado p/ carga)"
-        >
-          <Layers size={16} />
-          <span className="tab-full-text">1. Patio (En CD)</span>
-          <span className="tab-short-text">Patio</span>
-        </button>
+        {!isMobile && (
+          <>
+            <button 
+              className={`nav-tab nav-tab-desktop-only ${activeArea === 'patio' ? 'active' : ''}`}
+              onClick={() => setActiveArea('patio')}
+              title="1. Patio (En CD: Cargado, Taller, Disponible, Colocado p/ carga)"
+            >
+              <Layers size={16} />
+              <span className="tab-full-text">1. Patio (En CD)</span>
+              <span className="tab-short-text">Patio</span>
+            </button>
 
-        <button 
-          className={`nav-tab ${activeArea === 'planeacion' ? 'active' : ''}`}
-          onClick={() => setActiveArea('planeacion')}
-          title="2. Planeación: Unidades en Cortina, Asignación de Folios y Turnos"
-        >
-          <CalendarClock size={16} />
-          <span className="tab-full-text">2. Planeación</span>
-          <span className="tab-short-text">Planeación</span>
-        </button>
+            <button 
+              className={`nav-tab nav-tab-desktop-only ${activeArea === 'planeacion' ? 'active' : ''}`}
+              onClick={() => setActiveArea('planeacion')}
+              title="2. Planeación: Unidades en Cortina, Asignación de Folios y Turnos"
+            >
+              <CalendarClock size={16} />
+              <span className="tab-full-text">2. Planeación</span>
+              <span className="tab-short-text">Planeación</span>
+            </button>
 
-        <button 
-          className={`nav-tab ${activeArea === 'supervisor' ? 'active' : ''}`}
-          onClick={() => setActiveArea('supervisor')}
-          title="3. Supervisor: En Ruta, Retorno, Espera Descarga, Descargando"
-        >
-          <Radio size={16} />
-          <span className="tab-full-text">3. Supervisor (Ruta)</span>
-          <span className="tab-short-text">Supervisor</span>
-        </button>
+            <button 
+              className={`nav-tab nav-tab-desktop-only ${activeArea === 'supervisor' ? 'active' : ''}`}
+              onClick={() => setActiveArea('supervisor')}
+              title="3. Supervisor: En Ruta, Retorno, Espera Descarga, Descargando"
+            >
+              <Radio size={16} />
+              <span className="tab-full-text">3. Supervisor (Ruta)</span>
+              <span className="tab-short-text">Supervisor</span>
+            </button>
 
-        <button 
-          className={`nav-tab tv-tab ${activeArea === 'tv' ? 'active' : ''}`}
-          onClick={() => setActiveArea('tv')}
-          title="Resumen General de Unidades y Embarques en Tiempo Real"
-        >
-          <Tv size={16} />
-          <span className="tab-full-text">Resumen General</span>
-          <span className="tab-short-text">Resumen</span>
-          <span className="badge-counter">{kpis.totalFlota}</span>
-        </button>
+            <button 
+              className={`nav-tab nav-tab-desktop-only tv-tab ${activeArea === 'tv' ? 'active' : ''}`}
+              onClick={() => setActiveArea('tv')}
+              title="Resumen General de Unidades y Embarques en Tiempo Real"
+            >
+              <Tv size={16} />
+              <span className="tab-full-text">Resumen General</span>
+              <span className="tab-short-text">Resumen</span>
+              <span className="badge-counter">{kpis.totalFlota}</span>
+            </button>
 
-        <button 
-          className={`nav-tab ${activeArea === 'colocacion' ? 'active' : ''}`}
-          onClick={() => setActiveArea('colocacion')}
-          title="Plan de Colocación Villahermosa e Infografía Diaria"
-        >
-          <FileText size={16} />
-          <span className="tab-full-text">Plan Colocación</span>
-          <span className="tab-short-text">Colocación</span>
-        </button>
-
-        {esRolPatio && (
-          <button 
-            className={`nav-tab ${activeArea === 'emrampe' ? 'active' : ''}`}
-            onClick={() => setActiveArea('emrampe')}
-            title="Control de Emrampe: Registro de Unidades en Rampa, Horas y Patiero"
-          >
-            <Warehouse size={16} />
-            <span className="tab-full-text">Control de Emrampe</span>
-            <span className="tab-short-text">Emrampe</span>
-          </button>
+            <button 
+              className={`nav-tab nav-tab-desktop-only ${activeArea === 'colocacion' ? 'active' : ''}`}
+              onClick={() => setActiveArea('colocacion')}
+              title="Plan de Colocación Villahermosa e Infografía Diaria"
+            >
+              <FileText size={16} />
+              <span className="tab-full-text">Plan Colocación</span>
+              <span className="tab-short-text">Colocación</span>
+            </button>
+          </>
         )}
+
+        <button 
+          className={`nav-tab nav-tab-emrampe ${activeArea === 'emrampe' ? 'active' : ''}`}
+          onClick={() => setActiveArea('emrampe')}
+          title="Control de Emrampe: Registro de Unidades en Rampa, Horas y Patiero"
+        >
+          <Warehouse size={16} />
+          <span className="tab-full-text">Control de Emrampe</span>
+          <span className="tab-short-text">Emrampe</span>
+        </button>
       </nav>
 
       <div className="header-actions">
