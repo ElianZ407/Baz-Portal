@@ -288,35 +288,6 @@ body {
   overflow-x: clip;
 }
 
-.app-footer {
-  text-align: center;
-  padding: 1.15rem 1.5rem;
-  padding-bottom: max(1.15rem, env(safe-area-inset-bottom));
-  border-top: 1px solid var(--border-color);
-  color: var(--text-muted);
-  font-size: 0.8rem;
-  background: rgba(10, 15, 28, 0.95);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-wrap: wrap;
-  gap: 0.4rem;
-}
-
-.app-footer-brand {
-  font-weight: 600;
-  color: var(--text-secondary);
-}
-
-.app-footer-divider {
-  margin: 0 0.25rem;
-  color: var(--text-muted);
-}
-
-.app-footer-modules {
-  color: var(--text-muted);
-}
-
 .main-content {
   flex: 1;
   padding: 1.25rem 1.5rem;
@@ -3426,7 +3397,6 @@ body {
 
 .main-content,
 .app-header,
-.app-container > footer,
 .historical-banner-bar {
   position: relative;
   z-index: 1;
@@ -6638,6 +6608,7 @@ body {
 
   .emrampe-container {
     padding: 0.75rem;
+    padding-bottom: max(3.5rem, env(safe-area-inset-bottom));
     gap: 0.85rem;
   }
 

@@ -28,7 +28,6 @@ const ModuloCargando = () => (
 const AppContent = () => {
   const {
     activeArea,
-    isMobile,
     theme,
     isModalOpen,
     confirmModal,
@@ -63,18 +62,6 @@ const AppContent = () => {
           {activeArea === 'emrampe' && <ControlEmrampeView />}
         </Suspense>
       </main>
-
-      <footer className="app-footer">
-        <span className="app-footer-brand">BAZ Entregas — Sistema Integrado de Control de Flota y Patio</span>
-        <span className="app-footer-divider">•</span>
-        <span className="app-footer-modules">
-          {isMobile ? (
-            'Control de Emrampe (Patio CEDIS)'
-          ) : (
-            'Patio (En CD) | Planeación | Supervisor (Ruta) | Resumen General | Colocación | Control de Emrampe'
-          )}
-        </span>
-      </footer>
 
       {isModalOpen && (
         <Suspense fallback={null}>
