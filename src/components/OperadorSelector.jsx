@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
-import { Search, ChevronDown, Check, X, User, UserPlus, Clock, Hash } from 'lucide-react';
+import { Search, ChevronDown, Check, X, User, UserPlus, Clock } from 'lucide-react';
 import { FLOTA_TOTAL } from '../constants/fleetConstants';
 import { useFleet } from '../context/FleetContext';
 
@@ -102,12 +102,10 @@ export const OperadorSelector = ({ value, onChange, placeholder = 'Seleccionar O
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase().trim();
+    if (!q && categoryFilter === 'ALL') return allOperadores;
+
     return allOperadores.filter((op) => {
-      const matchesSearch = !q || 
-        op.nombre.toLowerCase().includes(q) || 
-        String(op.idOperador || '').toLowerCase().includes(q) ||
-        String(op.eco || '').toLowerCase().includes(q) ||
-        String(op.linea || '').toLowerCase().includes(q);
+      const matchesSearch = !q || op.nombre.toLowerCase().includes(q);
 
       const matchesCategory = 
         categoryFilter === 'ALL' ||
@@ -117,6 +115,10 @@ export const OperadorSelector = ({ value, onChange, placeholder = 'Seleccionar O
       return matchesSearch && matchesCategory;
     });
   }, [allOperadores, search, categoryFilter]);
+
+  const displayedOperadores = useMemo(() => {
+    return filtered.slice(0, 50);
+  }, [filtered]);
 
   const recentCount = useMemo(() => allOperadores.filter((o) => o.source === 'recent').length, [allOperadores]);
   const catalogCount = useMemo(() => allOperadores.filter((o) => o.source === 'catalog').length, [allOperadores]);
@@ -212,42 +214,16 @@ export const OperadorSelector = ({ value, onChange, placeholder = 'Seleccionar O
         className={`custom-select-trigger ${isOpen ? 'active' : ''}`}
         onClick={handleToggle}
       >
-        {selectedOp ? (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', overflow: 'hidden', flex: 1 }}>
+        {selectedOp || value ? (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', overflow: 'hidden', flex: 1 }}>
             <div 
               className="operator-avatar-circle"
-              style={{ background: getAvatarGradient(selectedOp.nombre) }}
+              style={{ background: getAvatarGradient(selectedOp?.nombre || value) }}
             >
-              {getInitials(selectedOp.nombre)}
+              {getInitials(selectedOp?.nombre || value)}
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0, gap: '0.1rem' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', flexWrap: 'wrap' }}>
-                <span style={{ fontWeight: 800, color: '#f8fafc', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden', fontSize: '0.85rem' }}>
-                  {selectedOp.nombre}
-                </span>
-                {selectedOp.idOperador && (
-                  <span className="operator-id-pill">
-                    <Hash size={10} /> {selectedOp.idOperador}
-                  </span>
-                )}
-                {selectedOp.eco && (
-                  <span className="eco-pill" style={{ fontSize: '0.72rem', padding: '0.08rem 0.35rem' }}>
-                    ECO {selectedOp.eco}
-                  </span>
-                )}
-              </div>
-            </div>
-          </div>
-        ) : value ? (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', overflow: 'hidden', flex: 1 }}>
-            <div 
-              className="operator-avatar-circle"
-              style={{ background: getAvatarGradient(value) }}
-            >
-              {getInitials(value)}
-            </div>
-            <span style={{ fontWeight: 800, color: '#f8fafc', fontSize: '0.85rem' }}>
-              {value}
+            <span style={{ fontWeight: 800, color: '#f8fafc', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden', fontSize: '0.86rem' }}>
+              {selectedOp?.nombre || value}
             </span>
           </div>
         ) : (
@@ -370,14 +346,14 @@ export const OperadorSelector = ({ value, onChange, placeholder = 'Seleccionar O
                 No se encontró ningún operador con ese nombre en catálogo. Haz clic arriba para asignarlo como nuevo.
               </div>
             ) : (
-              filtered.map((op, idx) => {
+              displayedOperadores.map((op, idx) => {
                 const isSelected = (value || '').toUpperCase() === op.nombre.toUpperCase();
                 const isFocused = idx === focusedIndex;
                 const isRecent = op.source === 'recent';
 
                 return (
                   <div
-                    key={`${op.nombre}-${op.idOperador || idx}`}
+                    key={`${op.nombre}-${idx}`}
                     className={`custom-select-option-item ${isSelected ? 'selected' : ''}`}
                     style={isFocused ? { borderColor: 'var(--accent-cyan)', background: '#132038' } : undefined}
                     onClick={() => handleSelect(op)}
@@ -391,36 +367,17 @@ export const OperadorSelector = ({ value, onChange, placeholder = 'Seleccionar O
                         >
                           {getInitials(op.nombre)}
                         </div>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.15rem', minWidth: 0 }}>
-                          <span style={{ 
-                            fontWeight: 800, 
-                            fontSize: '0.84rem', 
-                            color: isSelected ? 'var(--accent-cyan)' : '#f1f5f9',
-                            letterSpacing: '0.01em',
-                            whiteSpace: 'nowrap',
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis'
-                          }}>
-                            {op.nombre}
-                          </span>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap' }}>
-                            {op.idOperador ? (
-                              <span className="operator-id-pill">
-                                <Hash size={10} /> {op.idOperador}
-                              </span>
-                            ) : null}
-                            {op.eco ? (
-                              <span className="eco-pill" style={{ fontSize: '0.70rem', padding: '0.08rem 0.35rem' }}>
-                                ECO {op.eco}
-                              </span>
-                            ) : null}
-                            {op.linea ? (
-                              <span style={{ fontSize: '0.72rem', color: '#94a3b8' }}>
-                                {op.linea}
-                              </span>
-                            ) : null}
-                          </div>
-                        </div>
+                        <span style={{ 
+                          fontWeight: 700, 
+                          fontSize: '0.86rem', 
+                          color: isSelected ? 'var(--accent-cyan)' : '#f1f5f9',
+                          letterSpacing: '0.01em',
+                          whiteSpace: 'nowrap',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis'
+                        }}>
+                          {op.nombre}
+                        </span>
                       </div>
 
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', flexShrink: 0 }}>
@@ -476,7 +433,11 @@ export const OperadorSelector = ({ value, onChange, placeholder = 'Seleccionar O
             alignItems: 'center',
             justifyContent: 'space-between'
           }}>
-            <span>{filtered.length} operadores listados ({recentCount} en ruta)</span>
+            <span>
+              {displayedOperadores.length < filtered.length 
+                ? `Mostrando ${displayedOperadores.length} de ${filtered.length} operadores` 
+                : `${filtered.length} operadores`}
+            </span>
             <span style={{ color: '#64748b' }}>Enter para seleccionar · Esc para cerrar</span>
           </div>
         </div>

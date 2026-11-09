@@ -264,6 +264,34 @@ export const ControlEmrampeView = () => {
 
   return (
     <div className="emrampe-container">
+      <div className="emrampe-top-action-bar">
+        <div className="emrampe-search-box">
+          <Search size={18} className="emrampe-search-icon" />
+          <input 
+            type="text" 
+            placeholder="Buscar por unidad, rampa, operador, destino..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="emrampe-search-input"
+          />
+          {search && (
+            <button className="emrampe-search-clear" onClick={() => setSearch('')}>
+              <X size={15} />
+            </button>
+          )}
+        </div>
+
+        <button 
+          type="button" 
+          className="btn-emrampe-primary btn-top-add-emrampe"
+          onClick={openNewModal}
+          title="Registrar nuevo emrampe en patio"
+        >
+          <Plus size={18} />
+          <span>+ Registrar Emrampe</span>
+        </button>
+      </div>
+
       <div className="emrampe-kpi-grid">
         <div 
           className={`emrampe-kpi-card ${filterTab === 'ALL' ? 'active' : ''}`}
@@ -299,22 +327,6 @@ export const ControlEmrampeView = () => {
       </div>
 
       <div className="emrampe-toolbar">
-        <div className="emrampe-search-box">
-          <Search size={18} className="emrampe-search-icon" />
-          <input 
-            type="text" 
-            placeholder="Buscar por unidad, rampa, operador, destino..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="emrampe-search-input"
-          />
-          {search && (
-            <button className="emrampe-search-clear" onClick={() => setSearch('')}>
-              <X size={15} />
-            </button>
-          )}
-        </div>
-
         <div className="emrampe-filter-pills">
           <button 
             type="button" 
@@ -345,16 +357,6 @@ export const ControlEmrampeView = () => {
             Desemrampadas ({kpis.desemrampadas})
           </button>
         </div>
-
-        <button 
-          type="button" 
-          className="btn-emrampe-primary"
-          onClick={openNewModal}
-          title="Registrar nuevo emrampe en patio"
-        >
-          <Plus size={17} />
-          <span>Nuevo Emrampe</span>
-        </button>
       </div>
 
       <div className="emrampe-table-wrapper desktop-only">
@@ -641,14 +643,25 @@ export const ControlEmrampeView = () => {
             <div className="emrampe-modal-header">
               <div className="modal-title-wrap">
                 <Warehouse size={20} color="var(--accent-cyan)" />
-                <h3>{editingUnitId ? 'Editar Control de Emrampe' : 'Nuevo Registro de Emrampe'}</h3>
+                <h3>{editingUnitId ? 'Editar Emrampe' : 'Nuevo Emrampe'}</h3>
               </div>
-              <button type="button" className="btn-modal-close" onClick={closeModal}>
-                <X size={18} />
-              </button>
+              <div className="modal-header-actions-right">
+                <button 
+                  type="submit" 
+                  form="form-emrampe" 
+                  className="btn-modal-header-save"
+                  title="Guardar registro de emrampe"
+                >
+                  <Save size={15} />
+                  <span>Guardar</span>
+                </button>
+                <button type="button" className="btn-modal-close" onClick={closeModal} title="Cerrar">
+                  <X size={18} />
+                </button>
+              </div>
             </div>
 
-            <form onSubmit={handleSaveForm} className="emrampe-modal-form">
+            <form id="form-emrampe" onSubmit={handleSaveForm} className="emrampe-modal-form">
               <div className="form-group-emrampe">
                 <label>Número de Unidad (ECO) *</label>
                 <div className="input-with-list">
