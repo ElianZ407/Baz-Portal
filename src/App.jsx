@@ -59,20 +59,7 @@ const AppContent = () => {
               <PlanColocacionView />
             </NipGate>
           )}
-          {activeArea === 'emrampe' && (
-            <NipGate
-              title="Control de Emrampe"
-              subtitle="Módulo exclusivo para el personal de patio de CD Villahermosa."
-              sessionKey="baz_emrampe_nip_token"
-              lockoutKey="baz_emrampe_nip_lockout"
-              attemptsKey="baz_emrampe_nip_attempts"
-              nipConfigurado={import.meta.env.VITE_EMRAMPE_NIP}
-              defaultNip="2026"
-              envVarName="VITE_EMRAMPE_NIP"
-            >
-              <ControlEmrampeView />
-            </NipGate>
-          )}
+          {activeArea === 'emrampe' && <ControlEmrampeView />}
         </Suspense>
       </main>
 
