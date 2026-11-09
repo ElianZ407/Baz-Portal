@@ -22,6 +22,7 @@ export const Header = () => {
   const { 
     activeArea, 
     setActiveArea, 
+    esRolPatio,
     setIsModalOpen, 
     setSelectedUnit, 
     units,
@@ -204,15 +205,17 @@ export const Header = () => {
           <span className="tab-short-text">Colocación</span>
         </button>
 
-        <button 
-          className={`nav-tab ${activeArea === 'emrampe' ? 'active' : ''}`}
-          onClick={() => setActiveArea('emrampe')}
-          title="Control de Emrampe: Registro de Unidades en Rampa, Horas y Patiero"
-        >
-          <Warehouse size={16} />
-          <span className="tab-full-text">Control de Emrampe</span>
-          <span className="tab-short-text">Emrampe</span>
-        </button>
+        {esRolPatio && (
+          <button 
+            className={`nav-tab ${activeArea === 'emrampe' ? 'active' : ''}`}
+            onClick={() => setActiveArea('emrampe')}
+            title="Control de Emrampe: Registro de Unidades en Rampa, Horas y Patiero"
+          >
+            <Warehouse size={16} />
+            <span className="tab-full-text">Control de Emrampe</span>
+            <span className="tab-short-text">Emrampe</span>
+          </button>
+        )}
       </nav>
 
       <div className="header-actions">

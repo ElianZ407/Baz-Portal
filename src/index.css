@@ -5505,6 +5505,24 @@ body {
   transform: translateY(-1px);
 }
 
+.btn-emrampe-salir {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: var(--text-muted);
+  font-size: 0.74rem;
+  font-weight: 600;
+  border-radius: 6px;
+  padding: 0.4rem 0.65rem;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-emrampe-salir:hover {
+  background: rgba(239, 68, 68, 0.12);
+  border-color: rgba(239, 68, 68, 0.35);
+  color: #f87171;
+}
+
 .emrampe-kpi-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));

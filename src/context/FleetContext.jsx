@@ -195,7 +195,56 @@ export const FleetProvider = ({ children }) => {
     return [];
   });
 
-  const [activeArea, setActiveArea] = useState('tv');
+  const [esRolPatio, setEsRolPatio] = useState(() => {
+    try {
+      if (typeof window !== 'undefined') {
+        const params = new URLSearchParams(window.location.search);
+        const rolParam = params.get('rol') || params.get('modulo') || params.get('area');
+        if (rolParam && ['patio', 'emrampe'].includes(rolParam.toLowerCase())) {
+          localStorage.setItem('baz_rol_patio', 'true');
+          return true;
+        }
+        if (rolParam && ['normal', 'admin', 'supervisor', 'tv', 'general'].includes(rolParam.toLowerCase())) {
+          localStorage.removeItem('baz_rol_patio');
+          return false;
+        }
+        return localStorage.getItem('baz_rol_patio') === 'true';
+      }
+    } catch {}
+    return false;
+  });
+
+  const [activeArea, setActiveArea] = useState(() => {
+    try {
+      if (typeof window !== 'undefined') {
+        const params = new URLSearchParams(window.location.search);
+        const rolParam = params.get('rol') || params.get('modulo') || params.get('area');
+        if (rolParam && ['patio', 'emrampe'].includes(rolParam.toLowerCase())) {
+          return 'emrampe';
+        }
+        if (rolParam && ['tv', 'planeacion', 'supervisor', 'colocacion', 'patio'].includes(rolParam.toLowerCase())) {
+          return rolParam.toLowerCase();
+        }
+      }
+    } catch {}
+    return 'tv';
+  });
+
+  const activarModoPatio = () => {
+    try {
+      localStorage.setItem('baz_rol_patio', 'true');
+    } catch {}
+    setEsRolPatio(true);
+    setActiveArea('emrampe');
+  };
+
+  const desactivarModoPatio = () => {
+    try {
+      localStorage.removeItem('baz_rol_patio');
+    } catch {}
+    setEsRolPatio(false);
+    setActiveArea('tv');
+  };
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState('ALL');
   const [selectedUnit, setSelectedUnit] = useState(null);
@@ -1242,6 +1291,9 @@ export const FleetProvider = ({ children }) => {
       kpis,
       activeArea,
       setActiveArea,
+      esRolPatio,
+      activarModoPatio,
+      desactivarModoPatio,
       searchQuery,
       setSearchQuery,
       filterStatus,
