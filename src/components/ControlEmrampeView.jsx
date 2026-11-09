@@ -9,8 +9,7 @@ import {
   Trash2, 
   X, 
   Save, 
-  ArrowRight,
-  User
+  ArrowRight
 } from 'lucide-react';
 import { useFleet } from '../context/FleetContext';
 import { CATALOGO_RAMPAS, detectarZonaRampa } from '../constants/fleetConstants';
@@ -31,14 +30,6 @@ export const ControlEmrampeView = () => {
   const [editingUnitId, setEditingUnitId] = useState(null);
   const [zonaRampa, setZonaRampa] = useState('embarque');
 
-  const [patieroActivo, setPatieroActivo] = useState(() => {
-    try {
-      return localStorage.getItem('baz_patiero_activo') || '';
-    } catch {
-      return '';
-    }
-  });
-
   const [formData, setFormData] = useState({
     economico: '',
     numCarga: '',
@@ -46,21 +37,8 @@ export const ControlEmrampeView = () => {
     cortina: '',
     destino: '',
     horaEmrampe: '',
-    horaDesemrampe: '',
-    patiero: patieroActivo
+    horaDesemrampe: ''
   });
-
-  const guardarPatieroActivo = (nombre) => {
-    const limpio = String(nombre || '').trim();
-    setPatieroActivo(limpio);
-    try {
-      if (limpio) {
-        localStorage.setItem('baz_patiero_activo', limpio);
-      } else {
-        localStorage.removeItem('baz_patiero_activo');
-      }
-    } catch {}
-  };
 
   const getHoraActual = () => {
     const now = new Date();
@@ -79,8 +57,7 @@ export const ControlEmrampeView = () => {
       cortina: '',
       destino: '',
       horaEmrampe: getHoraActual(),
-      horaDesemrampe: '',
-      patiero: patieroActivo || ''
+      horaDesemrampe: ''
     });
     setIsModalOpen(true);
   };
@@ -96,8 +73,7 @@ export const ControlEmrampeView = () => {
       cortina: unit.cortina || '',
       destino: unit.destino || '',
       horaEmrampe: unit.horaEmrampe || '',
-      horaDesemrampe: unit.horaDesemrampe || '',
-      patiero: unit.patiero || patieroActivo || ''
+      horaDesemrampe: unit.horaDesemrampe || ''
     });
     setIsModalOpen(true);
   };
@@ -185,16 +161,11 @@ export const ControlEmrampeView = () => {
       destino: String(formData.destino || '').trim(),
       horaEmrampe: horaEmr,
       horaDesemrampe: horaDes,
-      patiero: String(formData.patiero || patieroActivo || '').trim(),
       enControlEmrampe: true,
       estatusPatio: targetUnit?.estatusPatio === 'Taller' ? 'Taller' : estatusPatio,
       estatusPlaneacion: estatusPlaneacion,
       actualizadoEn: nowStr
     };
-
-    if (payload.patiero) {
-      guardarPatieroActivo(payload.patiero);
-    }
 
     saveUnit(payload);
     closeModal();
@@ -205,7 +176,6 @@ export const ControlEmrampeView = () => {
     saveUnit({
       ...unit,
       horaEmrampe: hora,
-      patiero: unit.patiero || patieroActivo || 'Patio',
       enControlEmrampe: true,
       estatusPatio: unit.estatusPatio === 'Taller' ? 'Taller' : 'Colocado p/ Carga',
       estatusPlaneacion: 'COLOCADO',
@@ -235,7 +205,6 @@ export const ControlEmrampeView = () => {
         cortina: '',
         horaEmrampe: '',
         horaDesemrampe: '',
-        patiero: '',
         enControlEmrampe: false
       });
     }
@@ -250,8 +219,7 @@ export const ControlEmrampeView = () => {
         String(u.id || '').startsWith('emrampe-') ||
         u.cortina ||
         u.horaEmrampe ||
-        u.horaDesemrampe ||
-        u.patiero
+        u.horaDesemrampe
       );
       return tieneEco && tieneRampaOEmrampe;
     });
@@ -306,10 +274,9 @@ export const ControlEmrampeView = () => {
       const op = String(u.operador || '').toLowerCase();
       const rampa = String(u.cortina || '').toLowerCase();
       const dest = String(u.destino || '').toLowerCase();
-      const pat = String(u.patiero || '').toLowerCase();
       const zona = (detectarZonaRampa(u.cortina) || '').toLowerCase();
 
-      return eco.includes(q) || carga.includes(q) || op.includes(q) || rampa.includes(q) || dest.includes(q) || pat.includes(q) || zona.includes(q);
+      return eco.includes(q) || carga.includes(q) || op.includes(q) || rampa.includes(q) || dest.includes(q) || zona.includes(q);
     });
   }, [emrampeUnits, filterTab, search]);
 
@@ -437,14 +404,13 @@ export const ControlEmrampeView = () => {
               <th>DESTINO</th>
               <th>HORA DE EMRAMPE</th>
               <th>HORA DE DESEMRAMPE</th>
-              <th>PATIO (PATIERO)</th>
               <th style={{ textAlign: 'center' }}>ACCIONES</th>
             </tr>
           </thead>
           <tbody>
             {filteredUnits.length === 0 ? (
               <tr>
-                <td colSpan="9" className="emrampe-empty-cell">
+                <td colSpan="8" className="emrampe-empty-cell">
                   <Warehouse size={32} style={{ opacity: 0.35, marginBottom: '0.5rem' }} />
                   <div>No se encontraron registros de emrampe con los filtros actuales.</div>
                   <button type="button" className="btn-emrampe-link" onClick={openNewModal}>
@@ -517,11 +483,6 @@ export const ControlEmrampeView = () => {
                       ) : (
                         <span style={{ color: '#64748b', fontSize: '0.8rem' }}>—</span>
                       )}
-                    </td>
-                    <td>
-                      <span className="patiero-text">
-                        {u.patiero || '—'}
-                      </span>
                     </td>
                     <td>
                       <div className="emrampe-row-actions">
@@ -656,12 +617,7 @@ export const ControlEmrampeView = () => {
                   </div>
                 </div>
 
-                <div className="card-footer-strip">
-                  <div className="card-patiero-info">
-                    <User size={13} color="#38bdf8" />
-                    <span>Patio: <strong>{u.patiero || '—'}</strong></span>
-                  </div>
-
+                <div className="card-footer-strip" style={{ justifyContent: 'flex-end' }}>
                   <div className="card-actions">
                     <button 
                       type="button" 
@@ -978,17 +934,6 @@ export const ControlEmrampeView = () => {
                     className="emrampe-input"
                   />
                 </div>
-              </div>
-
-              <div className="form-group-emrampe">
-                <label>Patio (Nombre del Patiero)</label>
-                <input 
-                  type="text" 
-                  placeholder="Nombre de la persona encargada en patio..."
-                  value={formData.patiero}
-                  onChange={(e) => setFormData({ ...formData, patiero: e.target.value })}
-                  className="emrampe-input"
-                />
               </div>
 
               <div className="emrampe-modal-footer">
