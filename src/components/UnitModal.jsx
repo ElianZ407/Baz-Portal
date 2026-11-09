@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { X, Save, Truck, Layers, FileSpreadsheet, AlertTriangle, Wrench, Trash2, Plus, Package, Search, PlusCircle } from 'lucide-react';
 import { useFleet } from '../context/FleetContext';
-import { LINEAS_TRANSPORTE, BLOQUES, SUCURSALES_MAESTRAS, FLOTA_TOTAL } from '../constants/fleetConstants';
+import { LINEAS_TRANSPORTE, BLOQUES, SUCURSALES_MAESTRAS, FLOTA_TOTAL, TODAS_LAS_RAMPAS } from '../constants/fleetConstants';
 import { buscarSucursal, validarRestriccionesViaje, buscarUnidadPorEco, buscarIdOperadorPorNombre, buscarOperadorPorEco, checkTieneViajeYOperador, fechaLocalIso } from '../utils/fleetUtils';
 import { SucursalSelector } from './SucursalSelector';
 import { UnidadSelector } from './UnidadSelector';
@@ -833,10 +833,16 @@ const UnitModalForm = () => {
                     type="text"
                     name="cortina"
                     className="form-control"
-                    placeholder="Ej: 51, 18, 52..."
+                    placeholder="Ej: 18, 22, S1, R3, DS 1..."
                     value={formData.cortina}
                     onChange={handleChange}
+                    list="lista-cortinas-cedis"
                   />
+                  <datalist id="lista-cortinas-cedis">
+                    {TODAS_LAS_RAMPAS.map(r => (
+                      <option key={r} value={r} />
+                    ))}
+                  </datalist>
                 </div>
 
                 {/* Selector Inteligente de Sucursal Destino (Siempre muestra todas) */}

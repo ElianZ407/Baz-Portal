@@ -14,8 +14,7 @@ import {
   User
 } from 'lucide-react';
 import { useFleet } from '../context/FleetContext';
-
-const RAMPAS_RAPIDAS = ['Rampa 1', 'Rampa 2', 'Rampa 3', 'Rampa 4', 'Rampa 5', 'Rampa 6', 'Rampa 7', 'Rampa 8', 'Rampa 9', 'Rampa 10', 'Rampa 11', 'Rampa 12', 'Rampa 13', 'Rampa 14', 'Rampa 15'];
+import { CATALOGO_RAMPAS, detectarZonaRampa } from '../constants/fleetConstants';
 
 export const ControlEmrampeView = () => {
   const { 
@@ -30,6 +29,7 @@ export const ControlEmrampeView = () => {
   const [filterTab, setFilterTab] = useState('ALL');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingUnitId, setEditingUnitId] = useState(null);
+  const [zonaRampa, setZonaRampa] = useState('embarque');
 
   const [patieroActivo, setPatieroActivo] = useState(() => {
     try {
@@ -75,6 +75,7 @@ export const ControlEmrampeView = () => {
 
   const openNewModal = () => {
     setEditingUnitId(null);
+    setZonaRampa('embarque');
     setFormData({
       economico: '',
       numCarga: '',
@@ -90,6 +91,8 @@ export const ControlEmrampeView = () => {
 
   const openEditModal = (unit) => {
     setEditingUnitId(unit.id);
+    const detectada = detectarZonaRampa(unit.cortina);
+    setZonaRampa(detectada || 'embarque');
     setFormData({
       economico: unit.economico || '',
       numCarga: unit.numCarga || '',
@@ -237,10 +240,27 @@ export const ControlEmrampeView = () => {
       const rampa = String(u.cortina || '').toLowerCase();
       const dest = String(u.destino || '').toLowerCase();
       const pat = String(u.patiero || '').toLowerCase();
+      const zona = (detectarZonaRampa(u.cortina) || '').toLowerCase();
 
-      return eco.includes(q) || carga.includes(q) || op.includes(q) || rampa.includes(q) || dest.includes(q) || pat.includes(q);
+      return eco.includes(q) || carga.includes(q) || op.includes(q) || rampa.includes(q) || dest.includes(q) || pat.includes(q) || zona.includes(q);
     });
   }, [emrampeUnits, filterTab, search]);
+
+  const renderRampaBadge = (cortina) => {
+    if (!cortina) {
+      return <span className="rampa-pill rampa-pill-empty">Sin Rampa</span>;
+    }
+    const zona = detectarZonaRampa(cortina);
+    const etiquetaZona = zona === 'recibo' ? 'RECIBO' : zona === 'embarque' ? 'EMBARQUE' : zona === 'ds' ? 'DS' : '';
+    const claseZona = zona ? `rampa-pill-${zona}` : 'rampa-pill-default';
+
+    return (
+      <span className={`rampa-pill ${claseZona}`} title={etiquetaZona ? `Zona ${etiquetaZona}: ${cortina}` : `Rampa ${cortina}`}>
+        {etiquetaZona && <span className="rampa-zona-tag">{etiquetaZona}</span>}
+        <span className="rampa-num-val">{cortina}</span>
+      </span>
+    );
+  };
 
   return (
     <div className="emrampe-container">
@@ -438,9 +458,7 @@ export const ControlEmrampeView = () => {
                       </span>
                     </td>
                     <td>
-                      <span className="rampa-pill">
-                        {u.cortina ? (u.cortina.toLowerCase().includes('rampa') ? u.cortina : `Rampa ${u.cortina}`) : 'Sin rampa'}
-                      </span>
+                      {renderRampaBadge(u.cortina)}
                     </td>
                     <td>
                       <span className="emrampe-destino-text">
@@ -547,9 +565,7 @@ export const ControlEmrampeView = () => {
                 <div className="card-top-row">
                   <div className="card-eco-wrap">
                     <span className="eco-pill-emrampe">ECO {u.economico}</span>
-                    <span className="rampa-pill">
-                      {u.cortina ? (u.cortina.toLowerCase().includes('rampa') ? u.cortina : `Rampa ${u.cortina}`) : 'Sin Rampa'}
-                    </span>
+                    {renderRampaBadge(u.cortina)}
                   </div>
                   <div className="card-status-indicator">
                     {isDesemrampada ? (
@@ -727,42 +743,169 @@ export const ControlEmrampeView = () => {
                 </div>
 
                 <div className="form-group-emrampe">
-                  <label>Rampa</label>
+                  <label>Operador</label>
                   <input 
                     type="text" 
-                    placeholder="Ej. Rampa 3 o Cortina 4"
-                    value={formData.cortina}
-                    onChange={(e) => setFormData({ ...formData, cortina: e.target.value })}
+                    placeholder="Nombre oficial del operador..."
+                    value={formData.operador}
+                    onChange={(e) => setFormData({ ...formData, operador: e.target.value })}
                     className="emrampe-input"
                   />
                 </div>
               </div>
 
-              <div className="quick-rampas-strip">
-                <span className="quick-rampas-lbl">Rampas frecuentes:</span>
-                <div className="quick-rampas-pills">
-                  {RAMPAS_RAPIDAS.slice(0, 8).map(r => (
-                    <button 
-                      key={r}
-                      type="button" 
-                      className={`rampa-pill-btn ${formData.cortina === r ? 'active' : ''}`}
-                      onClick={() => setFormData({ ...formData, cortina: r })}
-                    >
-                      {r.replace('Rampa ', 'R-')}
-                    </button>
-                  ))}
+              <div className="form-group-emrampe rampa-section-card">
+                <div className="rampa-header-flex">
+                  <label style={{ margin: 0, fontWeight: 800 }}>Rampa / Cortina</label>
+                  {formData.cortina && (
+                    <span className="selected-rampa-preview">
+                      Seleccionada: <strong style={{ color: '#fff' }}>{formData.cortina}</strong>
+                      {detectarZonaRampa(formData.cortina) && (
+                        <span className={`preview-zona-tag preview-zona-${detectarZonaRampa(formData.cortina)}`}>
+                          {detectarZonaRampa(formData.cortina).toUpperCase()}
+                        </span>
+                      )}
+                    </span>
+                  )}
                 </div>
-              </div>
 
-              <div className="form-group-emrampe">
-                <label>Operador</label>
-                <input 
-                  type="text" 
-                  placeholder="Nombre oficial del operador..."
-                  value={formData.operador}
-                  onChange={(e) => setFormData({ ...formData, operador: e.target.value })}
-                  className="emrampe-input"
-                />
+                <div className="rampa-input-with-clear">
+                  <input 
+                    type="text" 
+                    placeholder="Selecciona abajo o escribe rampa..."
+                    value={formData.cortina}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setFormData({ ...formData, cortina: val });
+                      const autoZona = detectarZonaRampa(val);
+                      if (autoZona) setZonaRampa(autoZona);
+                    }}
+                    className="emrampe-input"
+                  />
+                  {formData.cortina && (
+                    <button 
+                      type="button" 
+                      className="btn-clear-rampa" 
+                      onClick={() => setFormData({ ...formData, cortina: '' })}
+                      title="Quitar rampa"
+                    >
+                      <X size={13} />
+                    </button>
+                  )}
+                </div>
+
+                <div className="rampa-zonas-tabs">
+                  <button 
+                    type="button"
+                    className={`rampa-zona-btn zona-recibo ${zonaRampa === 'recibo' ? 'active' : ''}`}
+                    onClick={() => setZonaRampa('recibo')}
+                  >
+                    <span className="zona-badge-dot dot-recibo"></span>
+                    Recibo (1-16 / R1-R6)
+                  </button>
+
+                  <button 
+                    type="button"
+                    className={`rampa-zona-btn zona-embarque ${zonaRampa === 'embarque' ? 'active' : ''}`}
+                    onClick={() => setZonaRampa('embarque')}
+                  >
+                    <span className="zona-badge-dot dot-embarque"></span>
+                    Embarque (17-32 / S1-S6)
+                  </button>
+
+                  <button 
+                    type="button"
+                    className={`rampa-zona-btn zona-ds ${zonaRampa === 'ds' ? 'active' : ''}`}
+                    onClick={() => setZonaRampa('ds')}
+                  >
+                    <span className="zona-badge-dot dot-ds"></span>
+                    DS (1, 2, 3)
+                  </button>
+                </div>
+
+                <div className="rampa-pills-container">
+                  {zonaRampa === 'recibo' && (
+                    <>
+                      <div className="rampa-subgroup-label">Cortinas Numéricas (1 al 16):</div>
+                      <div className="rampa-pills-grid">
+                        {CATALOGO_RAMPAS.recibo.numericas.map(r => (
+                          <button 
+                            key={r}
+                            type="button" 
+                            className={`rampa-pill-btn pill-recibo ${formData.cortina === r ? 'active' : ''}`}
+                            onClick={() => setFormData({ ...formData, cortina: r })}
+                          >
+                            {r}
+                          </button>
+                        ))}
+                      </div>
+
+                      <div className="rampa-subgroup-label" style={{ marginTop: '0.45rem' }}>Especiales Recibo (R1 a R6):</div>
+                      <div className="rampa-pills-grid rampa-pills-esp">
+                        {CATALOGO_RAMPAS.recibo.especiales.map(r => (
+                          <button 
+                            key={r}
+                            type="button" 
+                            className={`rampa-pill-btn pill-recibo-esp ${formData.cortina === r ? 'active' : ''}`}
+                            onClick={() => setFormData({ ...formData, cortina: r })}
+                          >
+                            {r}
+                          </button>
+                        ))}
+                      </div>
+                    </>
+                  )}
+
+                  {zonaRampa === 'embarque' && (
+                    <>
+                      <div className="rampa-subgroup-label">Cortinas Embarque (17 al 32):</div>
+                      <div className="rampa-pills-grid">
+                        {CATALOGO_RAMPAS.embarque.numericas.map(r => (
+                          <button 
+                            key={r}
+                            type="button" 
+                            className={`rampa-pill-btn pill-embarque ${formData.cortina === r ? 'active' : ''}`}
+                            onClick={() => setFormData({ ...formData, cortina: r })}
+                          >
+                            {r}
+                          </button>
+                        ))}
+                      </div>
+
+                      <div className="rampa-subgroup-label" style={{ marginTop: '0.45rem' }}>Especiales Embarque (S1 a S6):</div>
+                      <div className="rampa-pills-grid rampa-pills-esp">
+                        {CATALOGO_RAMPAS.embarque.especiales.map(r => (
+                          <button 
+                            key={r}
+                            type="button" 
+                            className={`rampa-pill-btn pill-embarque-esp ${formData.cortina === r ? 'active' : ''}`}
+                            onClick={() => setFormData({ ...formData, cortina: r })}
+                          >
+                            {r}
+                          </button>
+                        ))}
+                      </div>
+                    </>
+                  )}
+
+                  {zonaRampa === 'ds' && (
+                    <>
+                      <div className="rampa-subgroup-label">Rampas DS (Descarga / Especial):</div>
+                      <div className="rampa-pills-grid rampa-pills-ds">
+                        {CATALOGO_RAMPAS.ds.especiales.map(r => (
+                          <button 
+                            key={r}
+                            type="button" 
+                            className={`rampa-pill-btn pill-ds ${formData.cortina === r ? 'active' : ''}`}
+                            onClick={() => setFormData({ ...formData, cortina: r })}
+                          >
+                            {r}
+                          </button>
+                        ))}
+                      </div>
+                    </>
+                  )}
+                </div>
               </div>
 
               <div className="form-group-emrampe">

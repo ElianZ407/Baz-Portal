@@ -5735,8 +5735,48 @@ body {
   border: 1px solid rgba(245, 158, 11, 0.35);
   border-radius: 6px;
   padding: 0.2rem 0.55rem;
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
   white-space: nowrap;
+}
+
+.rampa-pill-recibo {
+  color: #38bdf8;
+  background: rgba(56, 189, 248, 0.12);
+  border-color: rgba(56, 189, 248, 0.38);
+}
+
+.rampa-pill-embarque {
+  color: #fbbf24;
+  background: rgba(245, 158, 11, 0.12);
+  border-color: rgba(245, 158, 11, 0.38);
+}
+
+.rampa-pill-ds {
+  color: #c084fc;
+  background: rgba(168, 85, 247, 0.14);
+  border-color: rgba(168, 85, 247, 0.42);
+}
+
+.rampa-pill-empty {
+  color: #64748b;
+  background: rgba(255, 255, 255, 0.03);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+.rampa-zona-tag {
+  font-size: 0.62rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  padding: 0.05rem 0.3rem;
+  border-radius: 3px;
+  background: rgba(0, 0, 0, 0.3);
+  letter-spacing: 0.03em;
+}
+
+.rampa-num-val {
+  font-weight: 800;
 }
 
 .hora-emrampe-badge {
@@ -6199,27 +6239,253 @@ body {
   color: var(--text-muted);
 }
 
-.quick-rampas-pills {
+.rampa-section-card {
+  background: rgba(15, 23, 42, 0.45);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  padding: 0.85rem;
+  margin-bottom: 0.85rem;
+}
+
+.rampa-header-flex {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.45rem;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.selected-rampa-preview {
+  font-size: 0.78rem;
+  color: #94a3b8;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.preview-zona-tag {
+  font-size: 0.65rem;
+  font-weight: 800;
+  padding: 0.1rem 0.35rem;
+  border-radius: 3px;
+  letter-spacing: 0.03em;
+}
+
+.preview-zona-recibo {
+  background: rgba(56, 189, 248, 0.2);
+  color: #38bdf8;
+  border: 1px solid rgba(56, 189, 248, 0.4);
+}
+
+.preview-zona-embarque {
+  background: rgba(245, 158, 11, 0.2);
+  color: #fbbf24;
+  border: 1px solid rgba(245, 158, 11, 0.4);
+}
+
+.preview-zona-ds {
+  background: rgba(192, 132, 252, 0.2);
+  color: #c084fc;
+  border: 1px solid rgba(192, 132, 252, 0.4);
+}
+
+.rampa-input-with-clear {
+  position: relative;
+  width: 100%;
+  margin-bottom: 0.6rem;
+}
+
+.rampa-input-with-clear .emrampe-input {
+  padding-right: 2.2rem;
+}
+
+.btn-clear-rampa {
+  position: absolute;
+  right: 0.6rem;
+  top: 50%;
+  transform: translateY(-50%);
+  background: rgba(255, 255, 255, 0.1);
+  border: none;
+  color: #94a3b8;
+  border-radius: 50%;
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-clear-rampa:hover {
+  background: rgba(239, 68, 68, 0.3);
+  color: #f87171;
+}
+
+.rampa-zonas-tabs {
   display: flex;
   gap: 0.35rem;
-  flex-wrap: wrap;
+  margin-bottom: 0.6rem;
+  background: rgba(0, 0, 0, 0.25);
+  padding: 0.25rem;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.rampa-zona-btn {
+  flex: 1;
+  padding: 0.45rem 0.3rem;
+  font-size: 0.74rem;
+  font-weight: 700;
+  border-radius: 6px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: #94a3b8;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.rampa-zona-btn:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.zona-badge-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+}
+
+.dot-recibo {
+  background: #38bdf8;
+  box-shadow: 0 0 6px rgba(56, 189, 248, 0.6);
+}
+
+.dot-embarque {
+  background: #fbbf24;
+  box-shadow: 0 0 6px rgba(245, 158, 11, 0.6);
+}
+
+.dot-ds {
+  background: #c084fc;
+  box-shadow: 0 0 6px rgba(192, 132, 252, 0.6);
+}
+
+.rampa-zona-btn.active.zona-recibo {
+  background: rgba(56, 189, 248, 0.18);
+  border-color: rgba(56, 189, 248, 0.5);
+  color: #38bdf8;
+}
+
+.rampa-zona-btn.active.zona-embarque {
+  background: rgba(245, 158, 11, 0.18);
+  border-color: rgba(245, 158, 11, 0.5);
+  color: #fbbf24;
+}
+
+.rampa-zona-btn.active.zona-ds {
+  background: rgba(192, 132, 252, 0.18);
+  border-color: rgba(192, 132, 252, 0.5);
+  color: #c084fc;
+}
+
+.rampa-pills-container {
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  border-radius: 8px;
+  padding: 0.65rem;
+}
+
+.rampa-subgroup-label {
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  margin-bottom: 0.35rem;
+}
+
+.rampa-pills-grid {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  gap: 0.35rem;
+}
+
+.rampa-pills-esp {
+  grid-template-columns: repeat(6, 1fr);
+}
+
+.rampa-pills-ds {
+  grid-template-columns: repeat(3, 1fr);
 }
 
 .rampa-pill-btn {
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid var(--border-color);
-  color: var(--text-secondary);
-  font-size: 0.72rem;
+  padding: 0.45rem 0.2rem;
+  text-align: center;
+  border-radius: 6px;
+  font-size: 0.78rem;
+  font-family: var(--font-mono);
   font-weight: 700;
-  padding: 0.2rem 0.5rem;
-  border-radius: 4px;
   cursor: pointer;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.04);
+  color: #cbd5e1;
+  transition: all 0.12s ease;
+  min-height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-.rampa-pill-btn.active {
-  background: rgba(245, 158, 11, 0.18);
+.rampa-pill-btn:hover {
+  border-color: rgba(255, 255, 255, 0.3);
+  transform: translateY(-1px);
+}
+
+.rampa-pill-btn.active.pill-recibo,
+.rampa-pill-btn.active.pill-recibo-esp {
+  background: #0284c7;
+  border-color: #38bdf8;
+  color: #ffffff;
+  box-shadow: 0 0 10px rgba(56, 189, 248, 0.45);
+}
+
+.rampa-pill-btn.active.pill-embarque,
+.rampa-pill-btn.active.pill-embarque-esp {
+  background: #d97706;
   border-color: #fbbf24;
-  color: #fbbf24;
+  color: #ffffff;
+  box-shadow: 0 0 10px rgba(245, 158, 11, 0.45);
+}
+
+.rampa-pill-btn.active.pill-ds {
+  background: #7c3aed;
+  border-color: #c084fc;
+  color: #ffffff;
+  box-shadow: 0 0 10px rgba(192, 132, 252, 0.45);
+}
+
+@media (max-width: 768px) {
+  .rampa-pills-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+  .rampa-pills-esp {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  .rampa-zonas-tabs {
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+  .rampa-zona-btn {
+    padding: 0.45rem 0.4rem;
+    font-size: 0.72rem;
+  }
 }
 
 .label-with-action {
