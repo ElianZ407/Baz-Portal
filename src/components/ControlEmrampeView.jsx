@@ -458,7 +458,7 @@ export const ControlEmrampeView = () => {
         { header: 'UNIDAD (ECO)', key: 'economico', width: 16 },
         { header: 'NUM DE CARGA', key: 'numCarga', width: 18 },
         { header: 'OPERADOR', key: 'operador', width: 32 },
-        { header: 'PATIERO', key: 'patiero', width: 22 },
+        { header: 'NOMBRE DEL PATIERO', key: 'patiero', width: 24 },
         { header: 'ZONA', key: 'zona', width: 14 },
         { header: 'RAMPA / CORTINA', key: 'cortina', width: 18 },
         { header: 'DESTINO', key: 'destino', width: 26 },
@@ -815,7 +815,7 @@ export const ControlEmrampeView = () => {
               <th>DESTINO</th>
               <th>HORA DE EMRAMPE</th>
               <th>HORA DE DESEMRAMPE</th>
-              <th>PATIERO</th>
+              <th>NOMBRE DEL PATIERO</th>
               <th style={{ textAlign: 'center' }}>ACCIONES</th>
             </tr>
           </thead>
@@ -1047,7 +1047,7 @@ export const ControlEmrampeView = () => {
                 <div className="card-footer-strip">
                   <div className="card-patiero-info">
                     <User size={13} color="#38bdf8" />
-                    <span>Patio: <strong>{u.patiero || '—'}</strong></span>
+                    <span>Nombre del Patiero: <strong>{u.patiero || '—'}</strong></span>
                   </div>
 
                   {!corteEnConsulta && (
@@ -1556,10 +1556,10 @@ export const ControlEmrampeView = () => {
               </div>
 
               <div className="form-group-emrampe">
-                <label>Patio (Nombre del Patiero / Auxiliar)</label>
+                <label>Nombre del Patiero</label>
                 <input 
                   type="text" 
-                  placeholder="Nombre del patiero o auxiliar encargado..."
+                  placeholder="Nombre del patiero..."
                   value={formData.patiero}
                   onChange={(e) => setFormData({ ...formData, patiero: e.target.value })}
                   className="emrampe-input"
