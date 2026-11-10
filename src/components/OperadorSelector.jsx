@@ -92,7 +92,7 @@ export const OperadorSelector = ({ value, onChange, placeholder = 'Seleccionar O
       if (b.source === 'recent' && a.source !== 'recent') return 1;
       return a.nombre.localeCompare(b.nombre, 'es');
     });
-  }, [units, catalogoFlota]);
+  }, [units, catalogoFlota, soloCatalogo]);
 
   const selectedOp = useMemo(() => {
     if (!value) return null;
