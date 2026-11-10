@@ -145,6 +145,13 @@ export const ControlEmrampeView = () => {
       .channel(`realtime_emrampe_${Date.now()}`)
       .on(
         'postgres_changes',
+        { event: '*', schema: 'public', table: 'control_emrampe' },
+        () => {
+          recargarDesdeNube();
+        }
+      )
+      .on(
+        'postgres_changes',
         { event: '*', schema: 'public', table: 'historial_planes' },
         (payload) => {
           const rowId = String(payload?.new?.id || payload?.old?.id || '');
