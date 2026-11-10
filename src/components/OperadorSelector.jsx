@@ -30,7 +30,7 @@ const getAvatarGradient = (name) => {
   return AVATAR_GRADIENTS[hash];
 };
 
-export const OperadorSelector = ({ value, onChange, placeholder = 'Seleccionar Operador Asignado...' }) => {
+export const OperadorSelector = ({ value, onChange, placeholder = 'Seleccionar Operador Asignado...', soloCatalogo = false }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [search, setSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('ALL');
@@ -45,7 +45,7 @@ export const OperadorSelector = ({ value, onChange, placeholder = 'Seleccionar O
   const allOperadores = useMemo(() => {
     const flotaList = catalogoFlota && Array.isArray(catalogoFlota) && catalogoFlota.length > 0 ? catalogoFlota : FLOTA_TOTAL;
     
-    const fromUnits = (units || [])
+    const fromUnits = soloCatalogo ? [] : (units || [])
       .filter((u) => u.operador && u.operador.trim().length > 2 && u.operador !== 'VACANTE' && u.operador !== 'BAJA')
       .map((u) => ({
         nombre: u.operador.trim().toUpperCase(),
@@ -297,22 +297,24 @@ export const OperadorSelector = ({ value, onChange, placeholder = 'Seleccionar O
             )}
           </div>
 
-          <div className="custom-select-filter-chips">
-            {categories.map((c) => (
-              <button
-                key={c.id}
-                type="button"
-                className={`custom-chip-btn ${categoryFilter === c.id ? 'active' : ''}`}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setCategoryFilter(c.id);
-                  setFocusedIndex(-1);
-                }}
-              >
-                {c.label}
-              </button>
-            ))}
-          </div>
+          {!soloCatalogo && (
+            <div className="custom-select-filter-chips">
+              {categories.map((c) => (
+                <button
+                  key={c.id}
+                  type="button"
+                  className={`custom-chip-btn ${categoryFilter === c.id ? 'active' : ''}`}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setCategoryFilter(c.id);
+                    setFocusedIndex(-1);
+                  }}
+                >
+                  {c.label}
+                </button>
+              ))}
+            </div>
+          )}
 
           {searchClean && !exactMatch && (
             <div 

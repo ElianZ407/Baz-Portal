@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { 
   Warehouse, 
   Plus, 
@@ -9,26 +9,86 @@ import {
   Trash2, 
   X, 
   Save, 
-  ArrowRight
+  ArrowRight,
+  History,
+  FileSpreadsheet,
+  FolderCheck,
+  Eye,
+  RotateCcw
 } from 'lucide-react';
 import { useFleet } from '../context/FleetContext';
 import { CATALOGO_RAMPAS, detectarZonaRampa } from '../constants/fleetConstants';
 import { OperadorSelector } from './OperadorSelector';
+import {
+  supabase,
+  isSupabaseConfigured,
+  EMRAMPE_ACTIVO_ROW_ID,
+  fetchEmrampeActivoDb,
+  saveEmrampeActivoDb,
+  fetchHistorialEmrampeDb,
+  saveHistorialEmrampeDb,
+  deleteHistorialEmrampeDb
+} from '../lib/supabaseClient';
+
+const STORAGE_EMRAMPE_ACTIVO = 'baz_control_emrampe_activo_v1';
+const STORAGE_EMRAMPE_HISTORIAL = 'baz_control_emrampe_historial_v1';
 
 export const ControlEmrampeView = () => {
   const { 
-    units, 
-    saveUnit, 
-    deleteUnit, 
     catalogoFlota, 
-    showConfirm
+    showConfirm,
+    showAlert
   } = useFleet();
 
+  const [registros, setRegistros] = useState(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_EMRAMPE_ACTIVO);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) return parsed;
+      }
+    } catch {
+      return [];
+    }
+    return [];
+  });
+
+  const [historial, setHistorial] = useState(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_EMRAMPE_HISTORIAL);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) return parsed;
+      }
+    } catch {
+      return [];
+    }
+    return [];
+  });
+
+  const [corteEnConsulta, setCorteEnConsulta] = useState(null);
   const [search, setSearch] = useState('');
   const [filterTab, setFilterTab] = useState('ALL');
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isSaveCorteModalOpen, setIsSaveCorteModalOpen] = useState(false);
+  const [isHistorialModalOpen, setIsHistorialModalOpen] = useState(false);
   const [editingUnitId, setEditingUnitId] = useState(null);
   const [zonaRampa, setZonaRampa] = useState('embarque');
+  const [isSavingCloud, setIsSavingCloud] = useState(false);
+
+  const hoyIso = useMemo(() => {
+    const now = new Date();
+    const y = now.getFullYear();
+    const m = String(now.getMonth() + 1).padStart(2, '0');
+    const d = String(now.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+  }, []);
+
+  const [corteForm, setCorteForm] = useState({
+    nombre: '',
+    fecha: hoyIso,
+    limpiarTablero: false
+  });
 
   const [formData, setFormData] = useState({
     economico: '',
@@ -40,6 +100,87 @@ export const ControlEmrampeView = () => {
     horaDesemrampe: ''
   });
 
+  const lastJsonRef = useRef(JSON.stringify(registros));
+  const isLocalMutatingRef = useRef(false);
+
+  const recargarDesdeNube = useCallback(async () => {
+    if (!isSupabaseConfigured() || isLocalMutatingRef.current) return;
+    try {
+      const [remotosActivos, remotosHistorial] = await Promise.all([
+        fetchEmrampeActivoDb(),
+        fetchHistorialEmrampeDb()
+      ]);
+
+      if (Array.isArray(remotosActivos) && !isLocalMutatingRef.current) {
+        const serialized = JSON.stringify(remotosActivos);
+        if (serialized !== lastJsonRef.current) {
+          lastJsonRef.current = serialized;
+          setRegistros(remotosActivos);
+          localStorage.setItem(STORAGE_EMRAMPE_ACTIVO, serialized);
+        }
+      }
+
+      if (Array.isArray(remotosHistorial)) {
+        setHistorial(remotosHistorial);
+        localStorage.setItem(STORAGE_EMRAMPE_HISTORIAL, JSON.stringify(remotosHistorial));
+      }
+    } catch (err) {
+      console.warn('Error al sincronizar control de emrampe:', err);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!isSupabaseConfigured() || !supabase) return;
+    recargarDesdeNube();
+
+    const channel = supabase
+      .channel(`realtime_emrampe_${Date.now()}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'historial_planes' },
+        (payload) => {
+          const rowId = String(payload?.new?.id || payload?.old?.id || '');
+          if (rowId === EMRAMPE_ACTIVO_ROW_ID || rowId.startsWith('__EMRAMPE_')) {
+            recargarDesdeNube();
+          }
+        }
+      )
+      .subscribe();
+
+    const interval = setInterval(() => {
+      if (typeof document !== 'undefined' && !document.hidden) {
+        recargarDesdeNube();
+      }
+    }, 12000);
+
+    return () => {
+      clearInterval(interval);
+      supabase.removeChannel(channel);
+    };
+  }, [recargarDesdeNube]);
+
+  const persistirRegistrosActivos = async (nuevosRegistros) => {
+    const serialized = JSON.stringify(nuevosRegistros);
+    lastJsonRef.current = serialized;
+    setRegistros(nuevosRegistros);
+    localStorage.setItem(STORAGE_EMRAMPE_ACTIVO, serialized);
+
+    if (isSupabaseConfigured()) {
+      isLocalMutatingRef.current = true;
+      setIsSavingCloud(true);
+      try {
+        await saveEmrampeActivoDb(nuevosRegistros);
+      } catch (err) {
+        console.error('Error al guardar emrampe en la nube:', err);
+      } finally {
+        setIsSavingCloud(false);
+        setTimeout(() => {
+          isLocalMutatingRef.current = false;
+        }, 800);
+      }
+    }
+  };
+
   const getHoraActual = () => {
     const now = new Date();
     const hh = String(now.getHours()).padStart(2, '0');
@@ -48,6 +189,14 @@ export const ControlEmrampeView = () => {
   };
 
   const openNewModal = () => {
+    if (corteEnConsulta) {
+      showAlert({
+        title: 'Modo Consulta de Historial',
+        message: 'Estás visualizando un corte guardado. Vuelve al tablero activo para registrar nuevos emrampes.',
+        confirmType: 'warning'
+      });
+      return;
+    }
     setEditingUnitId(null);
     setZonaRampa('embarque');
     setFormData({
@@ -63,6 +212,14 @@ export const ControlEmrampeView = () => {
   };
 
   const openEditModal = (unit) => {
+    if (corteEnConsulta) {
+      showAlert({
+        title: 'Modo Consulta de Historial',
+        message: 'Estás visualizando un corte guardado. Vuelve al tablero activo para editar registros.',
+        confirmType: 'warning'
+      });
+      return;
+    }
     setEditingUnitId(unit.id);
     const detectada = detectarZonaRampa(unit.cortina);
     setZonaRampa(detectada || 'embarque');
@@ -90,7 +247,7 @@ export const ControlEmrampeView = () => {
       return;
     }
 
-    const existingPending = units.find(
+    const existingPending = registros.find(
       u => String(u.economico).trim() === cleanEco && !u.horaDesemrampe
     );
     const fromMaster = (catalogoFlota || []).find(f => String(f.eco).trim() === cleanEco);
@@ -116,42 +273,23 @@ export const ControlEmrampeView = () => {
     }
   };
 
-  const handleSaveForm = (e) => {
+  const handleSaveForm = async (e) => {
     e.preventDefault();
     const cleanEco = String(formData.economico || '').trim();
     if (!cleanEco) return;
 
-    let targetUnit = editingUnitId ? units.find(u => u.id === editingUnitId) : null;
-    if (!targetUnit) {
-      targetUnit = units.find(
-        u => String(u.economico).trim() === cleanEco && !u.horaDesemrampe && u.enControlEmrampe !== false
+    let targetUnit = editingUnitId ? registros.find(u => u.id === editingUnitId) : null;
+    if (!targetUnit && !editingUnitId) {
+      targetUnit = registros.find(
+        u => String(u.economico).trim() === cleanEco && !u.horaDesemrampe
       );
     }
 
-    const fromMaster = (catalogoFlota || []).find(f => String(f.eco).trim() === cleanEco);
     const nowStr = getHoraActual();
     const horaEmr = formData.horaEmrampe ? String(formData.horaEmrampe).trim() : '';
     const horaDes = formData.horaDesemrampe ? String(formData.horaDesemrampe).trim() : '';
 
-    let estatusPatio = 'Disponible';
-    let estatusPlaneacion = 'PENDIENTE';
-
-    if (horaDes) {
-      estatusPatio = 'Cargado';
-      estatusPlaneacion = 'CARGADO';
-    } else if (horaEmr) {
-      estatusPatio = 'Colocado p/ Carga';
-      estatusPlaneacion = 'COLOCADO';
-    }
-
     const payload = {
-      ...(fromMaster ? {
-        placas: fromMaster.placas || '',
-        tipo: fromMaster.tipo || '',
-        capUnidad: Number(fromMaster.capUnidad) || 0,
-        linea: fromMaster.linea || 'LTI - VHS',
-        idOperador: fromMaster.idOperador || ''
-      } : {}),
       ...(targetUnit || {}),
       id: targetUnit?.id || `emrampe-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
       economico: cleanEco,
@@ -161,69 +299,192 @@ export const ControlEmrampeView = () => {
       destino: String(formData.destino || '').trim(),
       horaEmrampe: horaEmr,
       horaDesemrampe: horaDes,
-      enControlEmrampe: true,
-      estatusPatio: targetUnit?.estatusPatio === 'Taller' ? 'Taller' : estatusPatio,
-      estatusPlaneacion: estatusPlaneacion,
+      fechaRegistro: targetUnit?.fechaRegistro || hoyIso,
       actualizadoEn: nowStr
     };
 
-    saveUnit(payload);
+    const exists = registros.some(u => u.id === payload.id);
+    const nextList = exists
+      ? registros.map(u => (u.id === payload.id ? payload : u))
+      : [payload, ...registros];
+
     closeModal();
+    await persistirRegistrosActivos(nextList);
   };
 
-  const handleQuickEmrampar = (unit) => {
+  const handleQuickEmrampar = async (unit) => {
+    if (corteEnConsulta) return;
     const hora = getHoraActual();
-    saveUnit({
-      ...unit,
-      horaEmrampe: hora,
-      enControlEmrampe: true,
-      estatusPatio: unit.estatusPatio === 'Taller' ? 'Taller' : 'Colocado p/ Carga',
-      estatusPlaneacion: 'COLOCADO',
-      actualizadoEn: hora
-    });
+    const nextList = registros.map(u =>
+      u.id === unit.id ? { ...u, horaEmrampe: hora, actualizadoEn: hora } : u
+    );
+    await persistirRegistrosActivos(nextList);
   };
 
-  const handleQuickDesemrampar = (unit) => {
+  const handleQuickDesemrampar = async (unit) => {
+    if (corteEnConsulta) return;
     const hora = getHoraActual();
-    saveUnit({
-      ...unit,
-      horaDesemrampe: hora,
-      enControlEmrampe: true,
-      estatusPatio: unit.estatusPatio === 'Taller' ? 'Taller' : 'Cargado',
-      estatusPlaneacion: 'CARGADO',
-      actualizadoEn: hora
-    });
+    const nextList = registros.map(u =>
+      u.id === unit.id ? { ...u, horaDesemrampe: hora, actualizadoEn: hora } : u
+    );
+    await persistirRegistrosActivos(nextList);
   };
 
-  const handleRemoveEmrampe = (unit) => {
-    const esSoloEmrampe = String(unit.id || '').startsWith('emrampe-') || !unit.noViaje;
-    if (esSoloEmrampe) {
-      deleteUnit(unit.id);
-    } else {
-      saveUnit({
-        ...unit,
-        cortina: '',
-        horaEmrampe: '',
-        horaDesemrampe: '',
-        enControlEmrampe: false
+  const handleRemoveEmrampe = async (unit) => {
+    if (corteEnConsulta) return;
+    const nextList = registros.filter(u => u.id !== unit.id);
+    await persistirRegistrosActivos(nextList);
+  };
+
+  const openGuardarCorteModal = () => {
+    if (registros.length === 0) {
+      showAlert({
+        title: 'Sin registros para guardar',
+        message: 'Agrega al menos un registro de emrampe antes de guardar un corte en el historial.',
+        confirmType: 'warning'
       });
+      return;
+    }
+    setCorteForm({
+      nombre: `Corte Emrampe ${hoyIso}`,
+      fecha: hoyIso,
+      limpiarTablero: false
+    });
+    setIsSaveCorteModalOpen(true);
+  };
+
+  const handleConfirmGuardarCorte = async (e) => {
+    e.preventDefault();
+    const copia = JSON.parse(JSON.stringify(registros));
+    const corteId = `__EMRAMPE_HIST__${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+    const nombreFinal = (corteForm.nombre || '').trim() || `Corte Emrampe ${corteForm.fecha || hoyIso}`;
+    const fechaFinal = corteForm.fecha || hoyIso;
+
+    const nuevoCorte = {
+      id: corteId,
+      fecha: fechaFinal,
+      nombre: nombreFinal,
+      totalRegistros: copia.length,
+      totalDesemrampados: copia.filter(r => Boolean(r.horaDesemrampe)).length,
+      registros: copia,
+      createdAt: new Date().toISOString()
+    };
+
+    const nuevoHistorial = [nuevoCorte, ...historial];
+    setHistorial(nuevoHistorial);
+    localStorage.setItem(STORAGE_EMRAMPE_HISTORIAL, JSON.stringify(nuevoHistorial));
+    setIsSaveCorteModalOpen(false);
+
+    if (isSupabaseConfigured()) {
+      try {
+        await saveHistorialEmrampeDb(nuevoCorte);
+      } catch (err) {
+        console.error('Error al guardar corte de emrampe en Supabase:', err);
+      }
+    }
+
+    if (corteForm.limpiarTablero) {
+      await persistirRegistrosActivos([]);
+    }
+
+    showAlert({
+      title: 'Corte de Emrampe Guardado',
+      message: `Se guardó "${nombreFinal}" con ${copia.length} registro(s) en la tabla independiente de Control de Emrampe.`,
+      confirmType: 'success'
+    });
+  };
+
+  const handleDeleteCorte = async (corte) => {
+    const nextHist = historial.filter(h => h.id !== corte.id);
+    setHistorial(nextHist);
+    localStorage.setItem(STORAGE_EMRAMPE_HISTORIAL, JSON.stringify(nextHist));
+    if (corteEnConsulta?.id === corte.id) {
+      setCorteEnConsulta(null);
+    }
+    if (isSupabaseConfigured()) {
+      try {
+        await deleteHistorialEmrampeDb(corte.id);
+      } catch (err) {
+        console.error('Error al eliminar corte de emrampe:', err);
+      }
+    }
+  };
+
+  const handleExportExcel = async (listaExportar = emrampeUnits, tituloArchivo = '') => {
+    if (!listaExportar || listaExportar.length === 0) {
+      showAlert({
+        title: 'Sin datos para exportar',
+        message: 'No hay registros de emrampe en la vista actual para exportar a Excel.',
+        confirmType: 'warning'
+      });
+      return;
+    }
+
+    try {
+      const ExcelJSModule = await import('exceljs');
+      const ExcelJS = ExcelJSModule.default || ExcelJSModule;
+      const workbook = new ExcelJS.Workbook();
+      const sheet = workbook.addWorksheet('Control de Emrampe');
+
+      sheet.columns = [
+        { header: 'UNIDAD (ECO)', key: 'economico', width: 16 },
+        { header: 'NUM DE CARGA', key: 'numCarga', width: 18 },
+        { header: 'OPERADOR', key: 'operador', width: 32 },
+        { header: 'ZONA', key: 'zona', width: 14 },
+        { header: 'RAMPA / CORTINA', key: 'cortina', width: 18 },
+        { header: 'DESTINO', key: 'destino', width: 26 },
+        { header: 'HORA EMRAMPE', key: 'horaEmrampe', width: 18 },
+        { header: 'HORA DESEMRAMPE', key: 'horaDesemrampe', width: 20 },
+        { header: 'ESTATUS', key: 'estatus', width: 18 }
+      ];
+
+      const headerRow = sheet.getRow(1);
+      headerRow.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+      headerRow.fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: 'FF0F172A' }
+      };
+
+      listaExportar.forEach(u => {
+        const zona = detectarZonaRampa(u.cortina);
+        const etiquetaZona = zona === 'recibo' ? 'RECIBO' : zona === 'embarque' ? 'EMBARQUE' : zona === 'ds' ? 'DS' : 'GENERAL';
+        const estatus = u.horaDesemrampe ? 'DESEMRAMPADA' : u.horaEmrampe ? 'EN RAMPA' : 'PENDIENTE';
+        sheet.addRow({
+          economico: `ECO ${u.economico || ''}`,
+          numCarga: u.numCarga || '—',
+          operador: u.operador || 'Sin asignar',
+          zona: u.cortina ? etiquetaZona : '—',
+          cortina: u.cortina || 'Sin rampa',
+          destino: u.destino || 'Sin definir',
+          horaEmrampe: u.horaEmrampe || '—',
+          horaDesemrampe: u.horaDesemrampe || '—',
+          estatus
+        });
+      });
+
+      const buffer = await workbook.xlsx.writeBuffer();
+      const blob = new Blob([buffer], {
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+      });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      const sufijo = (tituloArchivo || corteEnConsulta?.fecha || hoyIso).replace(/[^a-zA-Z0-9_-]/g, '_');
+      a.download = `Control_Emrampe_${sufijo}.xlsx`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('Error al exportar Excel de emrampe:', err);
     }
   };
 
   const emrampeUnits = useMemo(() => {
-    return units.filter(u => {
-      if (u.enControlEmrampe === false) return false;
-      const tieneEco = Boolean(String(u.economico || '').trim());
-      const tieneRampaOEmrampe = Boolean(
-        u.enControlEmrampe ||
-        String(u.id || '').startsWith('emrampe-') ||
-        u.cortina ||
-        u.horaEmrampe ||
-        u.horaDesemrampe
-      );
-      return tieneEco && tieneRampaOEmrampe;
-    });
-  }, [units]);
+    if (corteEnConsulta && Array.isArray(corteEnConsulta.registros)) {
+      return corteEnConsulta.registros;
+    }
+    return registros;
+  }, [corteEnConsulta, registros]);
 
   const rampasOcupadas = useMemo(() => {
     const map = new Map();
@@ -298,6 +559,49 @@ export const ControlEmrampeView = () => {
 
   return (
     <div className="emrampe-container">
+      {corteEnConsulta && (
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          flexWrap: 'wrap',
+          gap: '0.75rem',
+          padding: '0.75rem 1rem',
+          marginBottom: '0.85rem',
+          borderRadius: '10px',
+          background: 'rgba(245, 158, 11, 0.14)',
+          border: '1px solid rgba(245, 158, 11, 0.45)',
+          color: '#fef3c7'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', fontSize: '0.88rem', fontWeight: 700 }}>
+            <History size={18} color="#fbbf24" />
+            <span>
+              Consultando corte histórico: <strong style={{ color: '#fff' }}>{corteEnConsulta.nombre}</strong> ({corteEnConsulta.fecha})
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setCorteEnConsulta(null)}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.4rem',
+              padding: '0.4rem 0.85rem',
+              borderRadius: '8px',
+              border: '1px solid rgba(251, 191, 36, 0.6)',
+              background: 'rgba(245, 158, 11, 0.25)',
+              color: '#fff',
+              fontWeight: 700,
+              fontSize: '0.8rem',
+              cursor: 'pointer'
+            }}
+          >
+            <RotateCcw size={14} />
+            Volver al Tablero Activo
+          </button>
+        </div>
+      )}
+
       <div className="emrampe-top-action-bar">
         <div className="emrampe-search-box">
           <Search size={18} className="emrampe-search-icon" />
@@ -315,15 +619,87 @@ export const ControlEmrampeView = () => {
           )}
         </div>
 
-        <button 
-          type="button" 
-          className="btn-emrampe-primary btn-top-add-emrampe"
-          onClick={openNewModal}
-          title="Registrar nuevo emrampe en patio"
-        >
-          <Plus size={18} />
-          <span>+ Registrar Emrampe</span>
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+          {!corteEnConsulta && (
+            <button 
+              type="button" 
+              className="btn-emrampe-primary btn-top-add-emrampe"
+              onClick={openNewModal}
+              title="Registrar nuevo emrampe en patio"
+            >
+              <Plus size={18} />
+              <span>+ Registrar Emrampe</span>
+            </button>
+          )}
+
+          {!corteEnConsulta && (
+            <button
+              type="button"
+              onClick={openGuardarCorteModal}
+              title="Guardar corte de registros de emrampe en su propio historial"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.45rem',
+                padding: '0.62rem 0.95rem',
+                borderRadius: '10px',
+                border: '1px solid rgba(16, 185, 129, 0.45)',
+                background: 'rgba(16, 185, 129, 0.16)',
+                color: '#34d399',
+                fontWeight: 700,
+                fontSize: '0.84rem',
+                cursor: 'pointer'
+              }}
+            >
+              <FolderCheck size={16} />
+              <span>Guardar Corte</span>
+            </button>
+          )}
+
+          <button
+            type="button"
+            onClick={() => setIsHistorialModalOpen(true)}
+            title="Ver cortes guardados de Control de Emrampe"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.45rem',
+              padding: '0.62rem 0.95rem',
+              borderRadius: '10px',
+              border: '1px solid rgba(56, 189, 248, 0.35)',
+              background: 'rgba(15, 23, 42, 0.85)',
+              color: '#38bdf8',
+              fontWeight: 700,
+              fontSize: '0.84rem',
+              cursor: 'pointer'
+            }}
+          >
+            <History size={16} />
+            <span>Historial ({historial.length})</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => handleExportExcel(emrampeUnits)}
+            title="Descargar registros en archivo Excel (.xlsx)"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.45rem',
+              padding: '0.62rem 0.95rem',
+              borderRadius: '10px',
+              border: '1px solid rgba(148, 163, 184, 0.3)',
+              background: 'rgba(30, 41, 59, 0.8)',
+              color: '#e2e8f0',
+              fontWeight: 700,
+              fontSize: '0.84rem',
+              cursor: 'pointer'
+            }}
+          >
+            <FileSpreadsheet size={16} />
+            <span>Excel</span>
+          </button>
+        </div>
       </div>
 
       <div className="emrampe-kpi-grid">
@@ -391,6 +767,10 @@ export const ControlEmrampeView = () => {
             Desemrampadas ({kpis.desemrampadas})
           </button>
         </div>
+
+        <div style={{ fontSize: '0.75rem', color: '#94a3b8', fontWeight: 600 }}>
+          {isSavingCloud ? 'Guardando en la nube...' : 'Guardado automático independiente activo'}
+        </div>
       </div>
 
       <div className="emrampe-table-wrapper desktop-only">
@@ -413,9 +793,11 @@ export const ControlEmrampeView = () => {
                 <td colSpan="8" className="emrampe-empty-cell">
                   <Warehouse size={32} style={{ opacity: 0.35, marginBottom: '0.5rem' }} />
                   <div>No se encontraron registros de emrampe con los filtros actuales.</div>
-                  <button type="button" className="btn-emrampe-link" onClick={openNewModal}>
-                    + Registrar primer emrampe
-                  </button>
+                  {!corteEnConsulta && (
+                    <button type="button" className="btn-emrampe-link" onClick={openNewModal}>
+                      + Registrar primer emrampe
+                    </button>
+                  )}
                 </td>
               </tr>
             ) : (
@@ -454,7 +836,7 @@ export const ControlEmrampeView = () => {
                           <Clock size={13} />
                           {u.horaEmrampe}
                         </span>
-                      ) : (
+                      ) : !corteEnConsulta ? (
                         <button 
                           type="button" 
                           className="btn-quick-emrampe"
@@ -463,6 +845,8 @@ export const ControlEmrampeView = () => {
                         >
                           Emrampar
                         </button>
+                      ) : (
+                        <span style={{ color: '#64748b', fontSize: '0.8rem' }}>—</span>
                       )}
                     </td>
                     <td>
@@ -471,7 +855,7 @@ export const ControlEmrampeView = () => {
                           <CheckCircle2 size={13} />
                           {u.horaDesemrampe}
                         </span>
-                      ) : u.horaEmrampe ? (
+                      ) : u.horaEmrampe && !corteEnConsulta ? (
                         <button 
                           type="button" 
                           className="btn-quick-desemrampe"
@@ -491,16 +875,18 @@ export const ControlEmrampeView = () => {
                           className="btn-icon-action"
                           onClick={() => openEditModal(u)}
                           title="Editar información"
+                          disabled={Boolean(corteEnConsulta)}
                         >
                           <Edit3 size={15} />
                         </button>
                         <button 
                           type="button" 
                           className="btn-icon-action btn-icon-delete"
+                          disabled={Boolean(corteEnConsulta)}
                           onClick={() => {
                             showConfirm({
                               title: `¿Eliminar registro ECO ${u.economico}?`,
-                              message: 'Esta acción removerá el registro de emrampe.',
+                              message: 'Esta acción removerá el registro de la tabla de Control de Emrampe.',
                               confirmText: 'Sí, eliminar',
                               confirmType: 'danger',
                               onConfirm: () => handleRemoveEmrampe(u)
@@ -525,10 +911,12 @@ export const ControlEmrampeView = () => {
           <div className="emrampe-empty-mobile">
             <Warehouse size={40} style={{ opacity: 0.35, marginBottom: '0.5rem' }} />
             <p>No hay registros de emrampe para mostrar.</p>
-            <button type="button" className="btn-emrampe-primary" onClick={openNewModal} style={{ marginTop: '0.75rem' }}>
-              <Plus size={16} />
-              <span>Nuevo Emrampe</span>
-            </button>
+            {!corteEnConsulta && (
+              <button type="button" className="btn-emrampe-primary" onClick={openNewModal} style={{ marginTop: '0.75rem' }}>
+                <Plus size={16} />
+                <span>Nuevo Emrampe</span>
+              </button>
+            )}
           </div>
         ) : (
           filteredUnits.map((u) => {
@@ -581,7 +969,7 @@ export const ControlEmrampeView = () => {
                         <Clock size={13} />
                         {u.horaEmrampe}
                       </span>
-                    ) : (
+                    ) : !corteEnConsulta ? (
                       <button 
                         type="button" 
                         className="btn-card-emrampar"
@@ -589,6 +977,8 @@ export const ControlEmrampeView = () => {
                       >
                         Emrampar
                       </button>
+                    ) : (
+                      <span style={{ color: '#64748b', fontSize: '0.85rem' }}>—</span>
                     )}
                   </div>
 
@@ -603,7 +993,7 @@ export const ControlEmrampeView = () => {
                         <CheckCircle2 size={13} />
                         {u.horaDesemrampe}
                       </span>
-                    ) : u.horaEmrampe ? (
+                    ) : u.horaEmrampe && !corteEnConsulta ? (
                       <button 
                         type="button" 
                         className="btn-card-desemrampar"
@@ -617,39 +1007,225 @@ export const ControlEmrampeView = () => {
                   </div>
                 </div>
 
-                <div className="card-footer-strip" style={{ justifyContent: 'flex-end' }}>
-                  <div className="card-actions">
-                    <button 
-                      type="button" 
-                      className="btn-card-action"
-                      onClick={() => openEditModal(u)}
-                      title="Editar"
-                    >
-                      <Edit3 size={15} />
-                    </button>
-                    <button 
-                      type="button" 
-                      className="btn-card-action btn-card-delete"
-                      onClick={() => {
-                        showConfirm({
-                          title: `¿Eliminar ECO ${u.economico}?`,
-                          message: 'Se removerá el registro de emrampe.',
-                          confirmText: 'Sí, eliminar',
-                          confirmType: 'danger',
-                          onConfirm: () => handleRemoveEmrampe(u)
-                        });
-                      }}
-                      title="Eliminar"
-                    >
-                      <Trash2 size={15} />
-                    </button>
+                {!corteEnConsulta && (
+                  <div className="card-footer-strip" style={{ justifyContent: 'flex-end' }}>
+                    <div className="card-actions">
+                      <button 
+                        type="button" 
+                        className="btn-card-action"
+                        onClick={() => openEditModal(u)}
+                        title="Editar"
+                      >
+                        <Edit3 size={15} />
+                      </button>
+                      <button 
+                        type="button" 
+                        className="btn-card-action btn-card-delete"
+                        onClick={() => {
+                          showConfirm({
+                            title: `¿Eliminar ECO ${u.economico}?`,
+                            message: 'Se removerá el registro de emrampe.',
+                            confirmText: 'Sí, eliminar',
+                            confirmType: 'danger',
+                            onConfirm: () => handleRemoveEmrampe(u)
+                          });
+                        }}
+                        title="Eliminar"
+                      >
+                        <Trash2 size={15} />
+                      </button>
+                    </div>
                   </div>
-                </div>
+                )}
               </div>
             );
           })
         )}
       </div>
+
+      {isSaveCorteModalOpen && (
+        <div className="emrampe-modal-overlay" onClick={() => setIsSaveCorteModalOpen(false)}>
+          <div className="emrampe-modal-card" style={{ maxWidth: '460px' }} onClick={(e) => e.stopPropagation()}>
+            <div className="emrampe-modal-header">
+              <div className="modal-title-wrap">
+                <FolderCheck size={20} color="#34d399" />
+                <h3>Guardar Corte de Emrampe</h3>
+              </div>
+              <button type="button" className="btn-modal-close" onClick={() => setIsSaveCorteModalOpen(false)}>
+                <X size={18} />
+              </button>
+            </div>
+
+            <form onSubmit={handleConfirmGuardarCorte} className="emrampe-modal-form">
+              <div className="form-group-emrampe">
+                <label>Nombre del Corte *</label>
+                <input
+                  type="text"
+                  required
+                  value={corteForm.nombre}
+                  onChange={(e) => setCorteForm(prev => ({ ...prev, nombre: e.target.value }))}
+                  placeholder="Ej. Corte Matutino Patio"
+                  className="emrampe-input"
+                />
+              </div>
+
+              <div className="form-group-emrampe">
+                <label>Fecha del Corte</label>
+                <input
+                  type="date"
+                  value={corteForm.fecha}
+                  onChange={(e) => setCorteForm(prev => ({ ...prev, fecha: e.target.value }))}
+                  className="emrampe-input"
+                />
+              </div>
+
+              <label style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.6rem',
+                padding: '0.75rem',
+                borderRadius: '8px',
+                background: 'rgba(15, 23, 42, 0.65)',
+                border: '1px solid var(--border-color)',
+                cursor: 'pointer',
+                fontSize: '0.84rem',
+                color: '#e2e8f0'
+              }}>
+                <input
+                  type="checkbox"
+                  checked={corteForm.limpiarTablero}
+                  onChange={(e) => setCorteForm(prev => ({ ...prev, limpiarTablero: e.target.checked }))}
+                />
+                <span>Limpiar tablero activo al guardar (iniciar nuevo turno/día)</span>
+              </label>
+
+              <div className="emrampe-modal-footer">
+                <button type="button" className="btn-emrampe-cancel" onClick={() => setIsSaveCorteModalOpen(false)}>
+                  Cancelar
+                </button>
+                <button type="submit" className="btn-emrampe-submit">
+                  <Save size={16} />
+                  <span>Guardar en Historial</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {isHistorialModalOpen && (
+        <div className="emrampe-modal-overlay" onClick={() => setIsHistorialModalOpen(false)}>
+          <div className="emrampe-modal-card" style={{ maxWidth: '640px' }} onClick={(e) => e.stopPropagation()}>
+            <div className="emrampe-modal-header">
+              <div className="modal-title-wrap">
+                <History size={20} color="#38bdf8" />
+                <h3>Historial de Control de Emrampe ({historial.length})</h3>
+              </div>
+              <button type="button" className="btn-modal-close" onClick={() => setIsHistorialModalOpen(false)}>
+                <X size={18} />
+              </button>
+            </div>
+
+            <div style={{ padding: '1rem 1.25rem', maxHeight: '65vh', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
+              {historial.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '2rem 1rem', color: '#94a3b8' }}>
+                  No hay cortes guardados de Control de Emrampe todavía.
+                </div>
+              ) : (
+                historial.map((corte) => (
+                  <div
+                    key={corte.id}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      flexWrap: 'wrap',
+                      gap: '0.75rem',
+                      padding: '0.85rem 1rem',
+                      borderRadius: '10px',
+                      background: 'rgba(15, 23, 42, 0.75)',
+                      border: '1px solid var(--border-color)'
+                    }}
+                  >
+                    <div>
+                      <div style={{ fontWeight: 800, color: '#f8fafc', fontSize: '0.92rem' }}>
+                        {corte.nombre}
+                      </div>
+                      <div style={{ fontSize: '0.76rem', color: '#94a3b8', marginTop: '0.2rem' }}>
+                        Fecha: {corte.fecha} · {corte.totalRegistros} registro(s) · {corte.totalDesemrampados} desemrampada(s)
+                      </div>
+                    </div>
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setCorteEnConsulta(corte);
+                          setIsHistorialModalOpen(false);
+                        }}
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '0.35rem',
+                          padding: '0.4rem 0.7rem',
+                          borderRadius: '7px',
+                          border: '1px solid rgba(56, 189, 248, 0.4)',
+                          background: 'rgba(56, 189, 248, 0.15)',
+                          color: '#38bdf8',
+                          fontSize: '0.78rem',
+                          fontWeight: 700,
+                          cursor: 'pointer'
+                        }}
+                      >
+                        <Eye size={14} />
+                        Consultar
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => handleExportExcel(corte.registros || [], corte.nombre)}
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '0.35rem',
+                          padding: '0.4rem 0.7rem',
+                          borderRadius: '7px',
+                          border: '1px solid rgba(16, 185, 129, 0.4)',
+                          background: 'rgba(16, 185, 129, 0.15)',
+                          color: '#34d399',
+                          fontSize: '0.78rem',
+                          fontWeight: 700,
+                          cursor: 'pointer'
+                        }}
+                      >
+                        <FileSpreadsheet size={14} />
+                        Excel
+                      </button>
+
+                      <button
+                        type="button"
+                        className="btn-icon-action btn-icon-delete"
+                        onClick={() => {
+                          showConfirm({
+                            title: `¿Eliminar "${corte.nombre}"?`,
+                            message: 'Se eliminará este corte del historial de Control de Emrampe.',
+                            confirmText: 'Sí, eliminar',
+                            confirmType: 'danger',
+                            onConfirm: () => handleDeleteCorte(corte)
+                          });
+                        }}
+                        title="Eliminar corte"
+                      >
+                        <Trash2 size={15} />
+                      </button>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {isModalOpen && (
         <div className="emrampe-modal-overlay" onClick={closeModal}>
@@ -719,6 +1295,7 @@ export const ControlEmrampeView = () => {
                   value={formData.operador}
                   onChange={(nombre) => setFormData(prev => ({ ...prev, operador: nombre }))}
                   placeholder="Buscar operador por nombre..."
+                  soloCatalogo={true}
                 />
               </div>
 

@@ -405,15 +405,17 @@ export const FleetProvider = ({ children }) => {
     try {
       const remotePlans = await fetchPlanesHistoricosDb();
       if (remotePlans && Array.isArray(remotePlans)) {
-        const formatted = remotePlans.map(p => ({
-          id: p.id,
-          fecha: p.fecha,
-          nombre: p.nombre,
-          totalViajes: p.total_viajes,
-          totalCompletados: p.total_completados,
-          unidades: p.datos || [],
-          createdAt: p.created_at
-        }));
+        const formatted = remotePlans
+          .filter(p => !String(p.id || '').startsWith('__EMRAMPE_'))
+          .map(p => ({
+            id: p.id,
+            fecha: p.fecha,
+            nombre: p.nombre,
+            totalViajes: p.total_viajes,
+            totalCompletados: p.total_completados,
+            unidades: p.datos || [],
+            createdAt: p.created_at
+          }));
         setSavedPlans(formatted);
         localStorage.setItem(HISTORIAL_KEY, JSON.stringify(formatted));
       }

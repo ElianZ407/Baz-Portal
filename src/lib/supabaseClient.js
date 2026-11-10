@@ -522,3 +522,181 @@ export const deletePlanColocacionDb = async (fecha) => {
   if (error) throw error;
   return true;
 };
+
+export const EMRAMPE_ACTIVO_ROW_ID = '__EMRAMPE_ACTIVO__';
+export const EMRAMPE_HIST_PREFIX = '__EMRAMPE_HIST__';
+
+let emrampeDedicatedTableAvailable = null;
+
+export const fetchEmrampeActivoDb = async () => {
+  if (!supabase) return [];
+  if (emrampeDedicatedTableAvailable !== false) {
+    const { data, error } = await supabase
+      .from('control_emrampe')
+      .select('id, datos, updated_at')
+      .eq('id', 'ACTIVO')
+      .maybeSingle();
+    if (!error) {
+      emrampeDedicatedTableAvailable = true;
+      return Array.isArray(data?.datos) ? data.datos : [];
+    }
+    if (error.code === 'PGRST205' || error.code === '42P01') {
+      emrampeDedicatedTableAvailable = false;
+    }
+  }
+  const { data, error } = await supabase
+    .from('historial_planes')
+    .select('id, datos, created_at')
+    .eq('id', EMRAMPE_ACTIVO_ROW_ID)
+    .maybeSingle();
+  if (error) {
+    console.warn('Error al leer emrampe activo:', error);
+    return [];
+  }
+  return Array.isArray(data?.datos) ? data.datos : [];
+};
+
+export const saveEmrampeActivoDb = async (registros) => {
+  if (!supabase) return false;
+  const lista = Array.isArray(registros) ? registros : [];
+  const hoy = new Date().toISOString().slice(0, 10);
+
+  if (emrampeDedicatedTableAvailable !== false) {
+    const { error } = await supabase
+      .from('control_emrampe')
+      .upsert(
+        {
+          id: 'ACTIVO',
+          fecha: hoy,
+          nombre: 'Tablero Activo de Emrampe',
+          total_registros: lista.length,
+          total_desemrampados: lista.filter(r => Boolean(r.horaDesemrampe)).length,
+          datos: lista,
+          updated_at: new Date().toISOString()
+        },
+        { onConflict: 'id' }
+      );
+    if (!error) {
+      emrampeDedicatedTableAvailable = true;
+      return true;
+    }
+    if (error.code === 'PGRST205' || error.code === '42P01') {
+      emrampeDedicatedTableAvailable = false;
+    }
+  }
+
+  const { error } = await supabase
+    .from('historial_planes')
+    .upsert(
+      {
+        id: EMRAMPE_ACTIVO_ROW_ID,
+        fecha: hoy,
+        nombre: 'CONTROL_EMRAMPE_ACTIVO',
+        total_viajes: lista.length,
+        total_completados: lista.filter(r => Boolean(r.horaDesemrampe)).length,
+        datos: lista,
+        created_at: new Date().toISOString()
+      },
+      { onConflict: 'id' }
+    );
+  if (error) throw error;
+  return true;
+};
+
+export const fetchHistorialEmrampeDb = async () => {
+  if (!supabase) return [];
+  if (emrampeDedicatedTableAvailable === true) {
+    const { data, error } = await supabase
+      .from('control_emrampe')
+      .select('id, fecha, nombre, total_registros, total_desemrampados, datos, updated_at')
+      .neq('id', 'ACTIVO')
+      .order('updated_at', { ascending: false });
+    if (!error && Array.isArray(data)) {
+      return data.map(row => ({
+        id: row.id,
+        fecha: row.fecha,
+        nombre: row.nombre,
+        totalRegistros: row.total_registros ?? (Array.isArray(row.datos) ? row.datos.length : 0),
+        totalDesemrampados: row.total_desemrampados ?? 0,
+        registros: Array.isArray(row.datos) ? row.datos : [],
+        createdAt: row.updated_at
+      }));
+    }
+  }
+
+  const { data, error } = await supabase
+    .from('historial_planes')
+    .select('id, fecha, nombre, total_viajes, total_completados, datos, created_at')
+    .like('id', `${EMRAMPE_HIST_PREFIX}%`)
+    .order('created_at', { ascending: false });
+
+  if (error || !Array.isArray(data)) return [];
+  return data.map(row => ({
+    id: row.id,
+    fecha: row.fecha,
+    nombre: row.nombre,
+    totalRegistros: row.total_viajes ?? (Array.isArray(row.datos) ? row.datos.length : 0),
+    totalDesemrampados: row.total_completados ?? 0,
+    registros: Array.isArray(row.datos) ? row.datos : [],
+    createdAt: row.created_at
+  }));
+};
+
+export const saveHistorialEmrampeDb = async ({ id, fecha, nombre, registros }) => {
+  if (!supabase) throw new Error('Supabase no está configurado');
+  const lista = Array.isArray(registros) ? registros : [];
+  const corteId = id && String(id).startsWith(EMRAMPE_HIST_PREFIX)
+    ? id
+    : `${EMRAMPE_HIST_PREFIX}${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+  const fechaStr = fecha || new Date().toISOString().slice(0, 10);
+  const nombreStr = (nombre && nombre.trim()) ? nombre.trim() : `Corte de Emrampe ${fechaStr}`;
+  const totalDesemrampados = lista.filter(r => Boolean(r.horaDesemrampe)).length;
+
+  if (emrampeDedicatedTableAvailable === true) {
+    const { error } = await supabase
+      .from('control_emrampe')
+      .upsert(
+        {
+          id: corteId,
+          fecha: fechaStr,
+          nombre: nombreStr,
+          total_registros: lista.length,
+          total_desemrampados: totalDesemrampados,
+          datos: lista,
+          updated_at: new Date().toISOString()
+        },
+        { onConflict: 'id' }
+      );
+    if (!error) return corteId;
+  }
+
+  const { error } = await supabase
+    .from('historial_planes')
+    .upsert(
+      {
+        id: corteId,
+        fecha: fechaStr,
+        nombre: nombreStr,
+        total_viajes: lista.length,
+        total_completados: totalDesemrampados,
+        datos: lista,
+        created_at: new Date().toISOString()
+      },
+      { onConflict: 'id' }
+    );
+  if (error) throw error;
+  return corteId;
+};
+
+export const deleteHistorialEmrampeDb = async (id) => {
+  if (!supabase) throw new Error('Supabase no está configurado');
+  if (emrampeDedicatedTableAvailable === true) {
+    await supabase.from('control_emrampe').delete().eq('id', id);
+  }
+  const { error } = await supabase
+    .from('historial_planes')
+    .delete()
+    .eq('id', id);
+  if (error) throw error;
+  return true;
+};
