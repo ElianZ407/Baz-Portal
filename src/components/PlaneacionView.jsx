@@ -1068,11 +1068,11 @@ export const PlaneacionView = () => {
                             onClick={() => {
                               showConfirm({
                                 title: `¿Eliminar viaje ${unit.noViaje ? `#${unit.noViaje}` : ''} ${unit.economico ? `(ECO ${unit.economico})` : ''}?`,
-                                message: 'Este viaje será retirado de planeación y de los tableros operativos de monitoreo.',
+                                message: 'Este viaje será retirado de planeación, manteniendo la unidad y su operador disponibles en el catálogo.',
                                 unit: unit,
                                 confirmText: 'Sí, eliminar',
                                 confirmType: 'danger',
-                                onConfirm: () => deleteUnit(unit.id)
+                                onConfirm: () => deleteUnit(unit.idsConsolidados || unit.id)
                               });
                             }}
                             title={`Eliminar viaje ${unit.noViaje ? `#${unit.noViaje}` : ''}`}

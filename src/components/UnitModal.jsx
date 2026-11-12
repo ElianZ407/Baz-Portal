@@ -1345,19 +1345,17 @@ const UnitModalForm = () => {
                 }}
                 onClick={() => {
                   showConfirm({
-                    title: `¿${isPatioMode ? 'Dar de baja la unidad' : 'Eliminar viaje / unidad'} ECO ${selectedUnit.economico}?`,
-                    message: isPatioMode
-                      ? 'Se marcará como BAJA en el padrón y se retirarán sus viajes diarios.'
-                      : 'Esta unidad será retirada de planeación, patio y de los tableros operativos.',
+                    title: `¿${isPatioMode ? 'Limpiar registro activo de' : 'Eliminar viaje de'} ECO ${selectedUnit.economico}?`,
+                    message: 'Se retirará el viaje activo del día, manteniendo la unidad y su operador disponibles en el catálogo para volver a agregarse.',
                     unit: selectedUnit,
-                    confirmText: isPatioMode ? 'Sí, dar de baja' : 'Sí, eliminar',
+                    confirmText: 'Sí, eliminar',
                     confirmType: 'danger',
                     onConfirm: async () => {
                       if (isPatioMode) {
                         const retired = await retireUnitFromFleet(selectedUnit);
                         if (retired) setIsModalOpen(false);
                       } else {
-                        await deleteUnit(selectedUnit.id);
+                        await deleteUnit(selectedUnit.idsConsolidados || selectedUnit.id);
                         setIsModalOpen(false);
                       }
                     }

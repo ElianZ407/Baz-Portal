@@ -494,15 +494,15 @@ export const PatioView = () => {
                             onClick={(e) => {
                               e.stopPropagation();
                               showConfirm({
-                                title: `¿Dar de baja la unidad ECO ${unit.economico}?`,
-                                message: 'Se marcará como BAJA en el padrón y se retirarán sus viajes diarios. Esta acción la quitará de los tableros operativos.',
+                                title: `¿Limpiar registro activo de ECO ${unit.economico}?`,
+                                message: 'Se retirarán sus viajes activos del día, pero la unidad y su operador seguirán disponibles en el padrón para asignarse de nuevo.',
                                 unit: unit,
-                                confirmText: 'Sí, dar de baja',
+                                confirmText: 'Sí, limpiar',
                                 confirmType: 'danger',
                                 onConfirm: () => retireUnitFromFleet(unit)
                               });
                             }}
-                            title="Eliminar unidad"
+                            title="Limpiar viaje activo"
                           >
                             <Trash2 size={14} />
                           </button>

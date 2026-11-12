@@ -824,8 +824,7 @@ export const FleetProvider = ({ children }) => {
     }
   };
 
-  // Eliminar unidad
-  const deleteUnit = async (id) => {
+  const deleteUnit = async (idOrIds) => {
     if (historicalPlanView) {
       showAlert({
         title: 'Modo Consulta Histórico',
@@ -835,10 +834,12 @@ export const FleetProvider = ({ children }) => {
       return;
     }
 
-    setUnits(prev => prev.filter(u => u.id !== id));
+    const idsList = (Array.isArray(idOrIds) ? idOrIds : [idOrIds]).map(String).filter(Boolean);
+    const idsSet = new Set(idsList);
+    setUnits(prev => prev.filter(u => !idsSet.has(String(u.id))));
     if (isSupabaseConfigured()) {
       try {
-        await deleteViajeDb(id);
+        await Promise.all(idsList.filter(id => !id.startsWith('fleet-')).map(id => deleteViajeDb(id)));
         await reloadCloudData(true);
       } catch (err) {
         console.error('Error al eliminar unidad en Supabase:', err);
@@ -850,7 +851,7 @@ export const FleetProvider = ({ children }) => {
     if (historicalPlanView) {
       showAlert({
         title: 'Modo Consulta Histórico',
-        message: 'Estás consultando un plan del historial en modo lectura. Para dar de baja una unidad, vuelve a tu plan de hoy.',
+        message: 'Estás consultando un plan del historial en modo lectura. Para realizar cambios, vuelve a tu plan de hoy.',
         confirmType: 'warning'
       });
       return false;
@@ -858,16 +859,22 @@ export const FleetProvider = ({ children }) => {
 
     const eco = String(unit?.economico || '').trim();
     try {
-      await retireFleetUnitDb(eco);
-      setUnits(prev => prev.filter(current => String(current.economico || '').trim() !== eco));
-      setCatalogoFlota(prev => prev.filter(current => String(current.eco || '').trim() !== eco));
-      await reloadCloudData();
+      if (eco && isSupabaseConfigured()) {
+        await retireFleetUnitDb(eco);
+      } else if (unit?.id && !String(unit.id).startsWith('fleet-') && isSupabaseConfigured()) {
+        await deleteViajeDb(unit.id);
+      }
+      setUnits(prev => prev.filter(current => {
+        if (eco) return String(current.economico || '').trim() !== eco;
+        return String(current.id) !== String(unit?.id);
+      }));
+      await reloadCloudData(true);
       return true;
     } catch (error) {
-      console.error('Error al dar de baja la unidad:', error);
+      console.error('Error al limpiar viajes de la unidad:', error);
       showAlert({
-        title: 'No se pudo dar de baja la unidad',
-        message: error.message || 'Verifica tu conexión y los permisos de Supabase. No se retiró la unidad del tablero.',
+        title: 'No se pudo limpiar el registro de la unidad',
+        message: error.message || 'Verifica tu conexión y los permisos de Supabase.',
         confirmType: 'danger'
       });
       return false;
