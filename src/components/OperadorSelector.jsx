@@ -58,10 +58,17 @@ export const OperadorSelector = ({ value, onChange, placeholder = 'Seleccionar O
       }));
 
     const fromCatalog = flotaList
-      .filter((u) => u.operador && u.operador !== 'VACANTE' && u.operador !== 'BAJA' && u.estatus === 'ACTIVO')
+      .filter((u) => {
+        if (!u.operador) return false;
+        const opClean = u.operador.trim().toUpperCase();
+        if (opClean.length < 3 || opClean === 'VACANTE' || opClean === 'BAJA') return false;
+        const estatusClean = String(u.estatus || '').trim().toUpperCase();
+        if (estatusClean === 'BAJA') return false;
+        return true;
+      })
       .map((u) => ({
         nombre: u.operador.trim().toUpperCase(),
-        idOperador: u.idOperador || '',
+        idOperador: u.idOperador || u.id_operador || '',
         source: 'catalog',
         eco: u.eco || '',
         linea: u.linea || '',
