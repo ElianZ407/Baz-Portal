@@ -269,7 +269,7 @@ const UnitModalForm = () => {
   const sucursalInfo = targetIdOrName ? buscarSucursal(targetIdOrName, catalogoSucursales) : null;
   const flotaInfo = formData.economico ? buscarUnidadPorEco(formData.economico, catalogoFlota) : null;
 
-  const isTallerUnit = formData.estatusPatio === 'Taller' || flotaInfo?.estatus === 'TALLER';
+  const isTallerUnit = formData.estatusPatio === 'Taller' || (!formData.estatusPatio && flotaInfo?.estatus === 'TALLER');
   const isBlockedForPlaneacion = !isPatioMode && isTallerUnit;
 
   const isUnidad50 = String(formData.economico || '').trim().startsWith('50') ||
@@ -360,12 +360,14 @@ const UnitModalForm = () => {
 
     const payload = isPatioMode ? {
       ...formData,
+      estatus: formData.estatusPatio === 'Taller' ? 'TALLER' : 'ACTIVO',
       operador: '',
       idOperador: '',
       estatusPlaneacion: formData.estatusPlaneacion || 'PENDIENTE',
       estatusSupervisor: formData.estatusPatio === 'Taller' ? 'No Disponible' : (formData.estatusSupervisor || 'Pendiente')
     } : {
       ...formData,
+      estatus: formData.estatusPatio === 'Taller' ? 'TALLER' : 'ACTIVO',
       idOperador: resolvedIdOp,
       estatusSupervisor: (formData.estatusPlaneacion === 'CARGADO' && (formData.estatusSupervisor === 'No Disponible' || !formData.estatusSupervisor || formData.estatusSupervisor === 'Pendiente'))
         ? 'Cargado'

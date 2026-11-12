@@ -579,13 +579,19 @@ const evaluarCamioneta = ({ units, fleetUnit }) =>
   esCamioneta(units[0]) || (fleetUnit && esCamioneta(fleetUnit)) ? { ...RESULTADO_CAMIONETA } : null;
 
 const evaluarTaller = ({ units, fleetStatus }) => {
-  const enTaller = units.some(unit => unit.estatusPatio === 'Taller' || unit.estatus === 'TALLER') ||
-    fleetStatus.includes('TALLER');
+  const liveInTaller = units.some(unit => unit.estatusPatio === 'Taller' || unit.estatusPatio === 'Siniestro');
+  const liveIsOperational = units.some(unit =>
+    unit.estatusPatio && !['Taller', 'Siniestro', 'No Disponible'].includes(unit.estatusPatio) && !unit.soloCatalogo
+  );
+  const enTaller = liveInTaller || (!liveIsOperational && fleetStatus.includes('TALLER'));
   return enTaller ? { ...RESULTADO_TALLER } : null;
 };
 
-const evaluarEstatusPadron = ({ fleetUnit, fleetStatus }) => {
-  const fueraDePadronActivo = fleetStatus && fleetStatus !== 'ACTIVO';
+const evaluarEstatusPadron = ({ units, fleetUnit, fleetStatus }) => {
+  const liveIsOperational = units.some(unit =>
+    unit.estatusPatio && !['Taller', 'Siniestro', 'No Disponible'].includes(unit.estatusPatio) && !unit.soloCatalogo
+  );
+  const fueraDePadronActivo = !liveIsOperational && fleetStatus && fleetStatus !== 'ACTIVO';
   return fueraDePadronActivo
     ? {
       disponible: false,
@@ -734,23 +740,30 @@ export const resumirFlotaPorEstado = (units = [], catalogoFlota = []) => {
     const records = unitsByEco.get(eco) || [];
     const master = fleetByEco.get(eco);
     const masterStatusStr = String(master?.estatus || '').toLowerCase();
-    const isTaller = master?.estatus === 'TALLER' || masterStatusStr.includes('taller') || masterStatusStr.includes('siniestro') || records.some(unit =>
-      unit.estatusPatio === 'Taller' || unit.estatus === 'TALLER' || unit.estatus === 'SINIESTRO' || unit.estatusPatio === 'Siniestro'
+    const liveInTaller = records.some(unit =>
+      unit.estatusPatio === 'Taller' || unit.estatusPatio === 'Siniestro'
     );
-    const isCargada = records.some(unit =>
+    const liveIsOperational = records.some(unit =>
+      unit.estatusPatio && !['Taller', 'Siniestro', 'No Disponible'].includes(unit.estatusPatio)
+    );
+    const isTaller = liveInTaller || (!liveIsOperational && (
+      master?.estatus === 'TALLER' || masterStatusStr.includes('taller') || masterStatusStr.includes('siniestro')
+    ));
+    const isCargada = !isTaller && records.some(unit =>
       unit.estatusPlaneacion === 'CARGADO' ||
       unit.estatusPatio === 'Cargado' ||
       activeStatuses.includes(unit.estatusSupervisor)
     );
-    const isColocada = records.some(unit =>
+    const isColocada = !isTaller && records.some(unit =>
       unit.estatusPlaneacion === 'COLOCADO' || unit.estatusPatio === 'Colocado p/ Carga'
     );
-    const isPendiente = records.some(unit =>
+    const isPendiente = !isTaller && records.some(unit =>
       (unit.estatusPlaneacion || 'PENDIENTE') === 'PENDIENTE' && tieneRutaAsignada(unit)
     );
     const masterStatus = String(master?.estatus || 'ACTIVO').trim().toUpperCase();
+    const fueraOperacion = !isTaller && !liveIsOperational && masterStatus !== 'ACTIVO';
 
-    const situacion = { isTaller, fueraOperacion: masterStatus !== 'ACTIVO', isCargada, isColocada, isPendiente };
+    const situacion = { isTaller, fueraOperacion, isCargada, isColocada, isPendiente };
     const categoria = CATEGORIAS_FLOTA.find(([, cumple]) => cumple(situacion));
     if (categoria) counts[categoria[0]]++;
   });

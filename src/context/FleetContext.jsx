@@ -15,7 +15,8 @@ import {
   fetchSucursalesDb,
   bulkUpsertViajesDb,
   clearViajesDb,
-  retireFleetUnitDb
+  retireFleetUnitDb,
+  updateEstatusUnidadFlotaDb
 } from '../lib/supabaseClient';
 import { FLOTA_TOTAL, SUCURSALES_MAESTRAS } from '../constants/fleetConstants';
 import { buscarIdOperadorPorNombre, buscarOperadorPorEco, checkTieneViajeYOperador, evaluarDisponibilidadManana, evaluarDisponibilidadMananaPorUnidad, resumirFlotaPorEstado, contarViajesSinUnidadAsignada, construirPadronManana, unidadContableManana, esCamioneta, formatearFechaPlan } from '../utils/fleetUtils';
@@ -99,18 +100,21 @@ const TRANSICIONES_ESTATUS = {
   patio: {
     'Colocado p/ Carga': (u) => ({
       area: 'planeacion',
+      estatus: 'ACTIVO',
       estatusPatio: 'Colocado p/ Carga',
       estatusPlaneacion: 'COLOCADO',
       estatusSupervisor: u.estatusSupervisor === 'No Disponible' ? 'Pendiente' : u.estatusSupervisor
     }),
     'Taller': () => ({
       area: 'patio',
+      estatus: 'TALLER',
       estatusPatio: 'Taller',
       estatusSupervisor: 'No Disponible',
       estatusPlaneacion: 'PENDIENTE'
     }),
     'Disponible': () => ({
       area: 'patio',
+      estatus: 'ACTIVO',
       estatusPatio: 'Disponible',
       estatusSupervisor: 'Pendiente'
     })
@@ -118,12 +122,14 @@ const TRANSICIONES_ESTATUS = {
   planeacion: {
     'COLOCADO': (u) => ({
       area: 'planeacion',
+      estatus: 'ACTIVO',
       estatusPlaneacion: 'COLOCADO',
       estatusPatio: 'Colocado p/ Carga',
       estatusSupervisor: u.estatusSupervisor === 'No Disponible' ? 'Pendiente' : u.estatusSupervisor
     }),
     'CARGADO': (u) => ({
       area: 'supervisor',
+      estatus: 'ACTIVO',
       estatusPlaneacion: 'CARGADO',
       estatusPatio: 'Cargado',
       estatusSupervisor: ['No Disponible', 'Pendiente', 'Disponible', ''].includes(u.estatusSupervisor) || !u.estatusSupervisor
@@ -132,12 +138,14 @@ const TRANSICIONES_ESTATUS = {
     }),
     'PENDIENTE': () => ({
       area: 'planeacion',
+      estatus: 'ACTIVO',
       estatusPlaneacion: 'PENDIENTE',
       estatusPatio: 'Disponible',
       estatusSupervisor: 'Pendiente'
     }),
     'NO SE CUBRE': () => ({
       area: 'planeacion',
+      estatus: 'ACTIVO',
       estatusPlaneacion: 'NO SE CUBRE',
       estatusPatio: 'Disponible',
       estatusSupervisor: 'No Disponible'
@@ -533,6 +541,13 @@ export const FleetProvider = ({ children }) => {
           }
         }
       )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'unidades' },
+        () => {
+          reloadCatalogos();
+        }
+      )
       .subscribe((status) => {
         if (status === 'SUBSCRIBED') {
           setIsCloudConnected(true);
@@ -744,7 +759,18 @@ export const FleetProvider = ({ children }) => {
     };
   }, [displayedUnits, catalogoFlota]);
 
-  // Actualizar o crear unidad
+  const sincronizarEstatusCatalogo = useCallback(async (eco, estatusPatio) => {
+    const cleanEco = String(eco || '').trim();
+    if (!cleanEco || !estatusPatio) return;
+    const nuevoEstatusCatalogo = estatusPatio === 'Taller' ? 'TALLER' : 'ACTIVO';
+    setCatalogoFlota(prev => prev.map(f =>
+      String(f.eco).trim() === cleanEco ? { ...f, estatus: nuevoEstatusCatalogo } : f
+    ));
+    if (isSupabaseConfigured()) {
+      await updateEstatusUnidadFlotaDb(cleanEco, nuevoEstatusCatalogo);
+    }
+  }, []);
+
   const saveUnit = async (unitData) => {
     if (historicalPlanView) {
       showAlert({
@@ -757,11 +783,8 @@ export const FleetProvider = ({ children }) => {
 
     const now = new Date().toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' });
     
-    // Resolver la unidad completa de forma síncrona
     let existingUnit = units.find(u => u.id === unitData.id);
     if (!existingUnit && unitData.economico && !String(unitData.id || '').startsWith('emrampe-')) {
-      // Si no trae ID (ej. creado desde 'Nuevo Viaje') pero el ECO ya existe en la lista de hoy
-      // sin un viaje activo asignado, actualizar esa unidad en vez de duplicarla
       existingUnit = units.find(u => 
         String(u.economico) === String(unitData.economico) &&
         (!u.noViaje || (u.estatusPlaneacion || 'PENDIENTE') === 'PENDIENTE')
@@ -780,7 +803,6 @@ export const FleetProvider = ({ children }) => {
         };
     const fullUnit = cleanUnitDestino(fullUnitRaw);
 
-    // Actualizar estado local inmediatamente (optimistic UI)
     setUnits(prev => {
       const exists = prev.some(u => u.id === fullUnit.id);
       return exists 
@@ -788,7 +810,10 @@ export const FleetProvider = ({ children }) => {
         : [fullUnit, ...prev];
     });
 
-    // Guardar en Supabase si está configurado y forzar sincronía inmediata en todos los dispositivos
+    if (fullUnit.economico && fullUnit.estatusPatio) {
+      sincronizarEstatusCatalogo(fullUnit.economico, fullUnit.estatusPatio);
+    }
+
     if (isSupabaseConfigured() && fullUnit) {
       try {
         await upsertViajeDb(fullUnit);
@@ -849,8 +874,7 @@ export const FleetProvider = ({ children }) => {
     }
   };
 
-  // Cambio rápido de estatus por área
-  const updateStatus = async (unitId, area, newStatus) => {
+  const updateStatus = async (unitIdOrIds, area, newStatus) => {
     if (historicalPlanView) {
       showAlert({
         title: 'Modo Consulta Histórico',
@@ -861,10 +885,12 @@ export const FleetProvider = ({ children }) => {
     }
 
     const now = new Date().toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' });
+    const idsList = Array.isArray(unitIdOrIds) ? unitIdOrIds.map(String) : [String(unitIdOrIds)];
+    const primaryId = idsList[0];
     
-    let targetUnit = units.find(u => String(u.id) === String(unitId));
-    if (!targetUnit && String(unitId).startsWith('fleet-')) {
-      const cleanEco = String(unitId).replace('fleet-', '');
+    let targetUnit = units.find(u => String(u.id) === primaryId);
+    if (!targetUnit && primaryId.startsWith('fleet-')) {
+      const cleanEco = primaryId.replace('fleet-', '');
       const master = (catalogoFlota || []).find(f => String(f.eco) === cleanEco);
       if (master) {
         targetUnit = {
@@ -907,32 +933,49 @@ export const FleetProvider = ({ children }) => {
     }
 
     const resolverTransicion = TRANSICIONES_ESTATUS[area]?.[newStatus];
-    const cambios = resolverTransicion
-      ? resolverTransicion(targetUnit)
-      : { area, [camposArea[area] || 'estatusSupervisor']: newStatus };
+    const cleanTargetEco = String(targetUnit.economico || '').trim();
+    const matchByEcoInPatio = area === 'patio' && (newStatus === 'Taller' || newStatus === 'Disponible') && cleanTargetEco;
 
-    const updated = { ...targetUnit, ...cambios, actualizadoEn: now };
+    const toUpsert = [];
+    const existsPrimary = units.some(u => String(u.id) === String(targetUnit.id));
 
-    const exists = units.some(u => String(u.id) === String(targetUnit.id));
-    const nextUnits = exists 
-      ? units.map(u => String(u.id) === String(targetUnit.id) ? updated : u)
-      : [updated, ...units];
+    let nextUnits;
+    if (!existsPrimary) {
+      const cambios = resolverTransicion
+        ? resolverTransicion(targetUnit)
+        : { area, [camposArea[area] || 'estatusSupervisor']: newStatus };
+      const updated = { ...targetUnit, ...cambios, actualizadoEn: now };
+      toUpsert.push(updated);
+      nextUnits = [updated, ...units];
+    } else {
+      nextUnits = units.map(u => {
+        const shouldUpdate = idsList.includes(String(u.id)) || (matchByEcoInPatio && String(u.economico || '').trim() === cleanTargetEco);
+        if (!shouldUpdate) return u;
+        const cambios = resolverTransicion
+          ? resolverTransicion(u)
+          : { area, [camposArea[area] || 'estatusSupervisor']: newStatus };
+        const updated = { ...u, ...cambios, actualizadoEn: now };
+        toUpsert.push(updated);
+        return updated;
+      });
+    }
 
-    // Actualizar estado local inmediatamente
     setUnits(nextUnits);
 
-    // Notificar multi-pestaña local instantáneamente
+    if (cleanTargetEco && toUpsert[0]?.estatusPatio) {
+      sincronizarEstatusCatalogo(cleanTargetEco, toUpsert[0].estatusPatio);
+    }
+
     if (broadcastRef.current) {
       try {
         broadcastRef.current.postMessage({ type: 'SYNC_UNITS', units: nextUnits, senderId: CLIENT_ID });
       } catch {}
     }
 
-    // Sincronizar actualización en Supabase y forzar refresco en todos los dispositivos
-    if (isSupabaseConfigured()) {
+    if (isSupabaseConfigured() && toUpsert.length > 0) {
       try {
-        await upsertViajeDb(updated);
-        await reloadCloudData();
+        await Promise.all(toUpsert.map(u => upsertViajeDb(u)));
+        await reloadCloudData(true);
       } catch (err) {
         console.error('Error al actualizar estatus en Supabase:', err);
       }

@@ -61,18 +61,13 @@ export const PatioView = () => {
   const isRabon = (u) => [40, 50].includes(Number(u.capUnidad)) || String(u.tipo || '').toLowerCase().includes('rango medio') || String(u.tipo || '').toLowerCase().includes('rabon');
   const isFull = (u) => [90, 110, 180].includes(Number(u.capUnidad)) || String(u.tipo || '').toLowerCase().includes('tracto') || String(u.tipo || '').toLowerCase().includes('full');
 
-  // Consolidar toda la flota física para Patio:
-  // Toda unidad de la flota que no tenga viaje activo ni taller está DISPONIBLE en patio
   const fullPatioUnits = flotaList.map(f => {
     const ecoKey = String(f.eco);
     const catalogStatus = String(f.estatus || 'ACTIVO').trim().toUpperCase();
-    const isCatalogTaller = catalogStatus.includes('TALLER');
+    const isCatalogTaller = catalogStatus.includes('TALLER') || catalogStatus.includes('SINIESTRO');
     const isCatalogOutOfOperation = catalogStatus !== 'ACTIVO' && !isCatalogTaller;
     const active = activeUnitsMap.get(ecoKey);
     if (active) {
-      if (isCatalogOutOfOperation && !isUnitAssignedOrViaje(active)) {
-        return { ...active, estatus: catalogStatus, estatusPatio: 'No Disponible' };
-      }
       return active;
     }
     return {
@@ -181,7 +176,7 @@ export const PatioView = () => {
       icon: Wrench,
       color: 'var(--status-red-text)',
       badgeClass: 'status-taller',
-      items: sortPatioUnits(patioUnits.filter(u => u.estatusPatio === 'Taller'))
+      items: sortPatioUnits(patioUnits.filter(u => u.estatusPatio === 'Taller' || u.estatusPatio === 'No Disponible'))
     }
   ];
 

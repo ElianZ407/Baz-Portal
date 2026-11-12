@@ -63,22 +63,23 @@ export const UnidadSelector = ({ value, onSelect, mode }) => {
     });
   });
 
-  // 2. Superponer estados en tiempo real de units (patio, taller, etc.)
   (units || []).forEach(u => {
     if (!u.economico) return;
     const ecoKey = String(u.economico);
     const existing = patioUnitsMap.get(ecoKey);
-    const isTaller = u.estatusPatio === 'Taller' || u.estatus === 'TALLER';
+    const isTaller = u.estatusPatio === 'Taller';
     if (existing) {
-      if (u.estatusPatio) existing.estatusPatio = u.estatusPatio;
-      if (isTaller) existing.estatus = 'TALLER';
+      if (u.estatusPatio) {
+        existing.estatusPatio = u.estatusPatio;
+        existing.estatus = isTaller ? 'TALLER' : 'ACTIVO';
+      }
       if (u.placas) existing.placas = u.placas;
       if (u.operador) existing.operador = u.operador;
     }
   });
 
   const sourceList = Array.from(patioUnitsMap.values()).filter(unit =>
-    unit.estatus === 'ACTIVO' || unit.estatus === 'TALLER'
+    String(unit.estatus || '').trim().toUpperCase() !== 'BAJA'
   );
 
   const filteredUnidades = sourceList.filter(u => {

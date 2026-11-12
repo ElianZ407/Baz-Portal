@@ -87,11 +87,10 @@ export const SupervisorView = () => {
   };
 
   const handleStatusChange = (unit, newStatus) => {
-    if (Array.isArray(unit.idsConsolidados) && unit.idsConsolidados.length > 0) {
-      unit.idsConsolidados.forEach(id => updateStatus(id, 'supervisor', newStatus));
-    } else {
-      updateStatus(unit.id, 'supervisor', newStatus);
-    }
+    const idsToUpdate = Array.isArray(unit.idsConsolidados) && unit.idsConsolidados.length > 0
+      ? unit.idsConsolidados
+      : unit.id;
+    updateStatus(idsToUpdate, 'supervisor', newStatus);
   };
 
   const handleLimpiarTodo = () => {

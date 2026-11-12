@@ -198,11 +198,10 @@ export const PlaneacionView = () => {
   };
 
   const handleStatusChange = (unitId, newStatus) => {
-    const target = units.find(u => u.id === unitId);
+    const target = planeacionBaseUnits.find(u => u.id === unitId) || units.find(u => u.id === unitId);
     if (!target) return;
 
-    // Si la unidad está en taller, no se puede cambiar estatus ni colocar
-    if (target.estatusPatio === 'Taller' || target.estatus === 'TALLER') {
+    if (target.estatusPatio === 'Taller') {
       showAlert({
         title: 'Unidad en Taller Mecánico',
         message: `La unidad ECO ${target.economico} se encuentra en Taller Mecánico y no puede ser programada ni colocada en planeación.`,
@@ -213,7 +212,6 @@ export const PlaneacionView = () => {
       return;
     }
 
-    // Validación oficial: No se puede colocar ni poner en caseta (CARGADO) si no tiene viaje, operador y destino
     if (newStatus === 'COLOCADO' || newStatus === 'CARGADO') {
       const { valid, hasViaje, hasOperador, hasDestino } = checkTieneViajeYOperador(target);
       if (!valid) {
@@ -235,7 +233,10 @@ export const PlaneacionView = () => {
       }
     }
 
-    updateStatus(unitId, 'planeacion', newStatus);
+    const idsToUpdate = Array.isArray(target.idsConsolidados) && target.idsConsolidados.length > 0
+      ? target.idsConsolidados
+      : unitId;
+    updateStatus(idsToUpdate, 'planeacion', newStatus);
   };
 
   return (

@@ -492,6 +492,28 @@ export const upsertUnidadDb = async (unidad) => {
   }
 };
 
+export const updateEstatusUnidadFlotaDb = async (eco, nuevoEstatus) => {
+  if (!supabase || !eco) return false;
+  const cleanEco = String(eco).trim();
+  const cleanStatus = String(nuevoEstatus || 'ACTIVO').trim().toUpperCase();
+  try {
+    await Promise.all([
+      supabase
+        .from('unidades')
+        .update({ estatus: cleanStatus, updated_at: new Date().toISOString() })
+        .eq('eco', cleanEco),
+      supabase
+        .from('flota_maestra')
+        .update({ estatus: cleanStatus })
+        .eq('eco', cleanEco)
+    ]);
+    return true;
+  } catch (err) {
+    console.warn('Error al sincronizar estatus de unidad en catálogo:', err);
+    return false;
+  }
+};
+
 export const fetchFlotaMaestraDb = () =>
   leerTablaDb('flota_maestra', { orden: 'eco' });
 
