@@ -130,7 +130,7 @@ export const PlaneacionView = () => {
         (u.closter && u.closter.toLowerCase().includes(q)) ||
         (u.capUnidad && String(u.capUnidad).includes(q));
 
-      const isTaller = u.estatusPatio === 'Taller' || u.estatus === 'TALLER';
+      const isTaller = u.estatusPatio === 'Taller';
       const isSupervisorActive = SUPERVISOR_ACTIVE_STATUSES.includes(u.estatusSupervisor);
       const matchesFL = filterFL === 'ALL' || (u.fl || 'LOCAL') === filterFL;
       const matchesCapUnidad = filterCapUnidad === 'ALL' || String(u.capUnidad) === filterCapUnidad;
@@ -575,7 +575,7 @@ export const PlaneacionView = () => {
                   const isTripGroupExpanded = expandedTripGroups.has(ecoKey);
                   const stopGroupKey = String(unit.id);
                   const isStopsExpanded = expandedStops.has(stopGroupKey);
-                  const isEnTaller = unit.estatusPatio === 'Taller' || unit.estatus === 'TALLER';
+                  const isEnTaller = unit.estatusPatio === 'Taller';
                   const estatusPlan = unit.estatusPlaneacion || 'PENDIENTE';
                   const estatusSup = unit.estatusSupervisor || null;
                   const isCompletado = estatusPlan === 'COMPLETADO' || estatusSup === 'Completado';

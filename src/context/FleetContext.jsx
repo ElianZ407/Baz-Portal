@@ -314,6 +314,9 @@ export const FleetProvider = ({ children }) => {
   const realtimeQueueRef = useRef([]);
   const realtimeTimeoutRef = useRef(null);
   const lastUnitsJsonRef = useRef('');
+  const escriturasPendientesRef = useRef(0);
+  const versionLocalRef = useRef(0);
+  const catalogoFlotaRef = useRef([]);
 
   // Estados de conectividad Cloud / Supabase
   const [isCloudConnected, setIsCloudConnected] = useState(isSupabaseConfigured());
@@ -387,9 +390,12 @@ export const FleetProvider = ({ children }) => {
   const reloadCloudData = useCallback(async (silent = false) => {
     if (!isSupabaseConfigured()) return;
     if (isBulkOperatingRef.current) return;
+    if (escriturasPendientesRef.current > 0) return;
+    const versionInicial = versionLocalRef.current;
     try {
       if (!silent) setIsCloudLoading(true);
       const remoteData = await fetchViajesDb();
+      if (escriturasPendientesRef.current > 0 || versionLocalRef.current !== versionInicial) return;
       if (remoteData) {
         const cleaned = remoteData.map(cleanUnitDestino);
         const serialized = JSON.stringify(cleaned);
@@ -598,7 +604,12 @@ export const FleetProvider = ({ children }) => {
           event.data.senderId !== CLIENT_ID && 
           Array.isArray(event.data.units)
         ) {
-          setUnits(event.data.units.map(cleanUnitDestino));
+          if (escriturasPendientesRef.current > 0) return;
+          const recibidas = event.data.units.map(cleanUnitDestino);
+          const serialized = JSON.stringify(recibidas);
+          if (serialized === lastUnitsJsonRef.current) return;
+          lastUnitsJsonRef.current = serialized;
+          setUnits(recibidas);
         }
       };
     } catch (e) {
@@ -608,9 +619,14 @@ export const FleetProvider = ({ children }) => {
     const handleStorageChange = (e) => {
       if (e.key === STORAGE_KEY && e.newValue) {
         try {
+          if (escriturasPendientesRef.current > 0) return;
           const remoteUnits = JSON.parse(e.newValue);
           if (Array.isArray(remoteUnits)) {
-            setUnits(remoteUnits.map(cleanUnitDestino));
+            const recibidas = remoteUnits.map(cleanUnitDestino);
+            const serialized = JSON.stringify(recibidas);
+            if (serialized === lastUnitsJsonRef.current) return;
+            lastUnitsJsonRef.current = serialized;
+            setUnits(recibidas);
           }
         } catch (err) {
           console.error('Error al sincronizar localStorage remoto:', err);
@@ -633,6 +649,7 @@ export const FleetProvider = ({ children }) => {
     const timer = setTimeout(() => {
       try {
         const serialized = JSON.stringify(units);
+        if (serialized === lastUnitsJsonRef.current) return;
         lastUnitsJsonRef.current = serialized;
         localStorage.setItem(STORAGE_KEY, serialized);
         if (broadcastRef.current) {
@@ -759,10 +776,54 @@ export const FleetProvider = ({ children }) => {
     };
   }, [displayedUnits, catalogoFlota]);
 
-  const sincronizarEstatusCatalogo = useCallback(async (eco, estatusPatio) => {
+  useEffect(() => {
+    catalogoFlotaRef.current = catalogoFlota || [];
+  }, [catalogoFlota]);
+
+  const ejecutarEscritura = useCallback(async (operacion, mensajeError) => {
+    versionLocalRef.current += 1;
+    escriturasPendientesRef.current += 1;
+    let exito = true;
+    try {
+      await operacion();
+    } catch (err) {
+      exito = false;
+      console.error(mensajeError, err);
+      setConfirmModal({
+        isOpen: true,
+        title: 'No se guardó el cambio',
+        message: `${mensajeError}\n\n${err?.message || 'Verifica tu conexión a internet.'}\n\nSe recargarán los datos reales de la nube.`,
+        unit: null,
+        confirmText: 'Entendido',
+        cancelText: 'Cerrar',
+        confirmType: 'danger',
+        hideCancel: true,
+        onConfirm: () => {}
+      });
+    } finally {
+      escriturasPendientesRef.current = Math.max(0, escriturasPendientesRef.current - 1);
+    }
+    if (escriturasPendientesRef.current === 0) {
+      versionLocalRef.current += 1;
+      await reloadCloudData(true);
+    }
+    return exito;
+  }, [reloadCloudData]);
+
+  const sincronizarEstatusCatalogo = useCallback(async (eco, estatusPatio, forzar = false) => {
     const cleanEco = String(eco || '').trim();
     if (!cleanEco || !estatusPatio) return;
-    const nuevoEstatusCatalogo = estatusPatio === 'Taller' ? 'TALLER' : 'ACTIVO';
+    const master = catalogoFlotaRef.current.find(f => String(f.eco).trim() === cleanEco);
+    if (!master) return;
+    const estatusActual = String(master.estatus || 'ACTIVO').trim().toUpperCase();
+    let nuevoEstatusCatalogo = null;
+    if (estatusPatio === 'Taller') nuevoEstatusCatalogo = 'TALLER';
+    else if (forzar && estatusPatio === 'Disponible') nuevoEstatusCatalogo = 'ACTIVO';
+    else if (estatusActual === 'TALLER' && estatusPatio !== 'No Disponible') nuevoEstatusCatalogo = 'ACTIVO';
+    if (!nuevoEstatusCatalogo || nuevoEstatusCatalogo === estatusActual) return;
+    catalogoFlotaRef.current = catalogoFlotaRef.current.map(f =>
+      String(f.eco).trim() === cleanEco ? { ...f, estatus: nuevoEstatusCatalogo } : f
+    );
     setCatalogoFlota(prev => prev.map(f =>
       String(f.eco).trim() === cleanEco ? { ...f, estatus: nuevoEstatusCatalogo } : f
     ));
@@ -803,6 +864,7 @@ export const FleetProvider = ({ children }) => {
         };
     const fullUnit = cleanUnitDestino(fullUnitRaw);
 
+    versionLocalRef.current += 1;
     setUnits(prev => {
       const exists = prev.some(u => u.id === fullUnit.id);
       return exists 
@@ -811,16 +873,15 @@ export const FleetProvider = ({ children }) => {
     });
 
     if (fullUnit.economico && fullUnit.estatusPatio) {
-      sincronizarEstatusCatalogo(fullUnit.economico, fullUnit.estatusPatio);
+      const cambioPatio = Boolean(existingUnit) && existingUnit.estatusPatio !== fullUnit.estatusPatio;
+      sincronizarEstatusCatalogo(fullUnit.economico, fullUnit.estatusPatio, cambioPatio);
     }
 
     if (isSupabaseConfigured() && fullUnit) {
-      try {
-        await upsertViajeDb(fullUnit);
-        await reloadCloudData(true);
-      } catch (err) {
-        console.error('Error al persistir unidad en Supabase:', err);
-      }
+      await ejecutarEscritura(
+        () => upsertViajeDb(fullUnit),
+        `No se pudo guardar la unidad ECO ${fullUnit.economico || ''} en Supabase.`
+      );
     }
   };
 
@@ -836,14 +897,13 @@ export const FleetProvider = ({ children }) => {
 
     const idsList = (Array.isArray(idOrIds) ? idOrIds : [idOrIds]).map(String).filter(Boolean);
     const idsSet = new Set(idsList);
+    versionLocalRef.current += 1;
     setUnits(prev => prev.filter(u => !idsSet.has(String(u.id))));
     if (isSupabaseConfigured()) {
-      try {
-        await Promise.all(idsList.filter(id => !id.startsWith('fleet-')).map(id => deleteViajeDb(id)));
-        await reloadCloudData(true);
-      } catch (err) {
-        console.error('Error al eliminar unidad en Supabase:', err);
-      }
+      await ejecutarEscritura(
+        () => Promise.all(idsList.filter(id => !id.startsWith('fleet-')).map(id => deleteViajeDb(id))),
+        'No se pudo eliminar el viaje en Supabase.'
+      );
     }
   };
 
@@ -858,27 +918,19 @@ export const FleetProvider = ({ children }) => {
     }
 
     const eco = String(unit?.economico || '').trim();
-    try {
-      if (eco && isSupabaseConfigured()) {
+    versionLocalRef.current += 1;
+    setUnits(prev => prev.filter(current => {
+      if (eco) return String(current.economico || '').trim() !== eco;
+      return String(current.id) !== String(unit?.id);
+    }));
+    if (!isSupabaseConfigured()) return true;
+    return ejecutarEscritura(async () => {
+      if (eco) {
         await retireFleetUnitDb(eco);
-      } else if (unit?.id && !String(unit.id).startsWith('fleet-') && isSupabaseConfigured()) {
+      } else if (unit?.id && !String(unit.id).startsWith('fleet-')) {
         await deleteViajeDb(unit.id);
       }
-      setUnits(prev => prev.filter(current => {
-        if (eco) return String(current.economico || '').trim() !== eco;
-        return String(current.id) !== String(unit?.id);
-      }));
-      await reloadCloudData(true);
-      return true;
-    } catch (error) {
-      console.error('Error al limpiar viajes de la unidad:', error);
-      showAlert({
-        title: 'No se pudo limpiar el registro de la unidad',
-        message: error.message || 'Verifica tu conexión y los permisos de Supabase.',
-        confirmType: 'danger'
-      });
-      return false;
-    }
+    }, 'No se pudo limpiar el registro de la unidad.');
   };
 
   const updateStatus = async (unitIdOrIds, area, newStatus) => {
@@ -942,50 +994,41 @@ export const FleetProvider = ({ children }) => {
     const resolverTransicion = TRANSICIONES_ESTATUS[area]?.[newStatus];
     const cleanTargetEco = String(targetUnit.economico || '').trim();
     const matchByEcoInPatio = area === 'patio' && (newStatus === 'Taller' || newStatus === 'Disponible') && cleanTargetEco;
-
-    const toUpsert = [];
-    const existsPrimary = units.some(u => String(u.id) === String(targetUnit.id));
-
-    let nextUnits;
-    if (!existsPrimary) {
+    const aplicarCambio = (u) => {
       const cambios = resolverTransicion
-        ? resolverTransicion(targetUnit)
+        ? resolverTransicion(u)
         : { area, [camposArea[area] || 'estatusSupervisor']: newStatus };
-      const updated = { ...targetUnit, ...cambios, actualizadoEn: now };
-      toUpsert.push(updated);
-      nextUnits = [updated, ...units];
-    } else {
-      nextUnits = units.map(u => {
-        const shouldUpdate = idsList.includes(String(u.id)) || (matchByEcoInPatio && String(u.economico || '').trim() === cleanTargetEco);
-        if (!shouldUpdate) return u;
-        const cambios = resolverTransicion
-          ? resolverTransicion(u)
-          : { area, [camposArea[area] || 'estatusSupervisor']: newStatus };
-        const updated = { ...u, ...cambios, actualizadoEn: now };
-        toUpsert.push(updated);
-        return updated;
-      });
-    }
+      return { ...u, ...cambios, actualizadoEn: now };
+    };
+    const debeActualizar = (u) =>
+      idsList.includes(String(u.id)) || (matchByEcoInPatio && String(u.economico || '').trim() === cleanTargetEco);
 
-    setUnits(nextUnits);
+    const nuevaFila = units.some(u => String(u.id) === String(targetUnit.id)) ? null : aplicarCambio(targetUnit);
+    const toUpsert = nuevaFila ? [nuevaFila] : units.filter(debeActualizar).map(aplicarCambio);
+    if (toUpsert.length === 0) return;
+    const actualizadasPorId = new Map(toUpsert.map(u => [String(u.id), u]));
+
+    versionLocalRef.current += 1;
+    setUnits(prev => {
+      const siguiente = prev.map(u => {
+        if (!debeActualizar(u)) return u;
+        return actualizadasPorId.has(String(u.id)) ? aplicarCambio(u) : u;
+      });
+      if (nuevaFila && !siguiente.some(u => String(u.id) === String(nuevaFila.id))) {
+        return [nuevaFila, ...siguiente];
+      }
+      return siguiente;
+    });
 
     if (cleanTargetEco && toUpsert[0]?.estatusPatio) {
-      sincronizarEstatusCatalogo(cleanTargetEco, toUpsert[0].estatusPatio);
+      sincronizarEstatusCatalogo(cleanTargetEco, toUpsert[0].estatusPatio, area === 'patio');
     }
 
-    if (broadcastRef.current) {
-      try {
-        broadcastRef.current.postMessage({ type: 'SYNC_UNITS', units: nextUnits, senderId: CLIENT_ID });
-      } catch {}
-    }
-
-    if (isSupabaseConfigured() && toUpsert.length > 0) {
-      try {
-        await Promise.all(toUpsert.map(u => upsertViajeDb(u)));
-        await reloadCloudData(true);
-      } catch (err) {
-        console.error('Error al actualizar estatus en Supabase:', err);
-      }
+    if (isSupabaseConfigured()) {
+      await ejecutarEscritura(
+        () => Promise.all(toUpsert.map(u => upsertViajeDb(u))),
+        `No se pudo actualizar el estatus de ECO ${cleanTargetEco} a "${newStatus}".`
+      );
     }
   };
 

@@ -49,8 +49,7 @@ export const SupervisorView = () => {
 
   const supervisorBaseUnits = useMemo(() => {
     const base = units.filter(u => {
-      const isTaller = u.estatusPatio === 'Taller' || u.estatus === 'TALLER';
-      if (isTaller) return false;
+      if (u.estatusPatio === 'Taller') return false;
       const isCargado = u.estatusPlaneacion === 'CARGADO';
       const hasTransitStatus = TRANSIT_STATUSES.includes(u.estatusSupervisor);
       return isCargado || hasTransitStatus;
@@ -363,15 +362,11 @@ export const SupervisorView = () => {
                 unit: unit,
                 confirmText: 'Sí, eliminar',
                 confirmType: 'danger',
-                onConfirm: async () => {
-                  if (Array.isArray(unit.idsConsolidados) && unit.idsConsolidados.length > 1) {
-                    for (const id of unit.idsConsolidados) {
-                      await deleteUnit(id);
-                    }
-                  } else {
-                    await deleteUnit(unit.id);
-                  }
-                }
+                onConfirm: () => deleteUnit(
+                  Array.isArray(unit.idsConsolidados) && unit.idsConsolidados.length > 0
+                    ? unit.idsConsolidados
+                    : unit.id
+                )
               });
             }}
             title={`Eliminar unidad ECO ${unit.economico}`}

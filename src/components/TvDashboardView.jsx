@@ -111,7 +111,7 @@ export const TvDashboardView = () => {
       EN_TRANSITO: () => unit.estatusSupervisor === 'En Ruta',
       EN_SUCURSAL: () => ['Espera Descarga', 'Descargando'].includes(unit.estatusSupervisor),
       RETRASADAS: () => unit.estatusSupervisor === 'Retrasado',
-      EN_TALLER: () => unit.estatusPatio === 'Taller' || unit.estatus === 'TALLER',
+      EN_TALLER: () => unit.estatusPatio === 'Taller',
       DISPONIBLE_PATIO: () => unit.estatusPatio === 'Disponible' && !tieneRutaAsignada(unit),
       DISPONIBLES: () => unit.estatusPatio === 'Disponible' && !tieneRutaAsignada(unit),
       DISP_MANANA: () => esContableManana && Boolean(evalManana?.disponible),
@@ -143,7 +143,7 @@ export const TvDashboardView = () => {
 
   const REGLAS_ESTATUS_OPERATIVO = [
     {
-      match: (u) => u.estatusPatio === 'Taller' || u.estatus === 'TALLER',
+      match: (u) => u.estatusPatio === 'Taller',
       resolve: () => ({ text: 'TALLER', badgeClass: 'status-retrasado' })
     },
     {
