@@ -6613,4 +6613,32 @@ body {
   .custom-select-option-item span {
     font-size: 0.92rem !important;
   }
+
+  .planeacion-view > div,
+  .patio-grid,
+  .supervisor-container > div,
+  .table-container,
+  .top-header,
+  .emrampe-header-card,
+  .emrampe-controls-card,
+  .emrampe-mobile-card,
+  .unit-card,
+  .modal-overlay,
+  .emrampe-modal-overlay {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+
+  .routes-background-wrapper,
+  .routes-bg-glow,
+  .routes-bg-grid {
+    display: none !important;
+    animation: none !important;
+  }
+
+  .emrampe-mobile-card,
+  .unit-card {
+    content-visibility: auto;
+    contain-intrinsic-size: 0 180px;
+  }
 }

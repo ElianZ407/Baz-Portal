@@ -317,6 +317,10 @@ export const FleetProvider = ({ children }) => {
   const escriturasPendientesRef = useRef(0);
   const versionLocalRef = useRef(0);
   const catalogoFlotaRef = useRef([]);
+  const activeAreaRef = useRef(activeArea);
+  useEffect(() => {
+    activeAreaRef.current = activeArea;
+  }, [activeArea]);
 
   // Estados de conectividad Cloud / Supabase
   const [isCloudConnected, setIsCloudConnected] = useState(isSupabaseConfigured());
@@ -378,10 +382,10 @@ export const FleetProvider = ({ children }) => {
     setConfirmModal(null);
   };
 
-  // Reloj de fondo con intervalo no agresivo (cada 30s)
   useEffect(() => {
     const timer = setInterval(() => {
-      setCurrentTime(new Date());
+      const now = new Date();
+      setCurrentTime(prev => (prev && prev.getMinutes() === now.getMinutes() ? prev : now));
     }, 30000);
     return () => clearInterval(timer);
   }, []);
@@ -565,16 +569,14 @@ export const FleetProvider = ({ children }) => {
         }
       });
 
-    // Polling inteligente de respaldo cada 7 segundos para garantizar sincronía total entre computadoras
     const pollInterval = setInterval(() => {
-      if (typeof document !== 'undefined' && !document.hidden) {
+      if (typeof document !== 'undefined' && !document.hidden && activeAreaRef.current !== 'emrampe') {
         reloadCloudData(true);
       }
     }, 15000);
 
-    // Re-sincronizar inmediatamente al volver a enfocar la ventana o cambiar de monitor
     const handleVisibilityOrFocus = () => {
-      if (typeof document !== 'undefined' && !document.hidden) {
+      if (typeof document !== 'undefined' && !document.hidden && activeAreaRef.current !== 'emrampe') {
         reloadCloudData(true);
       }
     };

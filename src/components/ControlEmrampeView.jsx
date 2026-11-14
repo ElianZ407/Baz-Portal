@@ -36,7 +36,8 @@ const STORAGE_EMRAMPE_HISTORIAL = 'baz_control_emrampe_historial_v1';
 
 export const ControlEmrampeView = () => {
   const { 
-    catalogoFlota, 
+    catalogoFlota,
+    isMobile,
     showConfirm,
     showAlert
   } = useFleet();
@@ -111,12 +112,12 @@ export const ControlEmrampeView = () => {
   const lastJsonRef = useRef(JSON.stringify(registros));
   const isLocalMutatingRef = useRef(false);
 
-  const recargarDesdeNube = useCallback(async () => {
+  const recargarDesdeNube = useCallback(async (incluirHistorial = false) => {
     if (!isSupabaseConfigured() || isLocalMutatingRef.current) return;
     try {
       const [remotosActivos, remotosHistorial] = await Promise.all([
         fetchEmrampeActivoDb(),
-        fetchHistorialEmrampeDb()
+        incluirHistorial ? fetchHistorialEmrampeDb() : Promise.resolve(null)
       ]);
 
       if (Array.isArray(remotosActivos) && !isLocalMutatingRef.current) {
@@ -139,7 +140,7 @@ export const ControlEmrampeView = () => {
 
   useEffect(() => {
     if (!isSupabaseConfigured() || !supabase) return;
-    recargarDesdeNube();
+    recargarDesdeNube(true);
 
     const channel = supabase
       .channel(`realtime_emrampe_${Date.now()}`)
@@ -147,7 +148,7 @@ export const ControlEmrampeView = () => {
         'postgres_changes',
         { event: '*', schema: 'public', table: 'control_emrampe' },
         () => {
-          recargarDesdeNube();
+          recargarDesdeNube(false);
         }
       )
       .on(
@@ -155,8 +156,10 @@ export const ControlEmrampeView = () => {
         { event: '*', schema: 'public', table: 'historial_planes' },
         (payload) => {
           const rowId = String(payload?.new?.id || payload?.old?.id || '');
-          if (rowId === EMRAMPE_ACTIVO_ROW_ID || rowId.startsWith('__EMRAMPE_')) {
-            recargarDesdeNube();
+          if (rowId === EMRAMPE_ACTIVO_ROW_ID) {
+            recargarDesdeNube(false);
+          } else if (rowId.startsWith('__EMRAMPE_')) {
+            recargarDesdeNube(true);
           }
         }
       )
@@ -164,9 +167,9 @@ export const ControlEmrampeView = () => {
 
     const interval = setInterval(() => {
       if (typeof document !== 'undefined' && !document.hidden) {
-        recargarDesdeNube();
+        recargarDesdeNube(false);
       }
-    }, 12000);
+    }, 15000);
 
     return () => {
       clearInterval(interval);
@@ -811,7 +814,7 @@ export const ControlEmrampeView = () => {
         </div>
       </div>
 
-      <div className="emrampe-table-wrapper desktop-only">
+      {!isMobile && <div className="emrampe-table-wrapper desktop-only">
         <table className="emrampe-table">
           <thead>
             <tr>
@@ -948,9 +951,9 @@ export const ControlEmrampeView = () => {
             )}
           </tbody>
         </table>
-      </div>
+      </div>}
 
-      <div className="emrampe-cards-list mobile-only">
+      {isMobile && <div className="emrampe-cards-list mobile-only">
         {filteredUnits.length === 0 ? (
           <div className="emrampe-empty-mobile">
             <Warehouse size={40} style={{ opacity: 0.35, marginBottom: '0.5rem' }} />
@@ -1090,7 +1093,7 @@ export const ControlEmrampeView = () => {
             );
           })
         )}
-      </div>
+      </div>}
 
       {isSaveCorteModalOpen && (
         <div className="emrampe-modal-overlay" onClick={() => setIsSaveCorteModalOpen(false)}>

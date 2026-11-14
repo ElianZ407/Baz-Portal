@@ -28,6 +28,7 @@ const ModuloCargando = () => (
 const AppContent = () => {
   const {
     activeArea,
+    isMobile,
     theme,
     isModalOpen,
     confirmModal,
@@ -44,7 +45,7 @@ const AppContent = () => {
 
   return (
     <div className={`app-container theme-${theme || 'corporate'} ${activeArea === 'tv' ? 'tv-mode' : ''}`}>
-      <RoutesBackground />
+      {!isMobile && <RoutesBackground />}
       <Header />
       <HistoricalBanner />
       
