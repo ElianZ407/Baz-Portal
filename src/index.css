@@ -3,8 +3,6 @@
    Diseño Oficial: Dark Navy Institucional + Cyan Accents + UI Limpia
    ========================================================================== */
 
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
-
 :root {
   --bg-primary: #070b14;
   --bg-secondary: #0c1220;
@@ -6640,5 +6638,103 @@ body {
   .unit-card {
     content-visibility: auto;
     contain-intrinsic-size: 0 180px;
+  }
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(56, 189, 248, 0.28) rgba(10, 15, 28, 0.55);
+}
+
+::-webkit-scrollbar {
+  width: 7px;
+  height: 7px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(10, 15, 28, 0.55);
+  border-radius: 999px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(56, 189, 248, 0.28);
+  border-radius: 999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(56, 189, 248, 0.5);
+}
+
+.live-clock,
+.kpi-value,
+.eco-pill,
+.eco-pill-emrampe,
+.hora-val-badge,
+.badge-counter {
+  font-variant-numeric: tabular-nums;
+}
+
+@keyframes bazViewFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.main-content > * {
+  animation: bazViewFadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.kpi-card {
+  transition: transform 0.18s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.kpi-card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(56, 189, 248, 0.45) !important;
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.55), 0 0 18px rgba(14, 165, 233, 0.12) !important;
+}
+
+.kpi-card:active,
+.btn:active,
+.nav-tab:active,
+.pill-btn:active,
+.filter-pill:active,
+.btn-move:active,
+.btn-card-emrampar:active,
+.btn-card-desemrampar:active {
+  transform: scale(0.975);
+}
+
+.kpi-card.active-filter {
+  border-color: #38bdf8 !important;
+  box-shadow: 0 0 0 1px rgba(56, 189, 248, 0.55), 0 10px 26px rgba(14, 165, 233, 0.22) !important;
+}
+
+.unit-card,
+.emrampe-mobile-card {
+  transition: transform 0.16s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+}
+
+.unit-card:hover {
+  border-color: rgba(56, 189, 248, 0.38);
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.42);
+}
+
+.data-table tbody tr {
+  transition: background-color 0.14s ease;
+}
+
+.data-table tbody tr:hover {
+  background-color: rgba(56, 189, 248, 0.065);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .main-content > * {
+    animation: none;
   }
 }

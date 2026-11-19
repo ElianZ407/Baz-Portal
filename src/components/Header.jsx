@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, memo } from 'react';
 import { 
   Layers, 
   CalendarClock, 
@@ -17,6 +17,38 @@ import {
 } from 'lucide-react';
 import { useFleet } from '../context/FleetContext';
 import { exportByModule } from '../utils/exportOfficialExcel';
+
+const HeaderClock = memo(function HeaderClock() {
+  const [headerTime, setHeaderTime] = useState(() => new Date());
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setHeaderTime(new Date());
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const timeString = headerTime.toLocaleTimeString('es-MX', {
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit'
+  });
+
+  const dateString = headerTime.toLocaleDateString('es-MX', {
+    weekday: 'short',
+    day: 'numeric',
+    month: 'short'
+  });
+
+  return (
+    <div className="live-clock" title="Hora de sistema sincronizada">
+      <span className="clock-dot"></span>
+      <Clock size={13} />
+      <span className="clock-full-text">{dateString.toUpperCase()} | {timeString}</span>
+      <span className="clock-short-text">{timeString}</span>
+    </div>
+  );
+});
 
 export const Header = () => {
   const { 
@@ -105,31 +137,10 @@ export const Header = () => {
     }
   };
 
-  const [headerTime, setHeaderTime] = useState(new Date());
-
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setHeaderTime(new Date());
-    }, 1000);
-    return () => clearInterval(timer);
-  }, []);
-
   const handleOpenNewUnit = () => {
     setSelectedUnit(null);
     setIsModalOpen(true);
   };
-
-  const timeString = headerTime.toLocaleTimeString('es-MX', {
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit'
-  });
-
-  const dateString = headerTime.toLocaleDateString('es-MX', {
-    weekday: 'short',
-    day: 'numeric',
-    month: 'short'
-  });
 
   return (
     <header className="top-header">
@@ -370,12 +381,7 @@ export const Header = () => {
             </div>
           )}
 
-          <div className="live-clock" title="Hora de sistema sincronizada">
-            <span className="clock-dot"></span>
-            <Clock size={13} />
-            <span className="clock-full-text">{dateString.toUpperCase()} | {timeString}</span>
-            <span className="clock-short-text">{timeString}</span>
-          </div>
+          <HeaderClock />
         </div>
       </div>
     </header>
