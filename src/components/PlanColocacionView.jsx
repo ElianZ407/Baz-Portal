@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { fetchPlanesColocacionDb, savePlanColocacionDb, isSupabaseConfigured } from '../lib/supabaseClient';
 import { useFleet } from '../context/FleetContext';
 import { extraerCargasDesdeImagen, extraerCargasDesdeTextoOcr } from '../utils/colocacionImageParser';
+import { MapaEntregasCpPanel } from './MapaEntregasCpPanel';
 import { 
   Calendar, 
   ChevronLeft, 
@@ -11,6 +12,7 @@ import {
   Copy, 
   Edit3, 
   ImagePlus,
+  MapPin,
   Plus, 
   Trash2, 
   TrendingUp, 
@@ -411,6 +413,7 @@ const normalizeRecord = (raw, dateKey) => {
     },
     pvActivo,
     headcount,
+    mapaEntregasCp: Array.isArray(raw.mapaEntregasCp) ? raw.mapaEntregasCp : null,
     observacionesGenerales: raw.observacionesGenerales !== undefined 
       ? raw.observacionesGenerales 
       : ''
@@ -470,6 +473,7 @@ export const PlanColocacionView = () => {
   const [toastMessage, setToastMessage] = useState('');
   const [isExporting, setIsExporting] = useState(false);
   const [isReadingImage, setIsReadingImage] = useState(false);
+  const [activeSubTab, setActiveSubTab] = useState('infografia');
 
   const [cloudStatus, setCloudStatus] = useState(isSupabaseConfigured() ? 'loading' : 'offline');
 
@@ -659,9 +663,22 @@ export const PlanColocacionView = () => {
     }
   };
 
+  const handleUpdateMapaCp = (nuevosItems) => {
+    setRecords((prev) => {
+      const existing = normalizeRecord(prev[currentDate], currentDate);
+      const updated = {
+        ...existing,
+        updatedAt: new Date().toISOString(),
+        mapaEntregasCp: nuevosItems
+      };
+      persistToCloud(updated);
+      return { ...prev, [currentDate]: updated };
+    });
+  };
+
   useEffect(() => {
     const onWindowPaste = (e) => {
-      if (isReadingImage) return;
+      if (isReadingImage || activeSubTab !== 'infografia') return;
       const items = Array.from(e.clipboardData?.items || []);
       const imageItem = items.find((it) => it.type && it.type.startsWith('image/'));
       const tag = document.activeElement?.tagName;
@@ -1283,6 +1300,25 @@ export const PlanColocacionView = () => {
           </button>
         </div>
 
+        <div className="colocacion-subtabs">
+          <button
+            type="button"
+            className={`colocacion-subtab-btn ${activeSubTab === 'infografia' ? 'active' : ''}`}
+            onClick={() => setActiveSubTab('infografia')}
+          >
+            <ClipboardList size={14} />
+            <span>Infografía Diaria</span>
+          </button>
+          <button
+            type="button"
+            className={`colocacion-subtab-btn ${activeSubTab === 'mapa-cp' ? 'active' : ''}`}
+            onClick={() => setActiveSubTab('mapa-cp')}
+          >
+            <MapPin size={14} />
+            <span>Mapa de Entregas CP</span>
+          </button>
+        </div>
+
         <div className="colocacion-actions">
           <button 
             className="btn btn-primary btn-header-action btn-save-action"
@@ -1343,6 +1379,15 @@ export const PlanColocacionView = () => {
         </div>
       </div>
 
+      {activeSubTab === 'mapa-cp' ? (
+        <MapaEntregasCpPanel
+          items={currentData.mapaEntregasCp}
+          fechaTexto={currentData.fechaTexto}
+          onUpdateItems={handleUpdateMapaCp}
+          showToast={showToast}
+        />
+      ) : (
+      <>
       <div className="colocacion-mobile-hint">
         <span>↔ Desliza hacia los lados para explorar toda la infografía</span>
       </div>
@@ -1842,6 +1887,8 @@ export const PlanColocacionView = () => {
           </footer>
         </div>
       </div>
+      </>
+      )}
 
       {isEditing && editForm && (
         <div className="modal-overlay" onClick={handleCloseEdit}>
