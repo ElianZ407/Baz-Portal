@@ -46,7 +46,7 @@ const REGLAS_LINEAS = [
   { match: (t) => t.includes('NUEVA ALIANZA') || t.includes('ALIANZA'), valor: 'NUEVA ALIANZA' },
   { match: (t) => t.includes('MADRINA'), valor: 'LTI - VHS - MADRINA' },
   { match: (t) => t.includes('FULL') && t.includes('TUXTLA'), valor: 'LTI FULL - HUB TUXTLA' },
-  { match: (t) => t.includes('LTI FULL') || t.includes('FULL - VHS'), valor: 'LTI FULL - VHS' },
+  { match: (t) => t.includes('LTI FULL') || t.includes('FULL - VHS') || t.includes('FULL-VHS'), valor: 'LTI FULL - VHS' },
   { match: (t) => t.includes('HUB TUXTLA') && t.includes('LTI'), valor: 'LTI - HUB TUXTLA' },
   { match: (t) => t.includes('LIBRAS EXPRESS'), valor: 'LIBRAS EXPRESS' },
   { match: (t) => t.includes('LIBRA EXPRESS') || t.includes('LIBRA '), valor: 'LIBRA EXPRESS' },
@@ -57,61 +57,61 @@ const REGLAS_LINEAS = [
 ];
 
 const REGLAS_DESTINOS = [
-  { claves: ['8285', 'CANDELARIA'], destino: 'Candelaria Campeche', tipo: 'Foráneo' },
-  { claves: ['2214', 'PARRILLA'], destino: 'Parrilla Tabasco', tipo: 'Retail' },
-  { claves: ['2205', 'TIERRA COLORADA'], destino: 'Tierra Colorada', tipo: 'Retail' },
-  { claves: ['2957', 'COMALAPA'], destino: 'Comalapa Chiapas', tipo: 'Foráneo' },
-  { claves: ['1205', 'BOCHIL'], destino: 'Bochil Chiapas', tipo: 'Foráneo' },
-  { claves: ['7109', 'YAJALON'], destino: 'Yajalón Chiapas', tipo: 'Foráneo' },
-  { claves: ['4834', 'BENEMERITO'], destino: 'Benemérito de las Américas', tipo: 'Foráneo' },
-  { claves: ['4774', 'IXTEPEC'], destino: 'Cd. Ixtepec', tipo: 'Foráneo' },
+  { claves: ['8285', 'CANDELARIA', 'CANDELAR'], destino: 'Candelaria Campeche', tipo: 'Foráneo' },
+  { claves: ['2214', 'PARRILLA', 'PARRILL'], destino: 'Parrilla Tabasco', tipo: 'Retail' },
+  { claves: ['2205', 'TIERRA COLORADA', 'TIERRA COLOR'], destino: 'Tierra Colorada', tipo: 'Retail' },
+  { claves: ['2957', 'COMALAPA', 'COMALAP'], destino: 'Comalapa Chiapas', tipo: 'Foráneo' },
+  { claves: ['1205', 'BOCHIL', 'BOCH1L', 'APA BOCH'], destino: 'Bochil Chiapas', tipo: 'Foráneo' },
+  { claves: ['7109', 'YAJALON', 'YAJAL'], destino: 'Yajalón Chiapas', tipo: 'Foráneo' },
+  { claves: ['4834', 'BENEMERITO', 'BENEMERIT', 'DE LAS AMERICAS'], destino: 'Benemérito de las Américas', tipo: 'Foráneo' },
+  { claves: ['4774', 'IXTEPEC', 'IXTEP'], destino: 'Cd. Ixtepec', tipo: 'Foráneo' },
   { claves: ['VTEX ZONA CENTRO', 'ZONA CENTRO', 'VTEX'], destino: 'VTEX Zona Centro', tipo: 'Retail' },
-  { claves: ['8267', '7414', 'MACUSPANA'], destino: 'Macuspana', tipo: 'Retail' },
-  { claves: ['6381', 'PARAISO'], destino: 'Paraíso', tipo: 'Retail' },
-  { claves: ['6703', '2804', '3156', 'COATZACOALCOS'], destino: 'Coatzacoalcos', tipo: 'Foráneo' },
-  { claves: ['4860', '6460', '9912', '2963', '192', 'COMALCALCO'], destino: 'Comalcalco', tipo: 'Retail' },
-  { claves: ['2590', '2968', '191', 'CARDENAS'], destino: 'Cárdenas Tabasco', tipo: 'Foráneo' },
-  { claves: ['8358', 'EMILIANO ZAPATA'], destino: 'Emiliano Zapata', tipo: 'Foráneo' },
-  { claves: ['6025', '5061', 'FRONTERA'], destino: 'Frontera', tipo: 'Retail' },
-  { claves: ['6542', '2944', 'TEAPA'], destino: 'Teapa', tipo: 'Retail' },
-  { claves: ['2204', 'PICHUCALCO'], destino: 'Pichucalco', tipo: 'Foráneo' },
-  { claves: ['6107', 'REFORMA'], destino: 'Reforma Chiapas', tipo: 'Foráneo' },
-  { claves: ['2977', '2077', 'OCOSINGO'], destino: 'Ocosingo', tipo: 'Foráneo' },
-  { claves: ['7579', '4274', 'PALENQUE'], destino: 'Palenque Chiapas', tipo: 'Foráneo' },
-  { claves: ['1606', '5678', '8372', 'SAN ANDRES TUXTLA'], destino: 'San Andrés Tuxtla', tipo: 'Foráneo' },
-  { claves: ['9464', 'CARRANZA'], destino: 'V. Carranza Chiapas', tipo: 'Foráneo' },
-  { claves: ['2209', 'ESCARCEGA'], destino: 'Escárcega', tipo: 'Foráneo' },
-  { claves: ['2916', '2016', 'TEHUANTEPEC'], destino: 'Tehuantepec Oaxaca', tipo: 'Foráneo' },
-  { claves: ['6911', '6011', '1492', 'TAPACHULA'], destino: 'Tapachula', tipo: 'Foráneo' },
-  { claves: ['4239', '6204', 'MATIAS ROMERO'], destino: 'Matías Romero', tipo: 'HUB' },
-  { claves: ['2978', '2078', 'CD. HIDALGO', 'CD HIDALGO', 'CHIAPAS CD'], destino: 'Cd. Hidalgo Chiapas', tipo: 'Foráneo' },
-  { claves: ['9269', 'BDR SANTA ANA', 'SANTA ANA'], destino: 'BDR Santa Ana', tipo: 'Foráneo' },
+  { claves: ['8267', '7414', 'MACUSPANA', 'MACUSP'], destino: 'Macuspana', tipo: 'Retail' },
+  { claves: ['6381', 'PARAISO', 'PARAIS', 'PARA1SO'], destino: 'Paraíso', tipo: 'Retail' },
+  { claves: ['6703', '2804', '3156', 'COATZACOALCOS', 'COATZAC'], destino: 'Coatzacoalcos', tipo: 'Foráneo' },
+  { claves: ['4860', '6460', '9912', '2963', '192', 'COMALCALCO', 'COMALCAL'], destino: 'Comalcalco', tipo: 'Retail' },
+  { claves: ['2590', '2968', '191', 'CARDENAS', 'CARDEN', 'SAMSALA'], destino: 'Cárdenas Tabasco', tipo: 'Foráneo' },
+  { claves: ['8358', 'EMILIANO ZAPATA', 'ZAPATA'], destino: 'Emiliano Zapata', tipo: 'Foráneo' },
+  { claves: ['6025', '5061', 'FRONTERA', 'FRONTER', 'PINO SUAREZ'], destino: 'Frontera', tipo: 'Retail' },
+  { claves: ['6542', '2944', 'TEAPA', 'EKT TEAP'], destino: 'Teapa', tipo: 'Retail' },
+  { claves: ['2204', 'PICHUCALCO', 'PICHUCAL'], destino: 'Pichucalco', tipo: 'Foráneo' },
+  { claves: ['6107', 'REFORMA', 'REFORM'], destino: 'Reforma Chiapas', tipo: 'Foráneo' },
+  { claves: ['2977', '2077', 'OCOSINGO', 'OCOSING'], destino: 'Ocosingo', tipo: 'Foráneo' },
+  { claves: ['7579', '4274', 'PALENQUE', 'PALENQ'], destino: 'Palenque Chiapas', tipo: 'Foráneo' },
+  { claves: ['1606', '5678', '8372', 'SAN ANDRES TUXTLA', 'SAN ANDRES'], destino: 'San Andrés Tuxtla', tipo: 'Foráneo' },
+  { claves: ['9464', 'CARRANZA', 'CARRANZ'], destino: 'V. Carranza Chiapas', tipo: 'Foráneo' },
+  { claves: ['2209', 'ESCARCEGA', 'ESCARCEG'], destino: 'Escárcega', tipo: 'Foráneo' },
+  { claves: ['2916', '2016', 'TEHUANTEPEC', 'TEHUANTEP'], destino: 'Tehuantepec Oaxaca', tipo: 'Foráneo' },
+  { claves: ['6911', '6011', '1492', 'TAPACHULA', 'TAPACHUL', 'MERCADO SAN JUAN'], destino: 'Tapachula', tipo: 'Foráneo' },
+  { claves: ['4239', '6204', 'MATIAS ROMERO', 'MATIAS ROM'], destino: 'Matías Romero', tipo: 'HUB' },
+  { claves: ['2978', '2078', 'CD. HIDALGO', 'CD HIDALGO', 'CHIAPAS CD', 'HIDALGO'], destino: 'Cd. Hidalgo Chiapas', tipo: 'Foráneo' },
+  { claves: ['9269', 'BDR SANTA ANA', 'SANTA ANA', 'SANTA AN'], destino: 'BDR Santa Ana', tipo: 'Foráneo' },
   { claves: ['3221', 'LA CONCORDIA', 'CONCORDIA'], destino: 'La Concordia', tipo: 'HUB' },
-  { claves: ['4750', '6208', '2206', '2558', '9542', 'VILLAHERMOSA'], destino: 'Villahermosa', tipo: 'Retail' },
-  { claves: ['7362', 'TENOSIQUE'], destino: 'Tenosique Tabasco', tipo: 'Foráneo' },
-  { claves: ['6305', '8396', 'JUCHITAN'], destino: 'Juchitán', tipo: 'Foráneo' },
-  { claves: ['2901', '2601', '2969', 'COMITAN'], destino: 'Comitán', tipo: 'Foráneo' },
-  { claves: ['1656', '7203', '4689', 'SAN CRISTOBAL'], destino: 'San Cristóbal de las Casas', tipo: 'Foráneo' },
+  { claves: ['4750', '6208', '2206', '2558', '9542', 'VILLAHERMOSA', 'VILLAH', 'PLAZA CRISTAL', 'TAMULTE'], destino: 'Villahermosa', tipo: 'Retail' },
+  { claves: ['7362', 'TENOSIQUE', 'TENOSIQ'], destino: 'Tenosique Tabasco', tipo: 'Foráneo' },
+  { claves: ['6305', '8396', 'JUCHITAN', 'JUCHIT'], destino: 'Juchitán', tipo: 'Foráneo' },
+  { claves: ['2901', '2601', '2969', 'COMITAN', 'MOTOS COMIT'], destino: 'Comitán', tipo: 'Foráneo' },
+  { claves: ['1656', '7203', '4689', 'SAN CRISTOBAL', 'CRISTOBAL'], destino: 'San Cristóbal de las Casas', tipo: 'Foráneo' },
   { claves: ['6018', 'LA VENTA'], destino: 'La Venta Tabasco', tipo: 'Foráneo' },
-  { claves: ['2971', '2707', '5512', '7269', 'MINATITLAN'], destino: 'Minatitlán', tipo: 'Foráneo' },
-  { claves: ['9757', 'JALPA DE MENDEZ', 'JALPA'], destino: 'Jalpa de Méndez', tipo: 'HUB' },
+  { claves: ['2971', '2707', '5512', '7269', 'MINATITLAN', 'MINATIT'], destino: 'Minatitlán', tipo: 'Foráneo' },
+  { claves: ['9757', 'JALPA DE MENDEZ', 'JALPA DE'], destino: 'Jalpa de Méndez', tipo: 'HUB' },
   { claves: ['HUB TUXTLA'], destino: 'HUB Tuxtla', tipo: 'Retail' },
-  { claves: ['9661', 'TUXTLA GUTIERREZ'], destino: 'Tuxtla Gutiérrez', tipo: 'Foráneo' },
-  { claves: ['1803', '419', 'TONALA'], destino: 'Tonalá Chiapas', tipo: 'Foráneo' },
+  { claves: ['9661', 'TUXTLA GUTIERREZ', 'GUTIERREZ'], destino: 'Tuxtla Gutiérrez', tipo: 'Foráneo' },
+  { claves: ['1803', '419', 'TONALA', 'TONAL'], destino: 'Tonalá Chiapas', tipo: 'Foráneo' },
   { claves: ['1294', 'LAS CHOAPAS', 'CHOAPAS'], destino: 'Las Choapas', tipo: 'Foráneo' },
-  { claves: ['7540', '2190', 'HUIMANGUILLO'], destino: 'Huimanguillo', tipo: 'Foráneo' },
-  { claves: ['5173', '4489', 'CUNDUACAN'], destino: 'Cunduacán', tipo: 'Retail' },
+  { claves: ['7540', '2190', 'HUIMANGUILLO', 'HUIMANG'], destino: 'Huimanguillo', tipo: 'Foráneo' },
+  { claves: ['5173', '4489', 'CUNDUACAN', 'CUNDUAC'], destino: 'Cunduacán', tipo: 'Retail' },
   { claves: ['4720', 'JALAPA TABASCO'], destino: 'Jalapa Tabasco', tipo: 'Retail' },
-  { claves: ['5771', 'NACAJUCA'], destino: 'Nacajuca', tipo: 'Retail' },
+  { claves: ['5771', 'NACAJUCA', 'NACAJUC'], destino: 'Nacajuca', tipo: 'Retail' },
   { claves: ['6015', '8981', 'AGUA DULCE', 'AGUADULCE'], destino: 'Agua Dulce', tipo: 'Foráneo' },
-  { claves: ['3001', '7809', 'ACAYUCAN'], destino: 'Acayucan', tipo: 'Foráneo' },
-  { claves: ['9684', '8403', 'SALINA CRUZ'], destino: 'Salina Cruz', tipo: 'Foráneo' },
+  { claves: ['3001', '7809', 'ACAYUCAN', 'ACAYUC'], destino: 'Acayucan', tipo: 'Foráneo' },
+  { claves: ['9684', '8403', 'SALINA CRUZ', 'SALINA CR'], destino: 'Salina Cruz', tipo: 'Foráneo' },
   { claves: ['6431', '5067', 'PUERTO ESCONDIDO'], destino: 'Puerto Escondido', tipo: 'Foráneo' },
   { claves: ['2207', '7710', 'HUATULCO'], destino: 'Huatulco', tipo: 'Foráneo' },
   { claves: ['6761', '1449', 'CD DEL CARMEN', 'CARMEN'], destino: 'Cd. del Carmen', tipo: 'Foráneo' },
   { claves: ['6398', 'CAMPECHE'], destino: 'Campeche', tipo: 'Foráneo' },
   { claves: ['8651', 'ARRIAGA'], destino: 'Arriaga', tipo: 'Foráneo' },
-  { claves: ['6240', 'CINTALAPA'], destino: 'Cintalapa', tipo: 'Foráneo' },
+  { claves: ['6240', 'CINTALAPA', 'CINTALAP'], destino: 'Cintalapa', tipo: 'Foráneo' },
   { claves: ['3049', 'VILLA FLORES', 'VILLAFLORES'], destino: 'Villaflores', tipo: 'Foráneo' },
   { claves: ['1258', '2486', 'HUIXTLA'], destino: 'Huixtla', tipo: 'Foráneo' }
 ];
@@ -211,6 +211,11 @@ const extraerDestinoFallbackDeLineaOcr = (lineaNorm) => {
 const extraerCapacidadDeLinea = (lineaNorm) => {
   const matchM3 = lineaNorm.match(/\b(10|18|20|40|50|80|90|110|153|180)\s*M/);
   if (matchM3) return Number(matchM3[1]);
+
+  const antesDeLinea = lineaNorm.match(
+    /\b(10|18|20|40|50|80|90|110|153|180)\b(?=\s+(?:LTI|BRITO|LIBRA|VALLEY|NUEVA|YODLOGIX|ROLDAN))/
+  );
+  if (antesDeLinea) return Number(antesDeLinea[1]);
 
   const corte = lineaNorm.split(/CS00|\d{1,2}\/\d{1,2}\/\d{2,4}/)[0] || lineaNorm;
   const tokens = corte.match(/\b(10|18|20|40|50|80|90|110|153|180)\b/g);
@@ -369,49 +374,119 @@ export const extraerCargasDesdeTextoOcr = (textoCrudo, catalogoSucursales = []) 
   return deduplicarCargasUnicas(resultado);
 };
 
-const preprocesarImagenEnCanvas = (file) =>
+const limpiarFondoParaOcr = (ctx, width, height) => {
+  const imageData = ctx.getImageData(0, 0, width, height);
+  const data = imageData.data;
+  for (let i = 0; i < data.length; i += 4) {
+    const r = data[i];
+    const g = data[i + 1];
+    const b = data[i + 2];
+    const lum = 0.299 * r + 0.587 * g + 0.114 * b;
+    let val;
+    if (lum > 152) {
+      val = 255;
+    } else if (lum < 95) {
+      val = 0;
+    } else {
+      val = Math.round(((lum - 95) / 57) * 255);
+    }
+    data[i] = val;
+    data[i + 1] = val;
+    data[i + 2] = val;
+    data[i + 3] = 255;
+  }
+  ctx.putImageData(imageData, 0, 0);
+};
+
+const crearFranjaCanvas = (img, sx, sy, sw, sh, scale) => {
+  const canvas = document.createElement('canvas');
+  canvas.width = Math.max(1, Math.round(sw * scale));
+  canvas.height = Math.max(1, Math.round(sh * scale));
+  const ctx = canvas.getContext('2d', { willReadFrequently: true });
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = 'high';
+  ctx.fillStyle = '#FFFFFF';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.drawImage(img, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
+  limpiarFondoParaOcr(ctx, canvas.width, canvas.height);
+  return canvas;
+};
+
+const cargarImagenDesdeArchivo = (file) =>
   new Promise((resolve, reject) => {
     const img = new Image();
     const objectUrl = URL.createObjectURL(file);
-
     img.onload = () => {
-      try {
-        const targetWidth = Math.min(3600, Math.max(2600, img.width * 2));
-        const scale = Math.max(1.5, Math.min(3.5, targetWidth / Math.max(1, img.width)));
-        const canvas = document.createElement('canvas');
-        canvas.width = Math.round(img.width * scale);
-        canvas.height = Math.round(img.height * scale);
-        const ctx = canvas.getContext('2d');
-        ctx.imageSmoothingEnabled = true;
-        ctx.imageSmoothingQuality = 'high';
-        ctx.fillStyle = '#FFFFFF';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        ctx.filter = 'grayscale(1) contrast(1.65) brightness(1.08)';
-        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-        URL.revokeObjectURL(objectUrl);
-        resolve(canvas);
-      } catch (err) {
-        URL.revokeObjectURL(objectUrl);
-        reject(err);
-      }
+      URL.revokeObjectURL(objectUrl);
+      resolve(img);
     };
-
     img.onerror = () => {
       URL.revokeObjectURL(objectUrl);
       reject(new Error('No se pudo leer el archivo de imagen seleccionado.'));
     };
-
     img.src = objectUrl;
   });
 
+const generarFranjasOcr = (img, soloMitadIzquierda) => {
+  const cropW = soloMitadIzquierda ? Math.round(img.width * 0.62) : img.width;
+  const scale = Math.max(2.2, Math.min(4, 2400 / Math.max(1, cropW)));
+  const numFranjas = img.height >= 360 ? 3 : 1;
+
+  if (numFranjas === 1) {
+    return [crearFranjaCanvas(img, 0, 0, cropW, img.height, scale)];
+  }
+
+  const franjas = [
+    [0, 0.38],
+    [0.32, 0.70],
+    [0.64, 1.0]
+  ];
+
+  return franjas.map(([inicio, fin]) => {
+    const sy = Math.floor(img.height * inicio);
+    const sh = Math.ceil(img.height * (fin - inicio));
+    return crearFranjaCanvas(img, 0, sy, cropW, sh, scale);
+  });
+};
+
 export const extraerCargasDesdeImagen = async (file, catalogoSucursales = []) => {
-  const [Tesseract, canvas] = await Promise.all([
+  const [Tesseract, img] = await Promise.all([
     cargarTesseract(),
-    preprocesarImagenEnCanvas(file)
+    cargarImagenDesdeArchivo(file)
   ]);
 
-  const { data } = await Tesseract.recognize(canvas, 'spa+eng', {
-    tessedit_pageseg_mode: '6'
-  });
-  return extraerCargasDesdeTextoOcr(data?.text || '', catalogoSucursales);
+  const esTablaAncha = img.width / Math.max(1, img.height) >= 1.5;
+  const franjas = generarFranjasOcr(img, esTablaAncha);
+
+  const textos = [];
+  if (typeof Tesseract.createWorker === 'function') {
+    const worker = await Tesseract.createWorker('spa');
+    try {
+      await worker.setParameters({ tessedit_pageseg_mode: '6' });
+      for (const canvas of franjas) {
+        const { data } = await worker.recognize(canvas);
+        if (data?.text) textos.push(data.text);
+      }
+      let cargas = extraerCargasDesdeTextoOcr(textos.join('\n'), catalogoSucursales);
+      if (esTablaAncha && cargas.length < 3) {
+        const completas = generarFranjasOcr(img, false);
+        const textosCompletos = [];
+        for (const canvas of completas) {
+          const { data } = await worker.recognize(canvas);
+          if (data?.text) textosCompletos.push(data.text);
+        }
+        const cargasCompletas = extraerCargasDesdeTextoOcr(textosCompletos.join('\n'), catalogoSucursales);
+        if (cargasCompletas.length > cargas.length) cargas = cargasCompletas;
+      }
+      return cargas;
+    } finally {
+      await worker.terminate();
+    }
+  }
+
+  for (const canvas of franjas) {
+    const { data } = await Tesseract.recognize(canvas, 'spa+eng');
+    if (data?.text) textos.push(data.text);
+  }
+  return extraerCargasDesdeTextoOcr(textos.join('\n'), catalogoSucursales);
 };
