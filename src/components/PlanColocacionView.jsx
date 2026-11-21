@@ -616,8 +616,34 @@ export const PlanColocacionView = () => {
   const handlePasteFromClipboardButton = async () => {
     if (isReadingImage) return;
     try {
+      if (navigator.clipboard?.readText) {
+        try {
+          const texto = await navigator.clipboard.readText();
+          if (texto && texto.trim()) {
+            const cargasTexto = extraerCargasDesdeTextoOcr(texto, catalogoSucursales);
+            if (cargasTexto.length > 0) {
+              aplicarCargasExtraidas(cargasTexto, 'la tabla copiada');
+              return;
+            }
+          }
+        } catch {
+        }
+      }
       if (navigator.clipboard?.read) {
         const items = await navigator.clipboard.read();
+        for (const item of items) {
+          if (item.types.includes('text/plain')) {
+            const textBlob = await item.getType('text/plain');
+            const texto = await textBlob.text();
+            if (texto && texto.trim()) {
+              const cargasTexto = extraerCargasDesdeTextoOcr(texto, catalogoSucursales);
+              if (cargasTexto.length > 0) {
+                aplicarCargasExtraidas(cargasTexto, 'la tabla copiada');
+                return;
+              }
+            }
+          }
+        }
         for (const item of items) {
           const imageType = item.types.find((t) => t.startsWith('image/'));
           if (imageType) {
@@ -627,19 +653,9 @@ export const PlanColocacionView = () => {
           }
         }
       }
-      if (navigator.clipboard?.readText) {
-        const texto = await navigator.clipboard.readText();
-        if (texto && texto.trim()) {
-          const cargasTexto = extraerCargasDesdeTextoOcr(texto, catalogoSucursales);
-          if (cargasTexto.length > 0) {
-            aplicarCargasExtraidas(cargasTexto, 'el portapapeles');
-            return;
-          }
-        }
-      }
       showToast('Copia primero una captura o tabla (Ctrl+C o Win+Shift+S) y vuelve a pegar.');
     } catch {
-      showToast('Usa Ctrl+V directamente en el teclado para pegar tu captura.');
+      showToast('Usa Ctrl+V directamente en el teclado para pegar tu captura o tabla.');
     }
   };
 
@@ -653,11 +669,11 @@ export const PlanColocacionView = () => {
 
       if (!esInputActivo) {
         const textoPlano = e.clipboardData?.getData('text/plain') || '';
-        if (textoPlano && textoPlano.includes('\n')) {
+        if (textoPlano && (textoPlano.includes('\n') || textoPlano.includes('\t'))) {
           const cargasTexto = extraerCargasDesdeTextoOcr(textoPlano, catalogoSucursales);
           if (cargasTexto.length > 0) {
             e.preventDefault();
-            aplicarCargasExtraidas(cargasTexto, 'el portapapeles');
+            aplicarCargasExtraidas(cargasTexto, 'la tabla copiada');
             return;
           }
         }

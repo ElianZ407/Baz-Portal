@@ -26,11 +26,26 @@ const normalizarTexto = (str) =>
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
     .toUpperCase()
+    .replace(/\s+/g, ' ')
+    .trim();
+
+const capitalizarTitulo = (str) =>
+  String(str || '')
+    .toLowerCase()
+    .replace(/(^|\s|[-./])([a-záéíóúñü])/g, (m, sep, ch) => `${sep}${ch.toUpperCase()}`)
+    .replace(/\b(De|Del|La|Las|Los|Y)\b/g, (m) => m.toLowerCase())
+    .replace(/^(de|del|la|las|los)\b/, (m) => m.charAt(0).toUpperCase() + m.slice(1))
+    .replace(/\bVtex\b/gi, 'VTEX')
+    .replace(/\bBdr\b/gi, 'BDR')
+    .replace(/\bHub\b/gi, 'HUB')
+    .replace(/\bCd\.?\b/gi, 'Cd.')
     .trim();
 
 const REGLAS_LINEAS = [
   { match: (t) => t.includes('YODLOGIX'), valor: 'YODLOGIXTRADE' },
-  { match: (t) => t.includes('MADRINA'), valor: 'LTI MADRINA - VHS' },
+  { match: (t) => t.includes('NUEVA ALIANZA') || t.includes('ALIANZA'), valor: 'NUEVA ALIANZA' },
+  { match: (t) => t.includes('MADRINA'), valor: 'LTI - VHS - MADRINA' },
+  { match: (t) => t.includes('FULL') && t.includes('TUXTLA'), valor: 'LTI FULL - HUB TUXTLA' },
   { match: (t) => t.includes('LTI FULL') || t.includes('FULL - VHS'), valor: 'LTI FULL - VHS' },
   { match: (t) => t.includes('HUB TUXTLA') && t.includes('LTI'), valor: 'LTI - HUB TUXTLA' },
   { match: (t) => t.includes('LIBRAS EXPRESS'), valor: 'LIBRAS EXPRESS' },
@@ -42,38 +57,47 @@ const REGLAS_LINEAS = [
 ];
 
 const REGLAS_DESTINOS = [
+  { claves: ['8285', 'CANDELARIA'], destino: 'Candelaria Campeche', tipo: 'Foráneo' },
+  { claves: ['2214', 'PARRILLA'], destino: 'Parrilla Tabasco', tipo: 'Retail' },
+  { claves: ['2205', 'TIERRA COLORADA'], destino: 'Tierra Colorada', tipo: 'Retail' },
+  { claves: ['2957', 'COMALAPA'], destino: 'Comalapa Chiapas', tipo: 'Foráneo' },
+  { claves: ['1205', 'BOCHIL'], destino: 'Bochil Chiapas', tipo: 'Foráneo' },
+  { claves: ['7109', 'YAJALON'], destino: 'Yajalón Chiapas', tipo: 'Foráneo' },
+  { claves: ['4834', 'BENEMERITO'], destino: 'Benemérito de las Américas', tipo: 'Foráneo' },
+  { claves: ['4774', 'IXTEPEC'], destino: 'Cd. Ixtepec', tipo: 'Foráneo' },
+  { claves: ['VTEX ZONA CENTRO', 'ZONA CENTRO', 'VTEX'], destino: 'VTEX Zona Centro', tipo: 'Retail' },
   { claves: ['8267', '7414', 'MACUSPANA'], destino: 'Macuspana', tipo: 'Retail' },
   { claves: ['6381', 'PARAISO'], destino: 'Paraíso', tipo: 'Retail' },
   { claves: ['6703', '2804', '3156', 'COATZACOALCOS'], destino: 'Coatzacoalcos', tipo: 'Foráneo' },
-  { claves: ['4860', '6460', '9912', '2963', 'COMALCALCO'], destino: 'Comalcalco', tipo: 'Retail' },
-  { claves: ['2590', '2968', 'CARDENAS'], destino: 'Cárdenas Tabasco', tipo: 'Foráneo' },
+  { claves: ['4860', '6460', '9912', '2963', '192', 'COMALCALCO'], destino: 'Comalcalco', tipo: 'Retail' },
+  { claves: ['2590', '2968', '191', 'CARDENAS'], destino: 'Cárdenas Tabasco', tipo: 'Foráneo' },
   { claves: ['8358', 'EMILIANO ZAPATA'], destino: 'Emiliano Zapata', tipo: 'Foráneo' },
   { claves: ['6025', '5061', 'FRONTERA'], destino: 'Frontera', tipo: 'Retail' },
   { claves: ['6542', '2944', 'TEAPA'], destino: 'Teapa', tipo: 'Retail' },
   { claves: ['2204', 'PICHUCALCO'], destino: 'Pichucalco', tipo: 'Foráneo' },
   { claves: ['6107', 'REFORMA'], destino: 'Reforma Chiapas', tipo: 'Foráneo' },
-  { claves: ['2077', 'OCOSINGO'], destino: 'Ocosingo', tipo: 'Foráneo' },
-  { claves: ['7579', 'PALENQUE'], destino: 'Palenque Chiapas', tipo: 'Foráneo' },
+  { claves: ['2977', '2077', 'OCOSINGO'], destino: 'Ocosingo', tipo: 'Foráneo' },
+  { claves: ['7579', '4274', 'PALENQUE'], destino: 'Palenque Chiapas', tipo: 'Foráneo' },
   { claves: ['1606', '5678', '8372', 'SAN ANDRES TUXTLA'], destino: 'San Andrés Tuxtla', tipo: 'Foráneo' },
   { claves: ['9464', 'CARRANZA'], destino: 'V. Carranza Chiapas', tipo: 'Foráneo' },
   { claves: ['2209', 'ESCARCEGA'], destino: 'Escárcega', tipo: 'Foráneo' },
-  { claves: ['2016', 'TEHUANTEPEC'], destino: 'Tehuantepec Oaxaca', tipo: 'Foráneo' },
-  { claves: ['6011', '1492', 'TAPACHULA'], destino: 'Tapachula', tipo: 'Foráneo' },
+  { claves: ['2916', '2016', 'TEHUANTEPEC'], destino: 'Tehuantepec Oaxaca', tipo: 'Foráneo' },
+  { claves: ['6911', '6011', '1492', 'TAPACHULA'], destino: 'Tapachula', tipo: 'Foráneo' },
   { claves: ['4239', '6204', 'MATIAS ROMERO'], destino: 'Matías Romero', tipo: 'HUB' },
-  { claves: ['2078', 'CD. HIDALGO', 'CD HIDALGO', 'CHIAPAS CD'], destino: 'Cd. Hidalgo Chiapas', tipo: 'Foráneo' },
+  { claves: ['2978', '2078', 'CD. HIDALGO', 'CD HIDALGO', 'CHIAPAS CD'], destino: 'Cd. Hidalgo Chiapas', tipo: 'Foráneo' },
   { claves: ['9269', 'BDR SANTA ANA', 'SANTA ANA'], destino: 'BDR Santa Ana', tipo: 'Foráneo' },
   { claves: ['3221', 'LA CONCORDIA', 'CONCORDIA'], destino: 'La Concordia', tipo: 'HUB' },
-  { claves: ['4750', '6208', '2206', 'VILLAHERMOSA'], destino: 'Villahermosa', tipo: 'Retail' },
+  { claves: ['4750', '6208', '2206', '2558', '9542', 'VILLAHERMOSA'], destino: 'Villahermosa', tipo: 'Retail' },
   { claves: ['7362', 'TENOSIQUE'], destino: 'Tenosique Tabasco', tipo: 'Foráneo' },
   { claves: ['6305', '8396', 'JUCHITAN'], destino: 'Juchitán', tipo: 'Foráneo' },
-  { claves: ['2601', '2969', 'COMITAN'], destino: 'Comitán', tipo: 'Foráneo' },
+  { claves: ['2901', '2601', '2969', 'COMITAN'], destino: 'Comitán', tipo: 'Foráneo' },
   { claves: ['1656', '7203', '4689', 'SAN CRISTOBAL'], destino: 'San Cristóbal de las Casas', tipo: 'Foráneo' },
   { claves: ['6018', 'LA VENTA'], destino: 'La Venta Tabasco', tipo: 'Foráneo' },
   { claves: ['2971', '2707', '5512', '7269', 'MINATITLAN'], destino: 'Minatitlán', tipo: 'Foráneo' },
   { claves: ['9757', 'JALPA DE MENDEZ', 'JALPA'], destino: 'Jalpa de Méndez', tipo: 'HUB' },
   { claves: ['HUB TUXTLA'], destino: 'HUB Tuxtla', tipo: 'Retail' },
   { claves: ['9661', 'TUXTLA GUTIERREZ'], destino: 'Tuxtla Gutiérrez', tipo: 'Foráneo' },
-  { claves: ['419', 'TONALA'], destino: 'Tonalá Chiapas', tipo: 'Foráneo' },
+  { claves: ['1803', '419', 'TONALA'], destino: 'Tonalá Chiapas', tipo: 'Foráneo' },
   { claves: ['1294', 'LAS CHOAPAS', 'CHOAPAS'], destino: 'Las Choapas', tipo: 'Foráneo' },
   { claves: ['7540', '2190', 'HUIMANGUILLO'], destino: 'Huimanguillo', tipo: 'Foráneo' },
   { claves: ['5173', '4489', 'CUNDUACAN'], destino: 'Cunduacán', tipo: 'Retail' },
@@ -92,7 +116,7 @@ const REGLAS_DESTINOS = [
   { claves: ['1258', '2486', 'HUIXTLA'], destino: 'Huixtla', tipo: 'Foráneo' }
 ];
 
-const CAPACIDADES_VALIDAS = [153, 180, 110, 90, 80, 50, 40, 18];
+const CAPACIDADES_VALIDAS = [180, 153, 110, 90, 80, 50, 40, 20, 18, 10];
 
 const REGLAS_TIPO_EXPLICITO = [
   { match: (t) => /\bHUB\b/.test(t), valor: 'HUB' },
@@ -107,7 +131,9 @@ const PALABRAS_ENCABEZADO = [
   'PLAN DE COLOCACION',
   'PLAN FIN DE CARGA',
   'RESUMEN DE CARGAS EJECUTADAS',
-  'DESTINO / OPERACION'
+  'DESTINO / OPERACION',
+  'ENTREGADO EN CASETA',
+  'FOLIO ENVIO'
 ];
 
 const limpiarNombreSucursal = (nombre) =>
@@ -120,16 +146,74 @@ const limpiarNombreSucursal = (nombre) =>
     .replace(/^MEGA\s+ELEKTRA\s+/i, '')
     .replace(/^MEGA\s+/i, '')
     .replace(/^EKT\s+/i, '')
+    .replace(/^APA\s+/i, '')
+    .replace(/^SYR\s+/i, '')
     .replace(/\s*-\s*\d+\s*\(MOTOS\)/i, '')
     .replace(/\s*\(RETORNO\)/gi, '')
     .trim();
 
+const buscarDestinoEnReglasOCatalogo = (textoNorm, numSucursal, catalogoSucursales = []) => {
+  const numLimpio = String(numSucursal || '').replace(/\D/g, '').trim();
+
+  if (numLimpio && numLimpio !== '0') {
+    const porIdRegla = REGLAS_DESTINOS.find((r) => r.claves.includes(numLimpio));
+    if (porIdRegla) return { destino: porIdRegla.destino, tipo: porIdRegla.tipo, regla: porIdRegla };
+
+    const porIdCat = (catalogoSucursales || []).find((s) => String(s.id || '').trim() === numLimpio);
+    if (porIdCat) {
+      return {
+        destino: capitalizarTitulo(limpiarNombreSucursal(porIdCat.nombre)),
+        tipo: porIdCat.fl === 'LOCAL' ? 'Retail' : 'Foráneo',
+        regla: null
+      };
+    }
+  }
+
+  const reglaDirecta = REGLAS_DESTINOS.find((r) =>
+    r.claves.some((clave) =>
+      /^\d+$/.test(clave)
+        ? new RegExp(`\\b${clave}\\b`).test(textoNorm)
+        : textoNorm.includes(clave)
+    )
+  );
+  if (reglaDirecta) return { destino: reglaDirecta.destino, tipo: reglaDirecta.tipo, regla: reglaDirecta };
+
+  const sucursalCat = (catalogoSucursales || []).find((s) => {
+    const nomNorm = normalizarTexto(limpiarNombreSucursal(s.nombre));
+    return nomNorm.length >= 4 && textoNorm.includes(nomNorm);
+  });
+  if (sucursalCat) {
+    return {
+      destino: capitalizarTitulo(limpiarNombreSucursal(sucursalCat.nombre)),
+      tipo: sucursalCat.fl === 'LOCAL' ? 'Retail' : 'Foráneo',
+      regla: null
+    };
+  }
+
+  return null;
+};
+
+const extraerDestinoFallbackDeLineaOcr = (lineaNorm) => {
+  const matchPrefijo = lineaNorm.match(
+    /\b(?:MI\s+EKT|EKT\s+MEGA\s+TAB|EKT\s+MEGA|EKT\s+MOTOS|MEGA\s+ELEKTRA|EKT|MEGA|APA|BDR|SYR|VTEX)\s+([A-Z0-9.\s]{3,45})/
+  );
+  if (!matchPrefijo) return null;
+  const crudo = matchPrefijo[0]
+    .replace(/\b(EN\s+CASETA|COLOCADO|CARGADO|PENDIENTE|COMPLETADO|RETORNO|NO\s+SE\s+CUBRE)\b.*$/i, '')
+    .replace(/\b(S\d+|R\d+|C\d+|\d+DS|\d{1,2}:\d{2})\b.*$/i, '')
+    .replace(/\s+\d{1,2}\s*$/, '')
+    .trim();
+  const limpio = limpiarNombreSucursal(crudo);
+  if (limpio.length < 3) return null;
+  return capitalizarTitulo(limpio);
+};
+
 const extraerCapacidadDeLinea = (lineaNorm) => {
-  const matchM3 = lineaNorm.match(/\b(18|40|50|80|90|110|153|180)\s*M/);
+  const matchM3 = lineaNorm.match(/\b(10|18|20|40|50|80|90|110|153|180)\s*M/);
   if (matchM3) return Number(matchM3[1]);
 
   const corte = lineaNorm.split(/CS00|\d{1,2}\/\d{1,2}\/\d{2,4}/)[0] || lineaNorm;
-  const tokens = corte.match(/\b(18|40|50|80|90|110|153|180)\b/g);
+  const tokens = corte.match(/\b(10|18|20|40|50|80|90|110|153|180)\b/g);
   return tokens && tokens.length > 0 ? Number(tokens[tokens.length - 1]) : 50;
 };
 
@@ -152,8 +236,105 @@ export const deduplicarCargasUnicas = (lista) => {
   }));
 };
 
+const detectarColumnasTsv = (filas) => {
+  for (let i = 0; i < Math.min(filas.length, 5); i++) {
+    const cols = filas[i].map(normalizarTexto);
+    const idxSucursal = cols.findIndex((c) => c === 'SUCURSAL' || c.includes('DESTINO'));
+    if (idxSucursal >= 0) {
+      return {
+        headerRow: i,
+        idxSucursal,
+        idxNumSuc: cols.findIndex((c) => c.includes('# SUC') || c === 'SUC' || c === 'NO. SUC'),
+        idxCap: cols.findIndex((c) => c.includes('CAP')),
+        idxLinea: cols.findIndex((c) => c.includes('LINEA')),
+        idxEstatus: cols.findIndex((c) => c.includes('ESTATUS'))
+      };
+    }
+  }
+
+  for (const colsRaw of filas) {
+    const cols = colsRaw.map(normalizarTexto);
+    const idxCarga = cols.findIndex((c) => /^CS\d{5,}|^VTEX$/.test(c));
+    if (idxCarga >= 0 && cols.length > idxCarga + 2) {
+      return {
+        headerRow: -1,
+        idxSucursal: idxCarga + 2,
+        idxNumSuc: idxCarga + 1,
+        idxCap: cols.findIndex((c, idx) => idx < idxCarga && CAPACIDADES_VALIDAS.includes(Number(c))),
+        idxLinea: cols.findIndex((c, idx) => idx < idxCarga && REGLAS_LINEAS.some((r) => r.match(c))),
+        idxEstatus: -1
+      };
+    }
+  }
+
+  return null;
+};
+
+const extraerCargasDesdeTsv = (textoCrudo, catalogoSucursales = []) => {
+  const lineasRaw = String(textoCrudo || '')
+    .split(/\r?\n/)
+    .filter((l) => l.trim().length > 0);
+  const filas = lineasRaw.map((l) => l.split('\t').map((c) => c.trim()));
+  const mapa = detectarColumnasTsv(filas);
+  if (!mapa) return null;
+
+  const resultado = [];
+
+  filas.forEach((cols, rowIndex) => {
+    if (rowIndex <= mapa.headerRow) return;
+    if (cols.length <= mapa.idxSucursal) return;
+
+    const sucursalRaw = cols[mapa.idxSucursal] || '';
+    const numSucRaw = mapa.idxNumSuc >= 0 ? (cols[mapa.idxNumSuc] || '') : '';
+    const capRaw = mapa.idxCap >= 0 ? (cols[mapa.idxCap] || '') : '';
+    const lineaRaw = mapa.idxLinea >= 0 ? (cols[mapa.idxLinea] || '') : '';
+    const rowNorm = normalizarTexto(cols.join(' '));
+
+    if (!sucursalRaw || PALABRAS_ENCABEZADO.some((enc) => normalizarTexto(sucursalRaw).includes(enc))) return;
+    if (/^\d+(\.\d+)?$/.test(sucursalRaw.trim())) return;
+
+    const sucNorm = normalizarTexto(sucursalRaw);
+    const match = buscarDestinoEnReglasOCatalogo(sucNorm, numSucRaw, catalogoSucursales);
+    const destino = match
+      ? match.destino
+      : capitalizarTitulo(limpiarNombreSucursal(sucursalRaw) || sucursalRaw);
+
+    if (!destino || destino.length < 2) return;
+
+    const tipoExplicito = REGLAS_TIPO_EXPLICITO.find((r) => r.match(rowNorm))?.valor;
+    const tipo = tipoExplicito || match?.tipo || 'Foráneo';
+
+    const capNum = Number(String(capRaw).replace(/[^\d.]/g, ''));
+    const capacidad = CAPACIDADES_VALIDAS.includes(capNum)
+      ? capNum
+      : (extraerCapacidadDeLinea(rowNorm) || 50);
+
+    const lineaNorm = normalizarTexto(lineaRaw || rowNorm);
+    const linea = extraerLineaDeTexto(lineaNorm, match?.regla);
+
+    resultado.push({
+      id: resultado.length + 1,
+      destino,
+      tipo,
+      capacidad,
+      linea,
+      estatus: 'Ejecutada'
+    });
+  });
+
+  return deduplicarCargasUnicas(resultado);
+};
+
 export const extraerCargasDesdeTextoOcr = (textoCrudo, catalogoSucursales = []) => {
-  const lineas = String(textoCrudo || '')
+  const texto = String(textoCrudo || '');
+  if (texto.includes('\t')) {
+    const tsvResultado = extraerCargasDesdeTsv(texto, catalogoSucursales);
+    if (tsvResultado && tsvResultado.length > 0) {
+      return tsvResultado;
+    }
+  }
+
+  const lineas = texto
     .split(/\r?\n/)
     .map((l) => l.trim())
     .filter((l) => l.length >= 4);
@@ -164,31 +345,16 @@ export const extraerCargasDesdeTextoOcr = (textoCrudo, catalogoSucursales = []) 
     const lineaNorm = normalizarTexto(lineaRaw);
     if (PALABRAS_ENCABEZADO.some((enc) => lineaNorm.includes(enc))) return;
 
-    const reglaDirecta = REGLAS_DESTINOS.find((r) =>
-      r.claves.some((clave) =>
-        /^\d+$/.test(clave)
-          ? new RegExp(`\\b${clave}\\b`).test(lineaNorm)
-          : lineaNorm.includes(clave)
-      )
-    );
+    const match = buscarDestinoEnReglasOCatalogo(lineaNorm, '', catalogoSucursales);
+    const destinoFallback = !match ? extraerDestinoFallbackDeLineaOcr(lineaNorm) : null;
 
-    const sucursalCat = !reglaDirecta
-      ? (catalogoSucursales || []).find((s) => {
-          const nomNorm = normalizarTexto(limpiarNombreSucursal(s.nombre));
-          return nomNorm.length >= 4 && lineaNorm.includes(nomNorm);
-        })
-      : null;
+    if (!match && !destinoFallback) return;
 
-    if (!reglaDirecta && !sucursalCat) return;
-
-    const destino = reglaDirecta
-      ? reglaDirecta.destino
-      : limpiarNombreSucursal(sucursalCat.nombre);
-
+    const destino = match ? match.destino : destinoFallback;
     const tipoExplicito = REGLAS_TIPO_EXPLICITO.find((r) => r.match(lineaNorm))?.valor;
-    const tipo = tipoExplicito || (reglaDirecta ? reglaDirecta.tipo : (sucursalCat?.fl === 'LOCAL' ? 'Retail' : 'Foráneo'));
-    const capacidad = extraerCapacidadDeLinea(lineaNorm) || CAPACIDADES_VALIDAS[5];
-    const linea = extraerLineaDeTexto(lineaNorm, reglaDirecta);
+    const tipo = tipoExplicito || (match ? match.tipo : 'Foráneo');
+    const capacidad = extraerCapacidadDeLinea(lineaNorm) || 50;
+    const linea = extraerLineaDeTexto(lineaNorm, match?.regla);
 
     resultado.push({
       id: resultado.length + 1,
@@ -210,14 +376,17 @@ const preprocesarImagenEnCanvas = (file) =>
 
     img.onload = () => {
       try {
-        const scale = img.width < 1600 ? 2 : 1.5;
+        const targetWidth = Math.min(3600, Math.max(2600, img.width * 2));
+        const scale = Math.max(1.5, Math.min(3.5, targetWidth / Math.max(1, img.width)));
         const canvas = document.createElement('canvas');
         canvas.width = Math.round(img.width * scale);
         canvas.height = Math.round(img.height * scale);
         const ctx = canvas.getContext('2d');
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'high';
         ctx.fillStyle = '#FFFFFF';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
-        ctx.filter = 'contrast(1.35) saturate(0.2)';
+        ctx.filter = 'grayscale(1) contrast(1.65) brightness(1.08)';
         ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
         URL.revokeObjectURL(objectUrl);
         resolve(canvas);
@@ -241,7 +410,8 @@ export const extraerCargasDesdeImagen = async (file, catalogoSucursales = []) =>
     preprocesarImagenEnCanvas(file)
   ]);
 
-  const { data } = await Tesseract.recognize(canvas, 'spa+eng');
+  const { data } = await Tesseract.recognize(canvas, 'spa+eng', {
+    tessedit_pageseg_mode: '6'
+  });
   return extraerCargasDesdeTextoOcr(data?.text || '', catalogoSucursales);
 };
-
