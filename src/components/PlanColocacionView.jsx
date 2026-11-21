@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { fetchPlanesColocacionDb, savePlanColocacionDb, isSupabaseConfigured } from '../lib/supabaseClient';
 import { useFleet } from '../context/FleetContext';
-import { extraerCargasDesdeImagen, extraerCargasDesdeTextoOcr } from '../utils/colocacionImageParser';
+import { extraerCargasDesdeImagen, extraerCargasDesdeTextoOcr, extraerCargasDesdeExcel } from '../utils/colocacionImageParser';
 import { 
   Calendar, 
   ChevronLeft, 
@@ -10,6 +10,7 @@ import {
   Download, 
   Copy, 
   Edit3, 
+  FileSpreadsheet,
   ImagePlus,
   Plus, 
   Trash2, 
@@ -475,6 +476,7 @@ export const PlanColocacionView = () => {
 
   const flyerRef = useRef(null);
   const imageInputRef = useRef(null);
+  const excelInputRef = useRef(null);
 
   const applyCloudRows = (rows) => {
     if (!rows) {
@@ -611,6 +613,27 @@ export const PlanColocacionView = () => {
     e.target.value = '';
     if (!file) return;
     await procesarBlobImagen(file, 'la imagen');
+  };
+
+  const handleTriggerExcelUpload = () => {
+    if (isReadingImage) return;
+    excelInputRef.current?.click();
+  };
+
+  const handleExcelFileSelected = async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file || isReadingImage) return;
+    setIsReadingImage(true);
+    showToast('Leyendo archivo Excel para extraer todas las cargas...');
+    try {
+      const nuevasCargas = await extraerCargasDesdeExcel(file, catalogoSucursales);
+      aplicarCargasExtraidas(nuevasCargas, 'el archivo Excel');
+    } catch (err) {
+      showToast(err?.message || 'Error al leer el archivo Excel.');
+    } finally {
+      setIsReadingImage(false);
+    }
   };
 
   const handlePasteFromClipboardButton = async () => {
@@ -1225,6 +1248,13 @@ export const PlanColocacionView = () => {
         onChange={handleImageFileSelected}
         style={{ display: 'none' }}
       />
+      <input
+        ref={excelInputRef}
+        type="file"
+        accept=".xlsx,.xls,.csv,.tsv"
+        onChange={handleExcelFileSelected}
+        style={{ display: 'none' }}
+      />
       {toastMessage && (
         <div className="colocacion-toast">
           <Sparkles size={16} color="#38bdf8" />
@@ -1480,6 +1510,16 @@ export const PlanColocacionView = () => {
                     >
                       {isReadingImage ? <RefreshCw size={12} className="spin-icon" /> : <ClipboardPaste size={12} />}
                       <span>{isReadingImage ? 'Leyendo...' : 'Pegar (Ctrl+V)'}</span>
+                    </button>
+                    <button
+                      type="button"
+                      className="btn-sync-cargas"
+                      onClick={handleTriggerExcelUpload}
+                      disabled={isReadingImage}
+                      title="Subir archivo Excel (.xlsx o .csv) para leer el 100% de las cargas sin errores"
+                    >
+                      <FileSpreadsheet size={12} />
+                      <span>Subir Excel</span>
                     </button>
                     <button
                       type="button"
@@ -2044,6 +2084,16 @@ export const PlanColocacionView = () => {
                       >
                         {isReadingImage ? <RefreshCw size={13} className="spin-icon" /> : <ClipboardPaste size={13} />}
                         <span>{isReadingImage ? 'Leyendo...' : 'Pegar (Ctrl+V)'}</span>
+                      </button>
+                      <button
+                        type="button"
+                        className="btn btn-sm btn-secondary"
+                        onClick={handleTriggerExcelUpload}
+                        disabled={isReadingImage}
+                        title="Subir archivo Excel (.xlsx o .csv) para rellenar todas las cargas con 100% de precisión"
+                      >
+                        <FileSpreadsheet size={13} />
+                        <span>Subir Excel</span>
                       </button>
                       <button
                         type="button"

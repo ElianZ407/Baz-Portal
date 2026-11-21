@@ -77,7 +77,7 @@ const REGLAS_DESTINOS = [
   { claves: ['2204', 'PICHUCALCO', 'PICHUCAL'], destino: 'Pichucalco', tipo: 'Foráneo' },
   { claves: ['6107', 'REFORMA', 'REFORM'], destino: 'Reforma Chiapas', tipo: 'Foráneo' },
   { claves: ['2977', '2077', 'OCOSINGO', 'OCOSING'], destino: 'Ocosingo', tipo: 'Foráneo' },
-  { claves: ['7579', '4274', 'PALENQUE', 'PALENQ'], destino: 'Palenque Chiapas', tipo: 'Foráneo' },
+  { claves: ['7579', '4274', 'PALENQUE', 'PALENQ', 'LENQUE', 'LERQUE'], destino: 'Palenque Chiapas', tipo: 'Foráneo' },
   { claves: ['1606', '5678', '8372', 'SAN ANDRES TUXTLA', 'SAN ANDRES'], destino: 'San Andrés Tuxtla', tipo: 'Foráneo' },
   { claves: ['9464', 'CARRANZA', 'CARRANZ'], destino: 'V. Carranza Chiapas', tipo: 'Foráneo' },
   { claves: ['2209', 'ESCARCEGA', 'ESCARCEG'], destino: 'Escárcega', tipo: 'Foráneo' },
@@ -94,7 +94,7 @@ const REGLAS_DESTINOS = [
   { claves: ['1656', '7203', '4689', 'SAN CRISTOBAL', 'CRISTOBAL'], destino: 'San Cristóbal de las Casas', tipo: 'Foráneo' },
   { claves: ['6018', 'LA VENTA'], destino: 'La Venta Tabasco', tipo: 'Foráneo' },
   { claves: ['2971', '2707', '5512', '7269', 'MINATITLAN', 'MINATIT'], destino: 'Minatitlán', tipo: 'Foráneo' },
-  { claves: ['9757', 'JALPA DE MENDEZ', 'JALPA DE'], destino: 'Jalpa de Méndez', tipo: 'HUB' },
+  { claves: ['9757', 'JALPA DE MENDEZ', 'JALPA DE', 'DE MENDEZ'], destino: 'Jalpa de Méndez', tipo: 'HUB' },
   { claves: ['HUB TUXTLA'], destino: 'HUB Tuxtla', tipo: 'Retail' },
   { claves: ['9661', 'TUXTLA GUTIERREZ', 'GUTIERREZ'], destino: 'Tuxtla Gutiérrez', tipo: 'Foráneo' },
   { claves: ['1803', '419', 'TONALA', 'TONAL'], destino: 'Tonalá Chiapas', tipo: 'Foráneo' },
@@ -199,12 +199,12 @@ const extraerDestinoFallbackDeLineaOcr = (lineaNorm) => {
   );
   if (!matchPrefijo) return null;
   const crudo = matchPrefijo[0]
-    .replace(/\b(EN\s+CASETA|COLOCADO|CARGADO|PENDIENTE|COMPLETADO|RETORNO|NO\s+SE\s+CUBRE)\b.*$/i, '')
+    .replace(/\b(EN\s*CASETA|ENCAS\w*|COLOCADO|CARGADO|PENDIENTE|COMPLETADO|RETORNO|NO\s+SE\s+CUBRE)\b.*$/i, '')
     .replace(/\b(S\d+|R\d+|C\d+|\d+DS|\d{1,2}:\d{2})\b.*$/i, '')
     .replace(/\s+\d{1,2}\s*$/, '')
     .trim();
   const limpio = limpiarNombreSucursal(crudo);
-  if (limpio.length < 3) return null;
+  if (limpio.length < 4 || /\bENCAS/i.test(limpio)) return null;
   return capitalizarTitulo(limpio);
 };
 
@@ -381,14 +381,15 @@ const limpiarFondoParaOcr = (ctx, width, height) => {
     const r = data[i];
     const g = data[i + 1];
     const b = data[i + 2];
+    const esFondoAmarilloONaranja = r > 170 && g > 125 && b < 115 && (r - b) > 55;
     const lum = 0.299 * r + 0.587 * g + 0.114 * b;
     let val;
-    if (lum > 152) {
+    if (esFondoAmarilloONaranja || lum > 215) {
       val = 255;
-    } else if (lum < 95) {
+    } else if (lum < 145) {
       val = 0;
     } else {
-      val = Math.round(((lum - 95) / 57) * 255);
+      val = Math.round(((lum - 145) / 70) * 255);
     }
     data[i] = val;
     data[i + 1] = val;
@@ -489,4 +490,55 @@ export const extraerCargasDesdeImagen = async (file, catalogoSucursales = []) =>
     if (data?.text) textos.push(data.text);
   }
   return extraerCargasDesdeTextoOcr(textos.join('\n'), catalogoSucursales);
+};
+
+const valorCeldaExcel = (cell) => {
+  if (!cell || cell.value === null || cell.value === undefined) return '';
+  const v = cell.value;
+  if (typeof v === 'object') {
+    if (v.text) return String(v.text);
+    if (Array.isArray(v.richText)) return v.richText.map((r) => r.text || '').join('');
+    if (v.result !== undefined && v.result !== null) return String(v.result);
+    if (v instanceof Date) {
+      const dd = String(v.getDate()).padStart(2, '0');
+      const mm = String(v.getMonth() + 1).padStart(2, '0');
+      return `${dd}/${mm}/${v.getFullYear()}`;
+    }
+  }
+  return String(v);
+};
+
+export const extraerCargasDesdeExcel = async (file, catalogoSucursales = []) => {
+  const nombre = String(file?.name || '').toLowerCase();
+  if (nombre.endsWith('.csv') || nombre.endsWith('.tsv') || nombre.endsWith('.txt')) {
+    const texto = await file.text();
+    const tsv = texto.includes('\t') ? texto : texto.replace(/,/g, '\t');
+    return extraerCargasDesdeTextoOcr(tsv, catalogoSucursales);
+  }
+
+  const ExcelJSModule = await import('exceljs');
+  const ExcelJS = ExcelJSModule.default || ExcelJSModule;
+  const workbook = new ExcelJS.Workbook();
+  const buffer = await file.arrayBuffer();
+  await workbook.xlsx.load(buffer);
+
+  let mejorResultado = [];
+  for (const worksheet of workbook.worksheets) {
+    const lineas = [];
+    worksheet.eachRow((row) => {
+      const cols = [];
+      row.eachCell({ includeEmpty: true }, (cell, colNumber) => {
+        cols[colNumber - 1] = valorCeldaExcel(cell).replace(/\r?\n/g, ' ').trim();
+      });
+      if (cols.some(Boolean)) {
+        lineas.push(cols.map((c) => c || '').join('\t'));
+      }
+    });
+    const cargasHoja = extraerCargasDesdeTextoOcr(lineas.join('\n'), catalogoSucursales);
+    if (cargasHoja.length > mejorResultado.length) {
+      mejorResultado = cargasHoja;
+    }
+  }
+
+  return mejorResultado;
 };
