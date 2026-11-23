@@ -62,7 +62,12 @@ const REGLAS_DESTINOS = [
   { claves: ['2205', 'TIERRA COLORADA', 'TIERRA COLOR'], destino: 'Tierra Colorada', tipo: 'Retail' },
   { claves: ['2957', 'COMALAPA', 'COMALAP'], destino: 'Comalapa Chiapas', tipo: 'Foráneo' },
   { claves: ['1205', 'BOCHIL', 'BOCH1L', 'APA BOCH'], destino: 'Bochil Chiapas', tipo: 'Foráneo' },
-  { claves: ['7109', 'YAJALON', 'YAJAL'], destino: 'Yajalón Chiapas', tipo: 'Foráneo' },
+  { claves: ['2213', 'BALANCAN', 'BALANC'], destino: 'Balancán', tipo: 'Foráneo' },
+  { claves: ['6016', 'OCUILTZAPOTLAN', 'OCUILTZ'], destino: 'Villa Ocuiltzapotlán', tipo: 'Retail' },
+  { claves: ['3259', 'TECOLUTILLA', 'TECOLUT'], destino: 'Tecolutilla', tipo: 'Retail' },
+  { claves: ['143', 'MOTOZINTLA', 'MOTOZINT'], destino: 'Motozintla Chiapas', tipo: 'Foráneo' },
+  { claves: ['9685', 'PLAZA FLORIDA'], destino: 'Plaza Florida', tipo: 'Retail' },
+  { claves: ['7109', '7169', 'YAJALON', 'YAJAL'], destino: 'Yajalón Chiapas', tipo: 'Foráneo' },
   { claves: ['4834', 'BENEMERITO', 'BENEMERIT', 'DE LAS AMERICAS'], destino: 'Benemérito de las Américas', tipo: 'Foráneo' },
   { claves: ['4774', 'IXTEPEC', 'IXTEP'], destino: 'Cd. Ixtepec', tipo: 'Foráneo' },
   { claves: ['VTEX ZONA CENTRO', 'ZONA CENTRO', 'VTEX'], destino: 'VTEX Zona Centro', tipo: 'Retail' },
@@ -90,14 +95,14 @@ const REGLAS_DESTINOS = [
   { claves: ['4750', '6208', '2206', '2558', '9542', 'VILLAHERMOSA', 'VILLAH', 'PLAZA CRISTAL', 'TAMULTE'], destino: 'Villahermosa', tipo: 'Retail' },
   { claves: ['7362', 'TENOSIQUE', 'TENOSIQ'], destino: 'Tenosique Tabasco', tipo: 'Foráneo' },
   { claves: ['6305', '8396', 'JUCHITAN', 'JUCHIT'], destino: 'Juchitán', tipo: 'Foráneo' },
-  { claves: ['2901', '2601', '2969', 'COMITAN', 'MOTOS COMIT'], destino: 'Comitán', tipo: 'Foráneo' },
+  { claves: ['2901', '2601', '2969', '4225', 'COMITAN', 'MOTOS COMIT'], destino: 'Comitán', tipo: 'Foráneo' },
   { claves: ['1656', '7203', '4689', 'SAN CRISTOBAL', 'CRISTOBAL'], destino: 'San Cristóbal de las Casas', tipo: 'Foráneo' },
   { claves: ['6018', 'LA VENTA'], destino: 'La Venta Tabasco', tipo: 'Foráneo' },
   { claves: ['2971', '2707', '5512', '7269', 'MINATITLAN', 'MINATIT'], destino: 'Minatitlán', tipo: 'Foráneo' },
   { claves: ['9757', 'JALPA DE MENDEZ', 'JALPA DE', 'DE MENDEZ'], destino: 'Jalpa de Méndez', tipo: 'HUB' },
   { claves: ['HUB TUXTLA'], destino: 'HUB Tuxtla', tipo: 'Retail' },
-  { claves: ['9661', 'TUXTLA GUTIERREZ', 'GUTIERREZ'], destino: 'Tuxtla Gutiérrez', tipo: 'Foráneo' },
-  { claves: ['1803', '419', 'TONALA', 'TONAL'], destino: 'Tonalá Chiapas', tipo: 'Foráneo' },
+  { claves: ['9661', '1990', 'TUXTLA GUTIERREZ', 'TUXTLA GUTI', 'PLAZA DEL SOL', 'GUTIERREZ'], destino: 'Tuxtla Gutiérrez', tipo: 'Foráneo' },
+  { claves: ['1803', '1083', '419', 'TONALA', 'TONAL'], destino: 'Tonalá Chiapas', tipo: 'Foráneo' },
   { claves: ['1294', 'LAS CHOAPAS', 'CHOAPAS'], destino: 'Las Choapas', tipo: 'Foráneo' },
   { claves: ['7540', '2190', 'HUIMANGUILLO', 'HUIMANG'], destino: 'Huimanguillo', tipo: 'Foráneo' },
   { claves: ['5173', '4489', 'CUNDUACAN', 'CUNDUAC'], destino: 'Cunduacán', tipo: 'Retail' },
@@ -109,7 +114,7 @@ const REGLAS_DESTINOS = [
   { claves: ['6431', '5067', 'PUERTO ESCONDIDO'], destino: 'Puerto Escondido', tipo: 'Foráneo' },
   { claves: ['2207', '7710', 'HUATULCO'], destino: 'Huatulco', tipo: 'Foráneo' },
   { claves: ['6761', '1449', 'CD DEL CARMEN', 'CARMEN'], destino: 'Cd. del Carmen', tipo: 'Foráneo' },
-  { claves: ['6398', 'CAMPECHE'], destino: 'Campeche', tipo: 'Foráneo' },
+  { claves: ['6398', 'CAMPECHE', 'AVIACION'], destino: 'Campeche', tipo: 'Foráneo' },
   { claves: ['8651', 'ARRIAGA'], destino: 'Arriaga', tipo: 'Foráneo' },
   { claves: ['6240', 'CINTALAPA', 'CINTALAP'], destino: 'Cintalapa', tipo: 'Foráneo' },
   { claves: ['3049', 'VILLA FLORES', 'VILLAFLORES'], destino: 'Villaflores', tipo: 'Foráneo' },
@@ -456,7 +461,7 @@ export const extraerCargasDesdeImagen = async (file, catalogoSucursales = []) =>
     cargarImagenDesdeArchivo(file)
   ]);
 
-  const esTablaAncha = img.width / Math.max(1, img.height) >= 1.5;
+  const esTablaAncha = img.width / Math.max(1, img.height) >= 2.15;
   const franjas = generarFranjasOcr(img, esTablaAncha);
 
   const textos = [];
